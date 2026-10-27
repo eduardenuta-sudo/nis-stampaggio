@@ -1030,17 +1030,13 @@ function disegnaRighe() {
     // una riga per commessa: ogni "Fine commessa" chiude la sua, poi l'ultima lettura della commessa nuova
     const lp = delTurno.filter(l => l.pressa === p), rp = [];
     lp.forEach((l, k) => { if (eFine(l) || k === lp.length - 1) rp.push(l); });
-    if (rp.length) rp.forEach(l => righe.push({ pressa: p, lettura: l, piu: rp.length > 1 }));
-    else if (!ferme.includes(p)) righe.push({ pressa: p, lettura: null });
+    rp.forEach(l => righe.push({ pressa: p, lettura: l, piu: rp.length > 1 }));   // le presse non lette non compaiono
   });
-  // in alto le presse lette (nell'ordine delle presse), in fondo quelle ancora da leggere
-  righe.sort((a, b) => (a.lettura ? 0 : 1) - (b.lettura ? 0 : 1));
-  $('righe').innerHTML = righe.map(r => r.lettura
-    ? '<tr><td class="pressa">' + r.pressa + (r.piu ? '<span class="ev">' + esc([r.lettura.articolo && 'Art. ' + r.lettura.articolo, r.lettura.commessa].filter(Boolean).join(' · ')) + '</span>' : '') +
+  $('righe').innerHTML = righe.map(r =>
+    '<tr><td class="pressa">' + r.pressa + (r.piu ? '<span class="ev">' + esc([r.lettura.articolo && 'Art. ' + r.lettura.articolo, r.lettura.commessa].filter(Boolean).join(' · ')) + '</span>' : '') +
       (testoEvento(r.lettura) ? '<span class="ev">' + testoEvento(r.lettura).replace(/</g, '&lt;') + '</span>' : '') + '</td><td class="n">' + r.lettura.cicli + '</td><td class="n ore">' +
       formatoOre(oreDi(r.lettura)) + '</td><td class="n"><button class="x" data-del="' + r.lettura.ora +
-      '" aria-label="Elimina lettura pressa ' + r.pressa + '">×</button></td></tr>'
-    : '<tr><td class="pressa">' + r.pressa + '</td><td class="mancante" colspan="3">non letta</td></tr>').join('');
+      '" aria-label="Elimina lettura pressa ' + r.pressa + '">×</button></td></tr>').join('');
   document.querySelectorAll('[data-del]').forEach(b => {
     b.onclick = () => {
       if (b.dataset.confermare) { letture = letture.filter(l => l.ora !== b.dataset.del); salva(CHIAVE, letture); aggiornaFerme(); disegnaElencoPresse(); disegnaRiepilogo(); return; }
@@ -1048,9 +1044,7 @@ function disegnaRighe() {
       setTimeout(() => { b.textContent = '×'; b.classList.remove('conferma'); delete b.dataset.confermare; }, 3000);
     };
   });
-  const mancanti = righe.filter(r => !r.lettura).length;
-  $('note-riepilogo').innerHTML = (mancanti ? '<span class="nota-avviso">' + mancanti + ' presse in funzione non lette.</span> ' : '') +
-    'Le presse ferme senza lettura non compaiono.';
+  $('note-riepilogo').innerHTML = 'Compaiono solo le presse lette.';
 }
 
 // ---------------- Storico ----------------
