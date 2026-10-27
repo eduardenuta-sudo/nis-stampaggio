@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261027204747">
+<meta name="versione" content="20261027204852">
 <meta name="theme-color" content="#0b2d6c">
 <title>NIS Stampaggio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -573,7 +573,7 @@
 (function () {
   const mia = document.querySelector('meta[name="versione"]').content;
   fetch(location.pathname + '?c=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => {
-    const m = t.match(/name="versione" content="20261027204747"]+)"/);
+    const m = t.match(/<meta name="versione" content="(\d+)"/);
     if (m && m[1] !== mia && !/[?&]v=/.test(location.search + '') ) location.replace(location.pathname + '?v=' + m[1]);
     else if (m && m[1] !== mia) location.reload();
   }).catch(() => {});
