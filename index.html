@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261027204852">
+<meta name="versione" content="20261027205120">
 <meta name="theme-color" content="#0b2d6c">
 <title>NIS Stampaggio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -291,7 +291,7 @@
   td.az { white-space: nowrap; text-align: right; }
   td.sp { width: 1%; padding-right: 8px; }
   button.x.ok { width: 36px; height: 36px; font-size: 1.15rem; }
-  tr.segnata td { opacity: .45; }
+  tr.segnata td { opacity: .25; }
   tr.segnata td.sp, tr.segnata td.az { opacity: 1; }
   button.x.ok[aria-pressed="true"] { color: var(--su-giallo); background: linear-gradient(#dde333, var(--giallo) 55%, #b3b900); border-color: transparent; }
   button.linea { background: none; border: 0; box-shadow: none; padding: 0; color: var(--giallo); font: inherit; text-decoration: underline; }
@@ -1056,7 +1056,7 @@ function disegnaRiepilogo() {
 }
 $('turno-scelto').onchange = () => { turnoSceltoChiave = $('turno-scelto').value; disegnaRighe(); };
 
-let mostraSegnate = false;                   // true: nel riepilogo restano visibili anche le letture già segnate sul MES
+let mostraSegnate = true;                    // true: le letture già segnate sul MES restano in elenco, sbiadite; "Nascondi" le toglie
 function disegnaRighe() {
   const delTurno = letturePerTurno(turnoSceltoChiave);
   const righe = [];
@@ -1087,7 +1087,7 @@ function disegnaRighe() {
       setTimeout(() => { b.textContent = '×'; b.classList.remove('conferma'); delete b.dataset.confermare; }, 3000);
     };
   });
-  $('note-riepilogo').innerHTML = 'Compaiono solo le presse lette. Con ✓ una lettura sparisce dall\'elenco dopo averla segnata sul MES.' +
+  $('note-riepilogo').innerHTML = 'Compaiono solo le presse lette. Con ✓ una lettura si sbiadisce dopo averla segnata sul MES.' +
     (segnate ? ' <button class="linea" id="mostra-segnate">' + (mostraSegnate ? 'Nascondi' : 'Mostra') + ' le ' + segnate + ' segnate</button>' : '');
   if (segnate) $('mostra-segnate').onclick = () => { mostraSegnate = !mostraSegnate; disegnaRighe(); };
 }
