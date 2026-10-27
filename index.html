@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261027210845">
+<meta name="versione" content="20261027211037">
 <meta name="theme-color" content="#0b2d6c">
 <title>NIS Stampaggio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -765,8 +765,9 @@ function disegnaElencoPresse() {
       (f ? '<button class="chip riparte" data-riparte="' + p + '">Riparte ora</button>' : '') +
       '</div><div class="slot"></div></div>';
   };
-  // in cima le presse lette in questo turno, l'ultima lettura per prima; poi quelle ancora da leggere, nell'ordine solito
-  const inF = PRESSE.filter(p => !ferme.includes(p)).sort((a, b) => (lette[b] ? new Date(lette[b].ora) : 0) - (lette[a] ? new Date(lette[a].ora) : 0)), ferm = PRESSE.filter(p => ferme.includes(p));
+  // ordine fisso nel tempo: in cima la pressa letta per ultima (di qualunque turno), poi le precedenti; mai lette in fondo, nell'ordine solito
+  const quando = p => { const u = ultimaLettura(p); return u ? new Date(u.ora).getTime() : 0; };
+  const inF = PRESSE.filter(p => !ferme.includes(p)).sort((a, b) => quando(b) - quando(a)), ferm = PRESSE.filter(p => ferme.includes(p));
   $('elenco-presse').innerHTML = inF.map(voce).join('') + (ferm.length ? '<div class="sep">Ferme</div>' + ferm.map(voce).join('') : '');
   document.querySelectorAll('.pressa-btn').forEach(b => { b.onclick = () => apri(Number(b.dataset.p)); });
   document.querySelectorAll('[data-riparte]').forEach(b => { b.onclick = () => riparte(Number(b.dataset.riparte)); });
