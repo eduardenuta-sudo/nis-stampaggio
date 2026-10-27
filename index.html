@@ -287,6 +287,14 @@
   button.x { width: 42px; height: 42px; padding: 0; border-radius: 50%; border-width: 1.5px; font-size: 1.1rem; line-height: 1; box-shadow: 0 4px 0 #0a2253, inset 0 2px 0 rgba(255,255,255,.3); }
   button.x::after { display: none; }
   button.x.conferma { width: auto; padding: 0 14px; border-radius: 21px; font-size: .9rem; white-space: nowrap; }   /* "Elimina" sta dentro il pulsante */
+  td.az { white-space: nowrap; text-align: right; }
+  td.az button.x + button.x { margin-left: 8px; }
+  button.x.ok { font-size: 1.25rem; }
+  tr.segnata td { opacity: .45; }
+  tr.segnata td.az { opacity: 1; }
+  button.x.ok[aria-pressed="true"] { color: var(--su-giallo); background: linear-gradient(#dde333, var(--giallo) 55%, #b3b900); border-color: transparent; }
+  button.linea { background: none; border: 0; box-shadow: none; padding: 0; color: var(--giallo); font: inherit; text-decoration: underline; }
+  button.linea::after { display: none; }
   button.x:active { transform: translateY(3px); box-shadow: 0 1px 0 #0a2253; }
   .nota-avviso { color: var(--warn); font-weight: 600; }
   @media (prefers-reduced-motion: reduce) {
@@ -1035,6 +1043,7 @@ function disegnaRiepilogo() {
 }
 $('turno-scelto').onchange = () => { turnoSceltoChiave = $('turno-scelto').value; disegnaRighe(); };
 
+let mostraSegnate = false;                   // true: nel riepilogo restano visibili anche le letture già segnate sul MES
 function disegnaRighe() {
   const delTurno = letturePerTurno(turnoSceltoChiave);
   const righe = [];
@@ -1044,11 +1053,20 @@ function disegnaRighe() {
     lp.forEach((l, k) => { if (eFine(l) || k === lp.length - 1) rp.push(l); });
     rp.forEach(l => righe.push({ pressa: p, lettura: l, piu: rp.length > 1 }));   // le presse non lette non compaiono
   });
-  $('righe').innerHTML = righe.map(r =>
-    '<tr><td class="pressa">' + r.pressa + (r.piu ? '<span class="ev">' + esc([r.lettura.articolo && 'Art. ' + r.lettura.articolo, r.lettura.commessa].filter(Boolean).join(' · ')) + '</span>' : '') +
+  const segnate = righe.filter(r => r.lettura.mes).length;
+  $('righe').innerHTML = righe.filter(r => mostraSegnate || !r.lettura.mes).map(r =>
+    '<tr' + (r.lettura.mes ? ' class="segnata"' : '') + '><td class="pressa">' + r.pressa + (r.piu ? '<span class="ev">' + esc([r.lettura.articolo && 'Art. ' + r.lettura.articolo, r.lettura.commessa].filter(Boolean).join(' · ')) + '</span>' : '') +
       (testoEvento(r.lettura) ? '<span class="ev">' + testoEvento(r.lettura).replace(/</g, '&lt;') + '</span>' : '') + '</td><td class="n">' + r.lettura.cicli + '</td><td class="n ore">' +
-      formatoOre(oreDi(r.lettura)) + '</td><td class="n"><button class="x" data-del="' + r.lettura.ora +
+      formatoOre(oreDi(r.lettura)) + '</td><td class="az"><button class="x ok" data-mes="' + r.lettura.ora + '" aria-pressed="' + !!r.lettura.mes +
+      '" aria-label="' + (r.lettura.mes ? 'Rimetti in elenco' : 'Segnata sul MES') + ' pressa ' + r.pressa + '">✓</button><button class="x" data-del="' + r.lettura.ora +
       '" aria-label="Elimina lettura pressa ' + r.pressa + '">×</button></td></tr>').join('');
+  document.querySelectorAll('[data-mes]').forEach(b => {
+    b.onclick = () => {                         // segnata sul MES: sparisce dall'elenco ma resta nello Storico e nei calcoli
+      const l = letture.find(x => x.ora === b.dataset.mes);
+      if (l.mes) delete l.mes; else l.mes = true;
+      salva(CHIAVE, letture); disegnaRighe();
+    };
+  });
   document.querySelectorAll('[data-del]').forEach(b => {
     b.onclick = () => {
       if (b.dataset.confermare) { letture = letture.filter(l => l.ora !== b.dataset.del); salva(CHIAVE, letture); aggiornaFerme(); disegnaElencoPresse(); disegnaRiepilogo(); return; }
@@ -1056,7 +1074,9 @@ function disegnaRighe() {
       setTimeout(() => { b.textContent = '×'; b.classList.remove('conferma'); delete b.dataset.confermare; }, 3000);
     };
   });
-  $('note-riepilogo').innerHTML = 'Compaiono solo le presse lette.';
+  $('note-riepilogo').innerHTML = 'Compaiono solo le presse lette. Con ✓ una lettura sparisce dall\'elenco dopo averla segnata sul MES.' +
+    (segnate ? ' <button class="linea" id="mostra-segnate">' + (mostraSegnate ? 'Nascondi' : 'Mostra') + ' le ' + segnate + ' segnate</button>' : '');
+  if (segnate) $('mostra-segnate').onclick = () => { mostraSegnate = !mostraSegnate; disegnaRighe(); };
 }
 
 // ---------------- Storico ----------------
