@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028103533">
+<meta name="versione" content="20261028104122">
 <meta name="theme-color" content="#0b2d6c">
 <title>NIS Stampaggio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -273,6 +273,11 @@
   .pressa-btn .num { font: 700 1.9rem/1 var(--font-titoli); letter-spacing: .05em; text-transform: uppercase; }
   .pressa-btn .st { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .pressa-btn .st.letta { color: var(--giallo); font: 700 1.5rem/1 var(--font-titoli); letter-spacing: .05em; }
+  .pressa-btn:has(.ultima) { gap: 10px; padding-inline: 18px; }
+  .pressa-btn .ultima { min-width: 0; overflow: hidden; text-overflow: ellipsis; margin-left: auto; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
+    font: 600 .8rem/1.1 var(--font); letter-spacing: 0; text-transform: none; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pressa-btn .ultima b { font: 700 1.25rem/1 var(--font-titoli); letter-spacing: .05em; color: #fff; }
+  .voce.aperta .pressa-btn .ultima, .voce.aperta .pressa-btn .ultima b { color: var(--su-giallo); }
   .pressa-btn .st.manca::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--warn); }
   .spunta { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
   .chev { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s cubic-bezier(.16,1,.3,1); }
@@ -819,6 +824,13 @@ const casaPannello = $('vista-leggi');
 const SPUNTA = '<svg class="spunta" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>';
 const CHEVRON = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg>';
 
+// ora di una lettura in breve: "13:45" se è di oggi, "ieri 21:50", altrimenti "26/10 13:45"
+function quandoBreve(d) {
+  const h = d.toTimeString().slice(0, 5), oggi = new Date(), ieri = new Date(oggi.getFullYear(), oggi.getMonth(), oggi.getDate() - 1);
+  if (d.toDateString() === oggi.toDateString()) return h;
+  if (d.toDateString() === ieri.toDateString()) return 'ieri ' + h;
+  return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' ' + h;
+}
 // presse in funzione in cima, ferme in fondo; ognuna è un pulsante che apre la sua tendina
 function disegnaElencoPresse() {
   casaPannello.appendChild(pannello);       // lo metto al sicuro prima di ricostruire l'elenco
@@ -828,11 +840,13 @@ function disegnaElencoPresse() {
     // sulle presse ferme, al posto dello stato, il pulsantino "Riparte ora"
     const stato = f ? '<span class="st spazio-rip"></span>' : l ? '<span class="st letta">' + SPUNTA + l.cicli + '</span>' : '<span class="st manca">da leggere</span>';
     const u = ultimaLettura(p);
+    // da leggere: in mezzo l'ultima lettura (di solito del turno prima), cicli e ora
+    const ultima = !f && !l && u ? '<span class="ultima"><b>' + u.cicli + '</b><span>' + quandoBreve(new Date(u.ora)) + '</span></span>' : '';
     const ev = testoEvento(f || (!l && eFermo(u)) ? u : l);   // anche "Ripartita alle…" finché non si legge
     return '<div class="voce' + (aperta ? ' aperta' : '') + (f ? ' ferma-p' : '') + '" data-p="' + p + '"><div class="testa-p">' +
       '<button class="togli-sw" data-togli="' + p + '" tabindex="-1">Togli</button><div class="scorre">' +
       '<button class="pressa-btn" data-p="' + p + '" aria-expanded="' + aperta + '"><span class="titolo-p"><span class="num">Pressa ' + p + '</span>' +
-      (ev ? '<span class="sub">' + ev.replace(/</g, '&lt;') + '</span>' : '') + '</span>' + stato + CHEVRON + '</button>' +
+      (ev ? '<span class="sub">' + ev.replace(/</g, '&lt;') + '</span>' : '') + '</span>' + ultima + stato + CHEVRON + '</button>' +
       (f ? '<button class="chip riparte" data-riparte="' + p + '">Riparte ora</button>' : '') +
       '</div></div><div class="slot"></div></div>';
   };
