@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028153719">
+<meta name="versione" content="20261028154149">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1060,6 +1060,12 @@ const eFerma = l => eFermo(l) && !l.ripartita_alle;
 const eFine = l => !!l && (l.fine_commessa === true || l.evento === 'fine_commessa');
 function aggiornaFerme() { ferme = PRESSE.filter(p => eFerma(ultimaLettura(p))); }
 aggiornaFerme();
+// minuti → "1 ora e 20 minuti", "2 ore", "45 minuti"
+function testoDurata(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  const ore = h ? h + (h === 1 ? ' ora' : ' ore') : '', minuti = m ? m + (m === 1 ? ' minuto' : ' minuti') : '';
+  return [ore, minuti].filter(Boolean).join(' e ');
+}
 const TESTO_MOTIVO = { manutenzione: 'manutenzione', mancanza_materiale: 'mancanza materiale', altro: 'altro' };
 function testoEvento(l) {
   const parti = [];
@@ -1074,7 +1080,11 @@ function testoEvento(l) {
   if (eFermo(l)) {
     const m = TESTO_MOTIVO[l.motivo] || '';
     parti.push('Fermo' + (m ? ' · ' + m : '') + (l.motivo === 'altro' && l.nota ? ': ' + l.nota : ''));
-    if (l.ripartita_alle) parti.push('Ripartita alle ' + new Date(l.ripartita_alle).toTimeString().slice(0, 5));
+    if (l.ripartita_alle) {
+      const min = Math.round((new Date(l.ripartita_alle) - new Date(l.ora)) / 60000);   // quanto è stata ferma: dalla lettura con Fermo alla ripartenza
+      if (min >= 1) parti.push(testoDurata(min));
+      parti.push('Ripartita alle ' + new Date(l.ripartita_alle).toTimeString().slice(0, 5));
+    }
   }
   return parti.join(' · ');
 }
