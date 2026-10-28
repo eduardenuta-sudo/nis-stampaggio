@@ -1,0 +1,15 @@
+{
+  "name": "NIS Prove",
+  "short_name": "NIS Prove",
+  "lang": "it",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b2d6c",
+  "theme_color": "#ff7a1a",
+  "icons": [
+    { "src": "icona-prove-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icona-prove-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
