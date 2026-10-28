@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028123725">
+<meta name="versione" content="20261028125314">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -486,6 +486,8 @@ if (/prove/.test(location.pathname)) {
     <h2 class="titolo-sez">Entra nel reparto</h2>
     <p class="piccolo" style="margin:0">Il codice te lo dà il responsabile. La prima volta serve la rete.</p>
     <!-- passo 1: codice del reparto -->
+    <!-- iPhone: Safari e l'icona sulla Home tengono dati separati, quindi si entra solo dall'icona -->
+    <p class="nota-avviso" id="entra-home" style="margin:18px 0 0" hidden>Su iPhone si entra dall'icona: tocca Condividi → "Aggiungi alla schermata Home", poi apri l'app da lì.</p>
     <div id="entra-passo1">
       <div class="blocco campo"><label for="entra-codice">Codice reparto</label><input class="testo" id="entra-codice" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="4 cifre"></div>
       <div class="blocco campo" id="entra-chiave-blocco" hidden><label for="entra-chiave">Chiave responsabile</label><input class="testo" id="entra-chiave" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="4 cifre"></div>
@@ -800,7 +802,11 @@ async function dbFirebase(cfg) {
       return { rotazione: s.data().rotazione || null, persone };
     },
     async diventaAdmin(chiave, nome) {
-      try { await F.setDoc(F.doc(fs, 'reparti', rep, 'amministratori', uid), { chiave, nome }); return true; }
+      try {
+        const a = F.doc(fs, 'reparti', rep, 'amministratori', uid);
+        if ((await F.getDoc(a)).exists()) return true;   // già responsabile su questo telefono
+        await F.setDoc(a, { chiave, nome }); return true;
+      }
       catch (e) { return false; }
     },
     usa(codice) { rep = codice; },
@@ -811,6 +817,7 @@ async function dbFirebase(cfg) {
       F.onSnapshot(F.collection(fs, 'reparti', rep, 'richieste'), s => { g.richieste = s.docs.map(d => ({ ...d.data(), id: d.id })); manda(); });
       F.onSnapshot(F.collection(fs, 'reparti', rep, 'ospiti'), s => { g.ospiti = s.docs.map(d => ({ ...d.data(), uid: d.id })); manda(); });
     },
+    liberaNome(nome) { return F.deleteDoc(F.doc(fs, 'reparti', rep, 'persone', nome)); },   // solo il responsabile
     prendiNome(nome, richiesta) { return F.setDoc(F.doc(fs, 'reparti', rep, 'persone', nome), richiesta ? { uid, richiesta } : { uid }); },   // con la richiesta confermata se è un telefono nuovo
     async richiedi(dati) { const r = F.doc(F.collection(fs, 'reparti', rep, 'richieste')); await F.setDoc(r, { ...dati, uid, stato: 'attesa' }); return r.id; },
     rispondi(id, campi) { return F.updateDoc(F.doc(fs, 'reparti', rep, 'richieste', id), campi); },
@@ -874,6 +881,7 @@ function dbFinto() {
     usa(codice) { rep = codice; },
     ascoltaGruppo(cb) { gruppo = cb; avvisaGruppo(); },
     prendiNome(nome) { cambiaRep(r => { r.persone = { ...(r.persone || {}), [nome]: uid }; }); return Promise.resolve(); },
+    liberaNome(nome) { if (!admin()) return vietato(); cambiaRep(r => { const p = { ...(r.persone || {}) }; delete p[nome]; r.persone = p; }); return Promise.resolve(); },
     async richiedi(dati) {
       const id = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       cambiaRep(r => { r.richieste = [...(r.richieste || []), { ...dati, uid, stato: 'attesa', id }]; });
@@ -2008,7 +2016,10 @@ setInterval(aggiornaVista, 30000);                 // il turno finisce anche con
 $('entra-resp').onclick = () => { $('entra-chiave-blocco').hidden = false; $('entra-resp').hidden = true; $('entra-chiave').focus(); };
 // passo 1: il codice. Se esiste si passa alla scelta del nome (i nomi sono quelli della rotazione dei turni)
 let entrata = null;                                // { codice, chiave, rotazione, persone } durante l'accesso
+const safariIphone = /iPhone|iPod/.test(navigator.userAgent) && navigator.standalone === false;
+$('entra-home').hidden = !safariIphone;
 $('entra-ok').onclick = async () => {
+  if (safariIphone) return;                        // il nome resterebbe legato a Safari e non all'icona
   const codice = normaCodice($('entra-codice').value), chiave = $('entra-chiave').value.trim();
   const avviso = t => { $('avviso-entra').textContent = t; };
   if (codice.length !== 4) { avviso('Scrivi il codice del reparto: 4 cifre.'); $('entra-codice').focus(); return; }
@@ -2042,6 +2053,12 @@ async function scegliNome(nome) {
     catch (e) { $('avviso-entra2').textContent = 'Il database non ha accettato il nome. Riprova.'; return; }
     finisciAccesso({ nome });
     return;
+  }
+  if (entrata.chiave) {                            // responsabile: con la chiave il nome passa a questo telefono senza conferma
+    try {
+      if (await db.diventaAdmin(entrata.chiave, nome)) { await db.liberaNome(nome); await db.prendiNome(nome); finisciAccesso({ nome }); return; }
+    } catch (e) { $('avviso-entra2').textContent = 'Il database non ha accettato il nome. Riprova.'; return; }
+    $('avviso-entra2').textContent = 'Chiave responsabile non valida.';
   }
   $('entra-gia-testo').textContent = 'Il nome ' + nome + ' è già usato su un altro telefono.';
   $('entra-gia').hidden = false; $('entra-ospite-blocco').hidden = true;
