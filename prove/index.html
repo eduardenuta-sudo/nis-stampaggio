@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028153457">
+<meta name="versione" content="20261028153719">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -300,6 +300,7 @@ if (/prove/.test(location.pathname)) {
   .pressa-btn:has(.ultima) { gap: 10px; padding-inline: 18px; }
   .pressa-btn .ultima { min-width: 0; overflow: hidden; text-overflow: ellipsis; margin-left: auto; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
     font: 600 .8rem/1.1 var(--font); letter-spacing: 0; text-transform: none; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pressa-btn .ultima .da { font-size: .78rem; opacity: .8; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pressa-btn .ultima b { font: 700 1.25rem/1 var(--font-titoli); letter-spacing: .05em; color: #fff; }
   .voce.aperta .pressa-btn .ultima, .voce.aperta .pressa-btn .ultima b { color: var(--su-giallo); }
   .pressa-btn .st.manca::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--warn); }
@@ -1209,7 +1210,7 @@ function disegnaElencoPresse() {
     // in mezzo la lettura che precede quella di questo turno (se la pressa è già letta), altrimenti l'ultima (di solito del turno prima): cicli e ora
     let prec = u;
     if (l) { prec = null; for (let i = letture.indexOf(l) - 1; i >= 0; i--) if (letture[i].pressa === p) { prec = letture[i]; break; } }
-    const ultima = !f && prec ? '<span class="ultima"><b>' + prec.cicli + '</b><span>' + quandoBreve(new Date(prec.ora)) + '</span></span>' : '';
+    const ultima = !f && prec ? '<span class="ultima"><b>' + prec.cicli + '</b><span>' + quandoBreve(new Date(prec.ora)) + '</span>' + (prec.nome ? '<span class="da">' + esc(prec.nome) + '</span>' : '') + '</span>' : '';
     const ev = testoEvento(f || (!l && eFermo(u)) ? u : l);   // anche "Ripartita alle…" finché non si legge
     return '<div class="voce' + (aperta ? ' aperta' : '') + (f ? ' ferma-p' : '') + '" data-p="' + p + '"><div class="testa-p">' +
       '<button class="togli-sw" data-togli="' + p + '" tabindex="-1">Togli</button><div class="scorre">' +
@@ -1854,7 +1855,7 @@ function apriCorreggi(id) {
   corLettura = l.id;
   const d = new Date(l.ora), propria = mie(l);
   $('titolo-correggi').textContent = 'Correggi pressa ' + l.pressa;
-  $('correggi-quando').textContent = 'Lettura del ' + dataIt(d) + ' alle ' + oraIt(d) + (l.nome ? ', letta da ' + l.nome : '') + (l.modifica_di ? ', modificata da ' + esc(l.modifica_di) : '') + (testoEvento(l) ? ' · ' + testoEvento(l) : '') +
+  $('correggi-quando').textContent = 'Lettura del ' + dataIt(d) + ' alle ' + oraIt(d) + (l.nome ? ', letta da ' + l.nome : '') + (l.modifica_di ? ', modificata da ' + l.modifica_di : '') + (testoEvento(l) ? ' · ' + testoEvento(l) : '') +
     (propria ? '' : '. È di un collega: puoi solo togliere la ripartenza.');
   ['cor-cicli', 'cor-ore', 'cor-articolo', 'cor-commessa'].forEach(c => { $(c).disabled = !propria; });   // lettura di un collega: dati bloccati
   $('cor-cicli').value = l.cicli;
