@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028125930">
+<meta name="versione" content="20261028145238">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -494,6 +494,10 @@ if (/prove/.test(location.pathname)) {
     </div>
     <!-- passo 2: chi sei. Ogni nome resta legato al suo telefono -->
     <div id="entra-passo2" hidden>
+      <div id="entra-modifiche" hidden>
+        <div class="blocco campo"><label for="modifiche-nome">Chi fa le modifiche?</label><input class="testo" id="modifiche-nome" autocomplete="off" maxlength="40" placeholder="Nome e cognome"></div>
+        <p class="piccolo" style="margin:0 0 18px">Con il codice responsabile si può scrivere a qualsiasi ora: chi fa le modifiche se ne assume la responsabilità.</p>
+      </div>
       <label class="blocco">Chi sei</label>
       <div class="motivi-lista" id="entra-nomi"></div>
       <div id="entra-gia" hidden>
@@ -637,6 +641,7 @@ if (/prove/.test(location.pathname)) {
     <button id="esporta" class="salva" style="width:100%">Esporta per Excel</button>
     <div class="stato" id="stato-esporta"></div>
     <button id="svuota" class="annulla" style="margin-top:6px">Svuota storico</button>
+    <button id="esci" class="annulla" style="margin-top:6px">Esci</button>
     <div id="svuota-presse-blocco" style="margin-top:22px">
       <label>Svuota una pressa sola</label>
       <div class="svuota-presse" id="svuota-presse"></div>
@@ -1012,7 +1017,7 @@ function mioTurno(adesso) {
   if (!accesso || accesso.attesa || !db) return null;
   if (accesso.ospite ? !gruppo.ospiti.some(x => x.uid === db.uid)                       // ospite: solo finché la sostituzione è attiva
     : gruppo.persone[accesso.nome] && gruppo.persone[accesso.nome] !== db.uid) return null;   // nome passato a un altro telefono
-  if (PROVA) return turnoDi(adesso);               // versione sviluppatore: nessun blocco dei turni, si scrive a qualsiasi ora
+  if (PROVA || accesso.admin) return turnoDi(adesso);   // sviluppatore e responsabile: nessun blocco dei turni               // versione sviluppatore: nessun blocco dei turni, si scrive a qualsiasi ora
   for (const t of [turnoDi(adesso), turnoDi(new Date(adesso - MARGINE))])
     if (diTurno(t) === accesso.nome && adesso >= t.inizio && adesso <= new Date(t.fine.getTime() + MARGINE)) return t;
   return null;
@@ -1084,12 +1089,14 @@ function erroreDati(e) {
 function nuovaLettura(l) {
   const t = mioTurno(new Date());
   l.id = db.nuovoId(); l.uid = db.uid; l.nome = accesso.nome;
+  if (accesso.admin && accesso.modificheDi) l.modifica_di = accesso.modificheDi;   // chi si assume la responsabilità
   if (t) { l.turno_fine = t.fine.toISOString(); l.turno_fine_ms = t.fine.getTime(); }   // per il database: dopo la fine del turno + 15 minuti non si cambia più
   letture.push(l);
   letture.sort((a, b) => a.ora < b.ora ? -1 : a.ora > b.ora ? 1 : 0);
   db.scrivi(l).catch(erroreDati);
 }
 function aggiornaLettura(id, campi) {
+  if (accesso.admin && accesso.modificheDi) campi = { ...campi, modifica_di: accesso.modificheDi };
   const l = letture.find(x => x.id === id);
   if (l) for (const k in campi) { if (campi[k] == null) delete l[k]; else l[k] = campi[k]; }
   db.aggiorna(id, campi).catch(erroreDati);
@@ -1790,7 +1797,7 @@ const oraIt = d => d.toTimeString().slice(0, 5);
 const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 function disegnaStorico() {
   $('storico-conta').textContent = (letture.length ? letture.length + ' letture del reparto negli ultimi ' + GIORNI_LETTURE + ' giorni.' : 'Nessuna lettura salvata.') +
-    (accesso ? ' Sei entrato come ' + accesso.nome + (accesso.admin ? ' (responsabile).' : '.') : '');
+    (accesso ? ' Sei entrato come ' + accesso.nome + (accesso.admin ? ' (responsabile' + (accesso.modificheDi ? ', modifiche di ' + esc(accesso.modificheDi) : '') + ').' : '.') : '');
   $('esporta').disabled = !letture.length; $('svuota').disabled = !letture.length;
   $('stato-esporta').textContent = '';
   const admin = !!(accesso && accesso.admin) && scrivibile();   // svuotare il database comune: solo il responsabile e nel suo turno
@@ -1843,7 +1850,7 @@ function apriCorreggi(id) {
   corLettura = l.id;
   const d = new Date(l.ora), propria = mie(l);
   $('titolo-correggi').textContent = 'Correggi pressa ' + l.pressa;
-  $('correggi-quando').textContent = 'Lettura del ' + dataIt(d) + ' alle ' + oraIt(d) + (l.nome ? ', letta da ' + l.nome : '') + (testoEvento(l) ? ' · ' + testoEvento(l) : '') +
+  $('correggi-quando').textContent = 'Lettura del ' + dataIt(d) + ' alle ' + oraIt(d) + (l.nome ? ', letta da ' + l.nome : '') + (l.modifica_di ? ', modificata da ' + esc(l.modifica_di) : '') + (testoEvento(l) ? ' · ' + testoEvento(l) : '') +
     (propria ? '' : '. È di un collega: puoi solo togliere la ripartenza.');
   ['cor-cicli', 'cor-ore', 'cor-articolo', 'cor-commessa'].forEach(c => { $(c).disabled = !propria; });   // lettura di un collega: dati bloccati
   $('cor-cicli').value = l.cicli;
@@ -1888,6 +1895,8 @@ $('conferma-correggi').onclick = () => {
 };
 $('annulla-correggi').onclick = () => dialogoCorreggi.close();
 dialogoCorreggi.addEventListener('click', e => { if (e.target === dialogoCorreggi) dialogoCorreggi.close(); });
+// "Esci": si torna al codice; il nome resta legato a questo telefono
+$('esci').onclick = () => { salva(PREF + 'accesso', null); location.hash = ''; location.reload(); };
 // "Svuota" (solo il responsabile): al primo tocco cambia la scritta, al secondo cancella le letture del reparto
 $('svuota').onclick = () => {
   const b = $('svuota');
@@ -2043,12 +2052,18 @@ const nomiReparto = rot => SEQ_TURNI.map(s => rot.turni[s]).filter(Boolean);
 function mostraNomi() {
   $('entra-passo1').hidden = true; $('entra-passo2').hidden = false; $('entra-attesa').hidden = true;
   $('entra-gia').hidden = true; $('entra-ospite-blocco').hidden = true; $('avviso-entra2').textContent = '';
+  $('entra-modifiche').hidden = !entrata.chiave; $('modifiche-nome').value = '';
   $('entra-nomi').innerHTML = nomiReparto(entrata.rotazione).map(n => '<button class="chip" data-nome="' + esc(n) + '">' + esc(n) + '</button>').join('');
   document.querySelectorAll('[data-nome]').forEach(b => { b.onclick = () => scegliNome(b.dataset.nome); });
 }
 // nome libero o già di questo telefono: si entra. Legato a un altro telefono: serve la conferma di un collega
 let nomeScelto = null;
 async function scegliNome(nome) {
+  if (entrata.chiave) {                            // responsabile: serve il nome di chi fa le modifiche
+    const m = $('modifiche-nome').value.trim().replace(/\s+/g, ' ');
+    if (!m) { $('avviso-entra2').textContent = 'Scrivi chi fa le modifiche.'; $('modifiche-nome').focus(); return; }
+    entrata.modificheDi = m;
+  }
   nomeScelto = nome;
   const u = entrata.persone[nome];
   if (!u || u === db.uid) {
@@ -2092,6 +2107,7 @@ async function finisciAccesso(a) {
   accesso = { codice: entrata.codice, rotazione: entrata.rotazione, admin: false, ...a };
   if (entrata.chiave && !a.ospite) {                 // la chiave del responsabile vale solo per i titolari
     accesso.admin = await db.diventaAdmin(entrata.chiave, a.nome);
+    if (accesso.admin) accesso.modificheDi = entrata.modificheDi;
     if (!accesso.admin) $('msg').textContent = 'Chiave responsabile non valida: sei entrato come collega.';
   }
   salva(PREF + 'accesso', accesso);
