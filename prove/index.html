@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028190157">
+<meta name="versione" content="20261028190759">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -164,9 +164,8 @@ if (/prove/.test(location.pathname)) {
     background: linear-gradient(#dde333, var(--giallo) 55%, #b3b900);
     box-shadow: 0 8px 0 #7d8100, 0 16px 22px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.55), inset 0 -3px 0 rgba(0,0,0,.12); }
   button.salva:active { box-shadow: 0 1px 0 #7d8100, 0 3px 6px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -3px 0 rgba(0,0,0,.12); }
-  .scorciatoie { display: flex; gap: 12px; margin: 0 0 20px; }
+  .scorciatoie { display: flex; justify-content: space-between; gap: 12px; margin: 0 0 22px; }
   .scorciatoie[hidden] { display: none; }
-  .scorciatoie .chip { flex: 1; text-align: center; }
   .indietro { padding: 11px 16px; border-radius: 20px; box-shadow: 0 5px 0 #0a2253, 0 10px 14px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.35); }
   .indietro:active { transform: translateY(4px); box-shadow: 0 1px 0 #0a2253, 0 2px 4px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.2); }
   .riga { display: flex; gap: 12px; }
@@ -469,8 +468,8 @@ if (/prove/.test(location.pathname)) {
 </header>
 <!-- scorciatoie in cima a Lettura cicli e a Produzione: Home e l'altra sezione -->
 <nav class="scorciatoie" id="scorciatoie" aria-label="Vai a" hidden>
-  <button class="chip" id="nav-a" type="button"></button>
-  <button class="chip" id="nav-b" type="button"></button>
+  <button class="indietro" id="nav-a" type="button"></button>
+  <button class="indietro" id="nav-b" type="button"></button>
 </nav>
 
 <!-- richieste dei colleghi da confermare (cambio telefono, ospite) e sostituzione in corso: in cima a ogni pagina -->
@@ -1219,7 +1218,7 @@ function vai(nome) {
   if (nome === 'leggi') { pressaAperta = null; $('msg').textContent = ''; disegnaElencoPresse(); disegnaRiepilogo(); azzera(); }
   if (nome === 'storico') disegnaStorico();
   if (nome === 'produzione') disegnaProduzione();
-  const nav = { leggi: [['Home', 'home'], ['Produzione', 'produzione']], produzione: [['Home', 'home'], ['Lettura cicli', 'leggi']] }[nome];
+  const nav = { leggi: [['\u2190 Home', 'home'], ['Produzione \u2192', 'produzione']], produzione: [['\u2190 Home', 'home'], ['Lettura cicli \u2192', 'leggi']] }[nome];
   $('scorciatoie').hidden = !nav;
   if (nav) [$('nav-a'), $('nav-b')].forEach((b, i) => { b.textContent = nav[i][0]; b.dataset.vai = nav[i][1]; });
   disegnaRichieste();
