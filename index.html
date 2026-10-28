@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028100301">
+<meta name="versione" content="20261028101248">
 <meta name="theme-color" content="#0b2d6c">
 <title>NIS Stampaggio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -603,6 +603,17 @@
   <button id="annulla-correggi" class="annulla">Annulla</button>
 </dialog>
 
+<!-- dopo "Fine commessa": si riprende con una commessa nuova o con quella di prima -->
+<dialog id="dialogo-riprendi" aria-labelledby="titolo-riprendi">
+  <h2 class="titolo-sez" id="titolo-riprendi">Commessa finita</h2>
+  <p class="piccolo" style="margin:0 0 18px" id="testo-riprendi"></p>
+  <div class="motivi-lista">
+    <button class="chip" data-riprendi="nuova">Riprendi con commessa nuova</button>
+    <button class="chip" data-riprendi="vecchia">Riprendi la vecchia commessa</button>
+  </div>
+  <button id="annulla-riprendi" class="annulla">Annulla</button>
+</dialog>
+
 <!-- lettura a metà turno: si chiede il perché prima di salvare -->
 <dialog id="dialogo-perche" aria-labelledby="titolo-perche">
   <h2 class="titolo-sez" id="titolo-perche">Perché leggi adesso?</h2>
@@ -724,6 +735,10 @@ function testoEvento(l) {
   if (l && l.controllo) parti.push('Lettura di controllo');
   if (l && l.contatore_ripartito) parti.push('Contatore ripartito');
   if (eFine(l)) parti.push('Fine commessa');
+  if (l && l.ripresa_stessa) {                    // "Fine commessa" poi ripresa la stessa: conta come un fermo
+    parti.push('Commessa interrotta' + (l.ripartita_alle ? ', ripresa alle ' + new Date(l.ripartita_alle).toTimeString().slice(0, 5) : ''));
+    return parti.join(' · ');
+  }
   if (eFermo(l)) {
     const m = TESTO_MOTIVO[l.motivo] || '';
     parti.push('Fermo' + (m ? ' · ' + m : '') + (l.motivo === 'altro' && l.nota ? ': ' + l.nota : ''));
@@ -882,7 +897,7 @@ function riparte(p, modo) {
   ripData = (ripModo === 'lettura' && dataRipartenza(new Date())) || alMinuto(new Date());   // se l'ora era già scelta si riparte da quella
   if (ripData < ripMin) ripData = ripMin;
   $('riparte-pressa').textContent = p;
-  $('titolo-riparte').firstChild.textContent = ripModo === 'nuova' ? 'Commessa nuova, pressa ' : 'Pressa ';
+  $('titolo-riparte').firstChild.textContent = ripModo === 'nuova' ? 'Commessa nuova, pressa ' : ripModo === 'vecchia' ? 'Stessa commessa, pressa ' : 'Pressa ';
   $('titolo-riparte').lastChild.textContent = ripModo === 'nuova' ? ' partita alle' : ' ripartita alle';
   mostraRiparte();
   if (typeof dialogoRiparte.showModal === 'function') dialogoRiparte.showModal(); else dialogoRiparte.setAttribute('open', '');
@@ -925,7 +940,18 @@ $('conferma-riparte').onclick = () => {
     oreManuali = false; aggiornaOre();
     return;
   }
-  if (ripModo === 'nuova') {                              // commessa nuova: l'ora si salva sulla "Fine commessa" e le ore lavorate si ricalcolano da lì
+  if (ripModo === 'vecchia') {                   // la "Fine commessa" diventa un fermo: il contatore continua, articolo e commessa restano
+    const u = ultimaLettura(p);
+    delete u.fine_commessa; delete u.partenza_commessa;
+    if (u.evento === 'fine_commessa') delete u.evento;
+    u.fermo = true; u.ripresa_stessa = true; u.ripartita_alle = ripData.toISOString();
+    dialogoRiparte.close();
+    salva(CHIAVE, letture); aggiornaFerme();
+    preparaCampi(p); disegnaElencoPresse(); disegnaRiepilogo();
+    $('msg').textContent = 'Pressa ' + p + ': ripresa la commessa ' + (u.commessa || 'di prima') + ' alle ' + ripData.toTimeString().slice(0, 5) + '.';
+    return;
+  }
+  if (ripModo === 'nuova') {                            // commessa nuova: l'ora si salva sulla "Fine commessa" e le ore lavorate si ricalcolano da lì
     ultimaLettura(p).partenza_commessa = ripData.toISOString();
     dialogoRiparte.close();
     salva(CHIAVE, letture);
@@ -952,8 +978,22 @@ function apri(p) {
   document.querySelector('.voce.aperta').scrollIntoView({ behavior: 'smooth', block: 'start' });
   $('cicli-input').focus({ preventScroll: true });   // il tastierino numerico si apre subito
   const u = ultimaLettura(p);
-  if (eFine(u) && !u.partenza_commessa) riparte(p, 'nuova');   // dopo "Fine commessa" si chiede a che ora parte la nuova
+  if (eFine(u) && !u.partenza_commessa) chiediRipresa(p);   // dopo "Fine commessa": commessa nuova o la stessa di prima
 }
+const dialogoRiprendi = $('dialogo-riprendi');
+let riprendiPressa = null;
+function chiediRipresa(p) {
+  riprendiPressa = p;
+  const u = ultimaLettura(p);
+  $('titolo-riprendi').textContent = 'Pressa ' + p + ': commessa finita';
+  $('testo-riprendi').textContent = 'Fine commessa' + (u.commessa ? ' ' + u.commessa : '') + ' segnata il ' + dataIt(new Date(u.ora)) + ' alle ' + oraIt(new Date(u.ora)) + '. Come riparte la pressa?';
+  if (typeof dialogoRiprendi.showModal === 'function') dialogoRiprendi.showModal(); else dialogoRiprendi.setAttribute('open', '');
+}
+document.querySelectorAll('#dialogo-riprendi [data-riprendi]').forEach(b => {
+  b.onclick = () => { dialogoRiprendi.close(); riparte(riprendiPressa, b.dataset.riprendi); };   // poi l'orologio per l'ora
+});
+$('annulla-riprendi').onclick = () => dialogoRiprendi.close();
+dialogoRiprendi.addEventListener('click', e => { if (e.target === dialogoRiprendi) dialogoRiprendi.close(); });
 function chiudi() {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // su iPhone la tastiera resta aperta se il cursore è nella casella che sparisce
   pressaAperta = null;
