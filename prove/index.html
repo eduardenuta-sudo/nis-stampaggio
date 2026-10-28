@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028145649">
+<meta name="versione" content="20261028151551">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -189,7 +189,7 @@ if (/prove/.test(location.pathname)) {
   .casella::after { content: ""; width: 16px; height: 9px; border-left: 4px solid var(--su-giallo); border-bottom: 4px solid var(--su-giallo);
     transform: rotate(-45deg) translate(1px, -2px) scale(0); transition: transform .18s cubic-bezier(.16,1,.3,1); }
   #motivo-scelto { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: -2px 0 16px; padding: 0 6px 0 18px; font-weight: 600; color: var(--giallo); overflow-wrap: anywhere; }
-  #motivo-scelto[hidden] { display: none; }
+  #motivo-scelto[hidden], #entra-nomi[hidden], #entra-chisei[hidden], #entra-ospite[hidden] { display: none; }
   #motivo-scelto .chip { flex: none; }
   .opzione:has(input:checked) { border-color: var(--giallo); }
   .opzione input:checked + .casella { background: var(--giallo); border-color: var(--giallo); }
@@ -497,8 +497,9 @@ if (/prove/.test(location.pathname)) {
       <div id="entra-modifiche" hidden>
         <div class="blocco campo"><label for="modifiche-nome">Chi fa le modifiche?</label><input class="testo" id="modifiche-nome" autocomplete="off" maxlength="40" placeholder="Nome e cognome"></div>
         <p class="piccolo" style="margin:0 0 18px">Con il codice responsabile si può scrivere a qualsiasi ora: chi fa le modifiche se ne assume la responsabilità.</p>
+        <button id="entra-admin" class="salva" style="width:100%">Entra</button>
       </div>
-      <label class="blocco">Chi sei</label>
+      <label class="blocco" id="entra-chisei">Chi sei</label>
       <div class="motivi-lista" id="entra-nomi"></div>
       <div id="entra-gia" hidden>
         <p class="nota-avviso" id="entra-gia-testo" style="margin:0 0 14px"></p>
@@ -1015,9 +1016,10 @@ function diTurno(t) {
 // il turno in cui posso scrivere adesso (anche nei 15 minuti dopo la fine), oppure null
 function mioTurno(adesso) {
   if (!accesso || accesso.attesa || !db) return null;
+  if (accesso.admin) return turnoDi(adesso);       // responsabile: nessun blocco dei turni
   if (accesso.ospite ? !gruppo.ospiti.some(x => x.uid === db.uid)                       // ospite: solo finché la sostituzione è attiva
     : gruppo.persone[accesso.nome] && gruppo.persone[accesso.nome] !== db.uid) return null;   // nome passato a un altro telefono
-  if (PROVA || accesso.admin) return turnoDi(adesso);   // sviluppatore e responsabile: nessun blocco dei turni               // versione sviluppatore: nessun blocco dei turni, si scrive a qualsiasi ora
+  if (PROVA) return turnoDi(adesso);               // versione sviluppatore: nessun blocco dei turni, si scrive a qualsiasi ora               // versione sviluppatore: nessun blocco dei turni, si scrive a qualsiasi ora
   for (const t of [turnoDi(adesso), turnoDi(new Date(adesso - MARGINE))])
     if (diTurno(t) === accesso.nome && adesso >= t.inizio && adesso <= new Date(t.fine.getTime() + MARGINE)) return t;
   return null;
@@ -2054,18 +2056,15 @@ const nomiReparto = rot => SEQ_TURNI.map(s => rot.turni[s]).filter(Boolean);
 function mostraNomi() {
   $('entra-passo1').hidden = true; $('entra-passo2').hidden = false; $('entra-attesa').hidden = true;
   $('entra-gia').hidden = true; $('entra-ospite-blocco').hidden = true; $('avviso-entra2').textContent = '';
-  $('entra-modifiche').hidden = !entrata.chiave; $('modifiche-nome').value = '';
+  const resp = !!entrata.chiave;                   // codice responsabile: solo il nome di chi fa le modifiche e il pulsante Entra
+  $('entra-modifiche').hidden = !resp; $('modifiche-nome').value = '';
+  $('entra-chisei').hidden = $('entra-nomi').hidden = $('entra-ospite').hidden = resp;
   $('entra-nomi').innerHTML = nomiReparto(entrata.rotazione).map(n => '<button class="chip" data-nome="' + esc(n) + '">' + esc(n) + '</button>').join('');
   document.querySelectorAll('[data-nome]').forEach(b => { b.onclick = () => scegliNome(b.dataset.nome); });
 }
 // nome libero o già di questo telefono: si entra. Legato a un altro telefono: serve la conferma di un collega
 let nomeScelto = null;
 async function scegliNome(nome) {
-  if (entrata.chiave) {                            // responsabile: serve il nome di chi fa le modifiche
-    const m = $('modifiche-nome').value.trim().replace(/\s+/g, ' ');
-    if (!m) { $('avviso-entra2').textContent = 'Scrivi chi fa le modifiche.'; $('modifiche-nome').focus(); return; }
-    entrata.modificheDi = m;
-  }
   nomeScelto = nome;
   const u = entrata.persone[nome];
   if (!u || u === db.uid) {
@@ -2083,6 +2082,16 @@ async function scegliNome(nome) {
   $('entra-gia-testo').textContent = 'Il nome ' + nome + ' è già usato su un altro telefono.';
   $('entra-gia').hidden = false; $('entra-ospite-blocco').hidden = true;
 }
+// responsabile: entra col nome di chi fa le modifiche, senza scegliere un nome della rotazione
+$('entra-admin').onclick = async () => {
+  const m = $('modifiche-nome').value.trim().replace(/\s+/g, ' ');
+  if (!m) { $('avviso-entra2').textContent = 'Scrivi chi fa le modifiche.'; $('modifiche-nome').focus(); return; }
+  try {
+    if (!(await db.diventaAdmin(entrata.chiave, m))) { $('avviso-entra2').textContent = 'Chiave responsabile non valida.'; return; }
+  } catch (e) { $('avviso-entra2').textContent = 'Il database non ha accettato l\'accesso. Riprova.'; return; }
+  entrata.modificheDi = m;
+  finisciAccesso({ nome: m });
+};
 $('entra-cambiato').onclick = async () => {
   const id = await db.richiedi({ tipo: 'telefono', nome: nomeScelto, ora: new Date().toISOString() });
   finisciAccesso({ nome: nomeScelto, attesa: true, richiesta: id });
