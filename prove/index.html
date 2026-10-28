@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028191355">
+<meta name="versione" content="20261028191913">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -166,11 +166,11 @@ if (/prove/.test(location.pathname)) {
   button.salva:active { box-shadow: 0 1px 0 #7d8100, 0 3px 6px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -3px 0 rgba(0,0,0,.12); }
   /* Lettura cicli e Produzione: in alto Home a sinistra e l'altra sezione a destra, sotto il titolo con il logo */
   #vai-altra[hidden] { display: none; }
-  header.con-nav { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "home . altra" "titolo titolo logo"; align-items: center; row-gap: 14px; padding-top: 6px; }
+  header.con-nav { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "home . altra" "titolo titolo titolo"; align-items: center; row-gap: 24px; padding-top: 6px; }
   header.con-nav #indietro { grid-area: home; justify-self: start; }
   header.con-nav #vai-altra { grid-area: altra; justify-self: end; }
-  header.con-nav h1 { grid-area: titolo; }
-  header.con-nav .sigla { grid-area: logo; justify-self: end; }
+  header.con-nav h1 { grid-area: titolo; justify-self: center; text-align: center; }   /* titolo al centro, un po' più in basso */
+  header.con-nav .sigla { grid-area: titolo; justify-self: end; }   /* il logo resta a destra, sulla riga del titolo */
   .indietro { padding: 11px 16px; border-radius: 20px; box-shadow: 0 5px 0 #0a2253, 0 10px 14px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.35); }
   .indietro:active { transform: translateY(4px); box-shadow: 0 1px 0 #0a2253, 0 2px 4px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.2); }
   .riga { display: flex; gap: 12px; }
@@ -305,7 +305,8 @@ if (/prove/.test(location.pathname)) {
   .pressa-btn .st { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .pressa-btn .st.letta { color: var(--giallo); font: 700 1.5rem/1 var(--font-titoli); letter-spacing: .05em; }
   /* Produzione: una scheda per pressa, con il disegno della pressa (corpo giallo la 68 e la 69, blu le altre; torre di luci e stampo secondo lo stato) */
-  .pressa-prod { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+  .pressa-prod { position: relative; display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+  .pressa-prod .num-angolo { position: absolute; top: 12px; left: 16px; z-index: 1; font: 700 1.7rem/1 var(--font-titoli); letter-spacing: .06em; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
   .dis-pressa { width: calc(100% + 28px); max-width: none; height: auto; aspect-ratio: 320 / 125; margin: -6px -14px -4px; --scuro:#0f2147; --acciaio:#8fa0c4; --metallo:#d6deee; --o-rosso:.18; --o-blu:.18; --o-verde:1; overflow: visible; }
   .dis-pressa.pr-gialla { --corpo:#c8d92f; } .dis-pressa.pr-blu { --corpo:#2f8fe0; }
   .dis-pressa.pr-ferma { --p3-nome:none; --p3-nome-ram:none; }
@@ -1282,7 +1283,7 @@ function disegnaProduzione() {
   const box = $('presse-produzione');
   if (box.childElementCount) return;
   const esempi = [[68, false], [40, false], [55, true, 'manutenzione'], [69, false], [67, true, 'mancanza_materiale'], [33, true, 'altro']];
-  box.innerHTML = esempi.map(([p, ferma, motivo]) => '<div class="card pressa-prod">' + disegnoPressa(p, ferma, { motivo }) + '</div>').join('');
+  box.innerHTML = esempi.map(([p, ferma, motivo]) => '<div class="card pressa-prod"><span class="num-angolo">' + p + '</span>' + disegnoPressa(p, ferma, { motivo }) + '</div>').join('');
 }
 function disegnoPressa(p, ferma, u) {
   const motivo = ferma && u ? u.motivo : null;
