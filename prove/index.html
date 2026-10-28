@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028145238">
+<meta name="versione" content="20261028145649">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1794,7 +1794,7 @@ window.__durateLettura = durateLettura; // per i test
 
 const dataIt = d => d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const oraIt = d => d.toTimeString().slice(0, 5);
-const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 function disegnaStorico() {
   $('storico-conta').textContent = (letture.length ? letture.length + ' letture del reparto negli ultimi ' + GIORNI_LETTURE + ' giorni.' : 'Nessuna lettura salvata.') +
     (accesso ? ' Sei entrato come ' + accesso.nome + (accesso.admin ? ' (responsabile' + (accesso.modificheDi ? ', modifiche di ' + esc(accesso.modificheDi) : '') + ').' : '.') : '');
@@ -1950,7 +1950,9 @@ const normaCodice = c => c.replace(/\D/g, '');
 const repartoDi = codice => 'nis-' + codice + (PROVA ? '-prove' : '');
 // letture nuove dal database: si ridisegna quello che si vede, senza chiudere la tendina aperta
 function datiArrivati(nuove) {
-  letture = nuove;
+  // i dati sono di tutto il reparto: pressa e cicli devono essere numeri e l'id solo lettere, cifre e trattini, prima di finire nelle pagine
+  letture = nuove.filter(l => l && Number.isFinite(Number(l.pressa)) && Number.isFinite(Number(l.cicli)) && /^[\w-]+$/.test(String(l.id)))
+    .map(l => ({ ...l, pressa: Number(l.pressa), cicli: Number(l.cicli) }));
   aggiornaFerme();
   if (!$('vista-leggi').hidden && !trascinato) { disegnaElencoPresse(); disegnaRiepilogo(); }
   if (!$('vista-storico').hidden) disegnaStorico();
@@ -2002,7 +2004,7 @@ function disegnaRichieste() {
   const da = gruppo.richieste.filter(r => r.stato === 'attesa' && r.uid !== db.uid && (r.tipo === 'telefono' ? r.nome : r.sostituisce) !== accesso.nome);
   const sost = gruppo.ospiti.find(o => o.sostituisce === accesso.nome);
   box.innerHTML = da.map(r => '<div class="card"><p>' + esc(r.tipo === 'telefono' ? r.nome + ' dice di aver cambiato telefono. È vero?' : r.nome + ' chiede di sostituire ' + r.sostituisce + '. È vero?') +
-      '</p><div class="riga"><button class="salva" data-conf="' + r.id + '">Confermo</button><button class="annulla" data-rif="' + r.id + '">Rifiuta</button></div></div>').join('') +
+      '</p><div class="riga"><button class="salva" data-conf="' + esc(r.id) + '">Confermo</button><button class="annulla" data-rif="' + esc(r.id) + '">Rifiuta</button></div></div>').join('') +
     (sost ? '<div class="card"><p>' + esc(sost.nome) + ' ti sostituisce: puoi solo guardare.</p><button class="salva" style="width:100%" id="riprendo">Riprendo il mio turno</button></div>' : '');
   box.hidden = !box.innerHTML;
   const rispondi = (id, stato) => db.rispondi(id, { stato, da: accesso.nome, daUid: db.uid }).catch(erroreDati);
