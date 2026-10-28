@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261027211037">
+<meta name="versione" content="20261028100301">
 <meta name="theme-color" content="#0b2d6c">
 <title>NIS Stampaggio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -242,6 +242,17 @@
   .st-testa b { font: 700 1.5rem/1 var(--font-titoli); letter-spacing: .05em; color: #fff; }
   .st-dati { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px 18px; font-variant-numeric: tabular-nums; }
   .st-dati strong { color: var(--giallo); }
+  .storico-card { cursor: pointer; }
+  .svuota-presse { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+  .svuota-presse button.chip { padding: 10px 14px; }
+
+  /* aggiungi pressa, sotto l'elenco */
+  .aggiungi { margin: -14px 0 30px; }
+  button#aggiungi-apri { width: auto; padding: 9px 16px; border-radius: 18px; font-size: .9rem; }
+  #aggiungi-blocco { margin-top: 14px; }
+  #aggiungi-blocco[hidden], #cor-rip-blocco[hidden] { display: none; }
+  #cor-rip-blocco { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-weight: 600; }
+  #riepilogo-tab tbody tr { cursor: pointer; }
 
   /* elenco presse: ogni pressa è un pulsante che apre la sua tendina */
   .elenco { display: flex; flex-direction: column; gap: 22px; margin-bottom: 36px; }
@@ -434,6 +445,16 @@
 
   <div class="elenco" id="elenco-presse"></div>
 
+  <!-- aggiungi pressa: si scrive il numero e la pressa entra nell'elenco -->
+  <div class="aggiungi">
+    <button id="aggiungi-apri" class="annulla" aria-expanded="false">+ Aggiungi pressa</button>
+    <div id="aggiungi-blocco" class="riga-salva" hidden>
+      <input class="manuale" id="aggiungi-num" inputmode="numeric" pattern="[0-9]*" placeholder="N. pressa" aria-label="Numero della pressa">
+      <button id="aggiungi-ok" class="salva">Aggiungi</button>
+    </div>
+    <div class="avviso" id="avviso-aggiungi" role="alert"></div>
+  </div>
+
   <!-- pannello di lettura: si sposta sotto la pressa toccata -->
   <div class="pannello" id="pannello-lettura" hidden>
     <!-- solo se l'ultima lettura della pressa era un fermo macchina -->
@@ -445,7 +466,7 @@
       </div>
       <div class="campo" id="rip-ora-blocco" hidden>
         <label for="rip-ora">Ripartita alle</label>
-        <input class="testo" type="time" id="rip-ora">
+        <input class="testo" type="time" id="rip-ora" readonly>   <!-- l'ora si sceglie con l'orologio; toccandola si riapre -->
       </div>
     </div>
 
@@ -487,6 +508,8 @@
     </div>
 
     <div class="avviso" id="avviso-salva" role="alert"></div>
+    <!-- la pressa esce dall'elenco, le sue letture restano nello storico -->
+    <button id="togli-pressa" class="annulla" style="margin-top:6px">Togli dall'elenco</button>
   </div>
 
   <section class="riepilogo" aria-labelledby="titolo-riepilogo">
@@ -497,7 +520,7 @@
     </div>
     <div class="card">
       <div class="tabella">
-        <table>
+        <table id="riepilogo-tab">
           <thead><tr><th></th><th>Pressa</th><th class="n">Cicli</th><th class="n">Ore</th><th></th></tr></thead>
           <tbody id="righe"></tbody>
         </table>
@@ -517,6 +540,11 @@
     <button id="esporta" class="salva" style="width:100%">Esporta per Excel</button>
     <div class="stato" id="stato-esporta"></div>
     <button id="svuota" class="annulla" style="margin-top:6px">Svuota storico</button>
+    <div id="svuota-presse-blocco" style="margin-top:22px">
+      <label>Svuota una pressa sola</label>
+      <div class="svuota-presse" id="svuota-presse"></div>
+    </div>
+    <p class="piccolo" style="margin:18px 0 0">Tocca una lettura per correggerla.</p>
   </div>
   <div id="storico-elenco"></div>
 </main>
@@ -556,6 +584,25 @@
   <button id="annulla-riparte" class="annulla">Annulla</button>
 </dialog>
 
+<!-- correzione di una lettura già salvata (dal riepilogo o dallo storico) -->
+<dialog id="dialogo-correggi" aria-labelledby="titolo-correggi">
+  <h2 class="titolo-sez" id="titolo-correggi">Correggi lettura</h2>
+  <p class="piccolo" style="margin:0 0 18px" id="correggi-quando"></p>
+  <label for="cor-cicli">Cicli totali</label>
+  <input class="manuale" id="cor-cicli" inputmode="numeric" pattern="[0-9]*">
+  <div class="blocco campo"><label for="cor-ore">Ore turno</label><input class="testo" id="cor-ore" inputmode="decimal"></div>
+  <div class="blocco riga">
+    <div class="campo"><label for="cor-articolo">Articolo</label><input class="testo" id="cor-articolo" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div>
+    <div class="campo"><label for="cor-commessa">Commessa</label>
+      <div class="prefisso"><span aria-hidden="true">P</span><input class="testo" id="cor-commessa" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div></div>
+  </div>
+  <!-- solo sui fermi segnati con "Riparte ora": si può togliere la ripartenza sbagliata -->
+  <div class="blocco" id="cor-rip-blocco" hidden><span id="cor-rip-testo"></span><button class="chip" id="cor-rip-togli" aria-pressed="false">Togli</button></div>
+  <div class="avviso" id="avviso-correggi" role="alert"></div>
+  <button id="conferma-correggi" class="salva" style="width:100%;margin:6px 0 20px">Salva</button>
+  <button id="annulla-correggi" class="annulla">Annulla</button>
+</dialog>
+
 <!-- lettura a metà turno: si chiede il perché prima di salvare -->
 <dialog id="dialogo-perche" aria-labelledby="titolo-perche">
   <h2 class="titolo-sez" id="titolo-perche">Perché leggi adesso?</h2>
@@ -581,7 +628,10 @@
 </script>
 <script>
 // ---------------- Configurazione ----------------
-const PRESSE = [33, 36, 40, 51, 55, 57, 67, 68, 69];
+// elenco presse: si aggiungono e si tolgono dall'app; si parte da quelle di Eduard
+const CHIAVE_PRESSE = 'cicli-elenco-presse';
+let PRESSE = [33, 36, 40, 51, 55, 57, 67, 68, 69];
+try { const e = JSON.parse(localStorage.getItem(CHIAVE_PRESSE)); if (Array.isArray(e)) PRESSE = e; } catch (e) {}
 const CHIAVE = 'cicli-presse-letture';
 
 // ---------------- Turni e ore lavorate ----------------
@@ -672,6 +722,7 @@ function testoEvento(l) {
   const parti = [];
   if (l && l.ripartenza) parti.push('Ripartita alle ' + new Date(l.ripartenza).toTimeString().slice(0, 5));
   if (l && l.controllo) parti.push('Lettura di controllo');
+  if (l && l.contatore_ripartito) parti.push('Contatore ripartito');
   if (eFine(l)) parti.push('Fine commessa');
   if (eFermo(l)) {
     const m = TESTO_MOTIVO[l.motivo] || '';
@@ -780,23 +831,59 @@ function disegnaElencoPresse() {
   $('avanz-seg').innerHTML = inF.map(p => '<i' + (lette[p] ? ' class="letta"' : '') + '></i>').join('');
 }
 
+// aggiungi e togli presse: le letture restano sempre nello storico
+function salvaPresse() { PRESSE.sort((a, b) => a - b); salva(CHIAVE_PRESSE, PRESSE); aggiornaFerme(); }
+$('aggiungi-apri').onclick = () => {
+  const aprire = $('aggiungi-blocco').hidden;
+  $('aggiungi-blocco').hidden = !aprire; $('aggiungi-apri').setAttribute('aria-expanded', String(aprire));
+  $('avviso-aggiungi').textContent = '';
+  if (aprire) { $('aggiungi-num').value = ''; $('aggiungi-num').focus(); }
+};
+$('aggiungi-ok').onclick = () => {
+  const t = $('aggiungi-num').value.trim(), p = Number(t);
+  if (!/^\d{1,4}$/.test(t) || !p) { $('avviso-aggiungi').textContent = 'Scrivi il numero della pressa.'; $('aggiungi-num').focus(); return; }
+  if (PRESSE.includes(p)) { $('avviso-aggiungi').textContent = 'La pressa ' + p + ' è già nell\'elenco.'; return; }
+  PRESSE.push(p); salvaPresse();
+  $('aggiungi-blocco').hidden = true; $('aggiungi-apri').setAttribute('aria-expanded', 'false'); $('avviso-aggiungi').textContent = '';
+  $('aggiungi-num').blur();
+  disegnaElencoPresse();
+  $('msg').textContent = 'Pressa ' + p + ' aggiunta all\'elenco.';
+};
+$('togli-pressa').onclick = () => {
+  const b = $('togli-pressa'), p = pressaAperta;
+  if (!b.dataset.confermare) {
+    b.dataset.confermare = '1'; b.textContent = 'Togli la ' + p;
+    setTimeout(() => { b.textContent = 'Togli dall\'elenco'; delete b.dataset.confermare; }, 3000);
+    return;
+  }
+  b.textContent = 'Togli dall\'elenco'; delete b.dataset.confermare;
+  PRESSE = PRESSE.filter(x => x !== p); salvaPresse();
+  chiudi(); disegnaRiepilogo();
+  $('msg').textContent = 'Pressa ' + p + ' tolta dall\'elenco. Le sue letture restano nello storico.';
+};
+
 // "Riparte ora": si apre l'orologio con l'ora attuale. Si può spostare (indietro fino al fermo, avanti fino ad adesso) e poi si conferma
 const dialogoRiparte = $('dialogo-riparte');
-let ripPressa = null, ripData = null, ripMin = null, ripNuova = false;   // ripNuova: l'orologio serve per la partenza di una commessa nuova
+// ripModo: 'nuova' = partenza di una commessa nuova; 'lettura' = "Nel mio turno" dentro la tendina; altrimenti "Riparte ora"
+let ripPressa = null, ripData = null, ripMin = null, ripModo = null;
 const alMinuto = d => { const x = new Date(d); x.setSeconds(0, 0); return x; };
 function mostraRiparte(avviso) {
   $('rip-orologio').value = ripData.toTimeString().slice(0, 5);
   $('rip-giorno').textContent = ripData.toDateString() === new Date().toDateString() ? 'Oggi' : 'Il ' + ripData.toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: '2-digit' });
   $('avviso-riparte').textContent = avviso || '';
 }
-function riparte(p, nuova) {
-  ripPressa = p; ripNuova = !!nuova;
+function riparte(p, modo) {
+  ripPressa = p; ripModo = modo || null;
   ripMin = alMinuto(ultimaLettura(p).ora);                       // la ripartenza non può essere prima del fermo
-  ripData = alMinuto(new Date());
+  if (ripModo === 'lettura') {                                   // "nel mio turno": non prima dell'inizio del turno
+    const t = turnoDi(new Date()).inizio;
+    if (t > ripMin) ripMin = t;
+  }
+  ripData = (ripModo === 'lettura' && dataRipartenza(new Date())) || alMinuto(new Date());   // se l'ora era già scelta si riparte da quella
   if (ripData < ripMin) ripData = ripMin;
   $('riparte-pressa').textContent = p;
-  $('titolo-riparte').firstChild.textContent = ripNuova ? 'Commessa nuova, pressa ' : 'Pressa ';
-  $('titolo-riparte').lastChild.textContent = ripNuova ? ' partita alle' : ' ripartita alle';
+  $('titolo-riparte').firstChild.textContent = ripModo === 'nuova' ? 'Commessa nuova, pressa ' : 'Pressa ';
+  $('titolo-riparte').lastChild.textContent = ripModo === 'nuova' ? ' partita alle' : ' ripartita alle';
   mostraRiparte();
   if (typeof dialogoRiparte.showModal === 'function') dialogoRiparte.showModal(); else dialogoRiparte.setAttribute('open', '');
 }
@@ -824,9 +911,21 @@ $('rip-orologio').onchange = () => {
 };
 $('annulla-riparte').onclick = () => dialogoRiparte.close();
 dialogoRiparte.addEventListener('click', e => { if (e.target === dialogoRiparte) dialogoRiparte.close(); });
+// "Nel mio turno" annullato senza aver mai scelto l'ora: si torna alla domanda
+dialogoRiparte.addEventListener('close', () => {
+  if (ripModo === 'lettura' && !$('rip-ora').value) { ripScelta = null; botRip().forEach(b => b.setAttribute('aria-pressed', 'false')); $('rip-ora-blocco').hidden = true; aggiornaOre(); }
+});
 $('conferma-riparte').onclick = () => {
   const p = ripPressa;
-  if (ripNuova) {                                // commessa nuova: l'ora si salva sulla "Fine commessa" e le ore lavorate si ricalcolano da lì
+  if (ripModo === 'lettura') {                   // l'ora va nella casella "Ripartita alle" e le ore si contano da lì
+    $('rip-ora').value = ripData.toTimeString().slice(0, 5);
+    $('rip-ora-blocco').hidden = false;
+    dialogoRiparte.close();
+    $('avviso-salva').textContent = '';
+    oreManuali = false; aggiornaOre();
+    return;
+  }
+  if (ripModo === 'nuova') {                              // commessa nuova: l'ora si salva sulla "Fine commessa" e le ore lavorate si ricalcolano da lì
     ultimaLettura(p).partenza_commessa = ripData.toISOString();
     dialogoRiparte.close();
     salva(CHIAVE, letture);
@@ -853,7 +952,7 @@ function apri(p) {
   document.querySelector('.voce.aperta').scrollIntoView({ behavior: 'smooth', block: 'start' });
   $('cicli-input').focus({ preventScroll: true });   // il tastierino numerico si apre subito
   const u = ultimaLettura(p);
-  if (eFine(u) && !u.partenza_commessa) riparte(p, true);   // dopo "Fine commessa" si chiede a che ora parte la nuova
+  if (eFine(u) && !u.partenza_commessa) riparte(p, 'nuova');   // dopo "Fine commessa" si chiede a che ora parte la nuova
 }
 function chiudi() {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // su iPhone la tastiera resta aperta se il cursore è nella casella che sparisce
@@ -906,12 +1005,14 @@ botRip().forEach(b => {
   b.onclick = () => {
     ripScelta = b.dataset.rip;
     botRip().forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    $('rip-ora-blocco').hidden = ripScelta !== 'mio';
+    $('rip-ora').value = '';
+    $('rip-ora-blocco').hidden = true;
     $('avviso-salva').textContent = '';
     oreManuali = false; aggiornaOre();
-    if (ripScelta === 'mio') $('rip-ora').focus();
+    if (ripScelta === 'mio') riparte(pressaAperta, 'lettura');   // l'ora si sceglie con l'orologio
   };
 });
+$('rip-ora').onclick = () => riparte(pressaAperta, 'lettura');
 function mostraCampi(aperti) {
   $('tendina-campi').classList.toggle('aperta', aperti);
   $('cambia-campi').setAttribute('aria-expanded', String(aperti));
@@ -972,8 +1073,46 @@ dialogo.addEventListener('close', () => {
   if (salvaDopoMotivo) { salvaDopoMotivo = false; if (optFermo.checked && motivo) registra(); }   // arrivati da "Perché leggi adesso?"
 });
 
+// ---------------- Letture che non tornano ----------------
+// cicli all'ora della pressa: dalla commessa in corso; se non ci sono ancora dati, da tutte le letture della pressa
+function cicliOrari(p) {
+  let fine = -1;
+  letture.forEach((l, i) => { if (l.pressa === p && eFine(l)) fine = i; });
+  const media = da => {
+    let cicli = 0, ore = 0;
+    letture.forEach((l, i) => {
+      if (i <= da || l.pressa !== p) return;
+      const delta = cicliDaUltima(i), d = durateLettura(i).ultima;
+      if (delta > 0 && d && d.effettiva >= 0.5) { cicli += delta; ore += d.effettiva; }   // tratti troppo corti danno medie sballate
+    });
+    return ore ? cicli / ore : null;
+  };
+  return media(fine) || media(-1);
+}
+// più bassa dell'ultima lettura, oppure molti più cicli di quelli possibili nel tempo passato (media × 1,5, più mezz'ora di margine)
+function controllaLettura(p, cicli, adesso, ripartenza) {
+  const u = ultimaLettura(p);
+  if (!u || eFine(u)) return null;                // dopo Fine commessa il contatore riparte da zero
+  const n = x => Math.round(x).toLocaleString('it-IT');
+  if (cicli < u.cicli) return { bassa: true, testo: 'Più bassa dell\'ultima lettura (' + n(u.cicli) + '). Correggi il numero, oppure tocca Confermo se è giusta (contatore ripartito).' };
+  const media = cicliOrari(p);
+  if (!media) return null;
+  let da = ripartenza || (eFermo(u) ? turnoDi(adesso).inizio : new Date(u.ora));   // dopo un fermo si conta dalla ripartenza
+  if (da < new Date(u.ora)) da = new Date(u.ora);
+  const attesi = media * oreProduzione(da, adesso);
+  if (cicli - u.cicli > attesi * 1.5 + media / 2)
+    return { testo: 'Salto troppo grande: ' + n(cicli - u.cicli) + ' cicli dall\'ultima lettura, di solito circa ' + n(attesi) + ' in questo tempo. Correggi il numero, oppure tocca Confermo se è giusta.' };
+  return null;
+}
+let cicliConfermati = null;                  // numero già segnalato e confermato da Eduard
+$('cicli-input').oninput = () => {
+  if (cicliConfermati == null) return;
+  cicliConfermati = null; $('salva').textContent = 'Salva'; $('avviso-salva').textContent = '';
+};
+
 function azzera() {
   controllo = false;
+  cicliConfermati = null; $('salva').textContent = 'Salva';
   $('cicli-input').value = '';
   optFermo.checked = false; optFine.checked = false; motivo = null; notaAltro = ''; scelta = null; precedente = null; $('altro-nota').value = ''; aggiornaMotivo();
 }
@@ -993,6 +1132,12 @@ function registra() {
   aggiornaOre();                                                   // se non sono state cambiate a mano, si ricalcolano all'ora del salvataggio
   const ore = leggiOre($('ore-input').value);
   if (ore == null) { avviso('Scrivi le ore lavorate, es. 7:30 oppure 8.'); $('ore-input').focus(); return; }
+  // lettura che non torna: si avvisa e Salva diventa "Confermo"; cambiando il numero si torna a Salva
+  const strana = controllaLettura(pressaAperta, cicli, adesso, ripartenza);
+  if (strana && cicliConfermati !== cicli) {
+    cicliConfermati = cicli; $('salva').textContent = 'Confermo';
+    avviso(strana.testo); return;
+  }
   // a metà turno serve un motivo: se non è già spuntato, lo si chiede. A fine turno solo con "Fermo o fine commessa?"
   if ((!eFineTurno(adesso) || segnala) && !optFermo.checked && !optFine.checked && !controllo) {
     $('testo-perche').textContent = segnala ? 'Cosa è successo alla pressa?' : 'Non è la fine del turno: scegli il motivo della lettura.';
@@ -1010,6 +1155,7 @@ function registra() {
   if (ripartenza) lettura.ripartenza = ripartenza.toISOString();
   else if (ripScelta === 'prima') lettura.ripartenza_prima = true;   // ripartita in un turno precedente: serve per togliere il fermo dalla durata
   if (controllo) lettura.controllo = true;
+  if (strana && strana.bassa) lettura.contatore_ripartito = true;   // confermata più bassa: i cicli ripartono da zero
   if (optFine.checked) lettura.fine_commessa = true;
   if (optFermo.checked) {
     lettura.fermo = true; lettura.motivo = motivo;
@@ -1062,7 +1208,7 @@ let mostraSegnate = true;                    // true: le letture già segnate su
 function disegnaRighe() {
   const delTurno = letturePerTurno(turnoSceltoChiave);
   const righe = [];
-  PRESSE.forEach(p => {
+  [...new Set([...PRESSE, ...delTurno.map(l => l.pressa)])].forEach(p => {   // anche le presse tolte dall'elenco dopo la lettura
     // una riga per commessa: ogni "Fine commessa" chiude la sua, poi l'ultima lettura della commessa nuova
     const lp = delTurno.filter(l => l.pressa === p), rp = [];
     lp.forEach((l, k) => { if (eFine(l) || k === lp.length - 1) rp.push(l); });
@@ -1070,7 +1216,7 @@ function disegnaRighe() {
   });
   const segnate = righe.filter(r => r.lettura.mes).length;
   $('righe').innerHTML = righe.filter(r => mostraSegnate || !r.lettura.mes).map(r =>
-    '<tr' + (r.lettura.mes ? ' class="segnata"' : '') + '><td class="sp"><button class="x ok" data-mes="' + r.lettura.ora + '" aria-pressed="' + !!r.lettura.mes +
+    '<tr data-cor="' + r.lettura.ora + '"' + (r.lettura.mes ? ' class="segnata"' : '') + '><td class="sp"><button class="x ok" data-mes="' + r.lettura.ora + '" aria-pressed="' + !!r.lettura.mes +
       '" aria-label="' + (r.lettura.mes ? 'Rimetti in elenco' : 'Segnata sul MES') + ' pressa ' + r.pressa + '">✓</button></td><td class="pressa">' + r.pressa + (r.piu ? '<span class="ev">' + esc([r.lettura.articolo && 'Art. ' + r.lettura.articolo, r.lettura.commessa].filter(Boolean).join(' · ')) + '</span>' : '') +
       (testoEvento(r.lettura) ? '<span class="ev">' + testoEvento(r.lettura).replace(/</g, '&lt;') + '</span>' : '') + '</td><td class="n">' + r.lettura.cicli + '</td><td class="n ore">' +
       formatoOre(oreDi(r.lettura)) + '</td><td class="az"><button class="x" data-del="' + r.lettura.ora +
@@ -1089,7 +1235,10 @@ function disegnaRighe() {
       setTimeout(() => { b.textContent = '×'; b.classList.remove('conferma'); delete b.dataset.confermare; }, 3000);
     };
   });
-  $('note-riepilogo').innerHTML = 'Compaiono solo le presse lette. Con ✓ una lettura si sbiadisce dopo averla segnata sul MES.' +
+  document.querySelectorAll('#righe [data-cor]').forEach(tr => {
+    tr.onclick = e => { if (!e.target.closest('button')) apriCorreggi(tr.dataset.cor); };
+  });
+  $('note-riepilogo').innerHTML = 'Compaiono solo le presse lette. Con ✓ una lettura si sbiadisce dopo averla segnata sul MES. Tocca una riga per correggerla.' +
     (segnate ? ' <button class="linea" id="mostra-segnate">' + (mostraSegnate ? 'Nascondi' : 'Mostra') + ' le ' + segnate + ' segnate</button>' : '');
   if (segnate) $('mostra-segnate').onclick = () => { mostraSegnate = !mostraSegnate; disegnaRighe(); };
 }
@@ -1098,7 +1247,7 @@ function disegnaRighe() {
 // cicli dall'ultima lettura della stessa pressa; dopo "Fine commessa" il contatore riparte da zero
 function cicliDaUltima(i) {
   const l = letture[i];
-  for (let j = i - 1; j >= 0; j--) if (letture[j].pressa === l.pressa) return l.cicli - (eFine(letture[j]) ? 0 : letture[j].cicli);
+  for (let j = i - 1; j >= 0; j--) if (letture[j].pressa === l.pressa) return l.cicli - (eFine(letture[j]) || l.contatore_ripartito ? 0 : letture[j].cicli);
   return null;
 }
 // ore di produzione tra due istanti: solo le ore dei turni in cui si produce (niente fine settimana)
@@ -1160,10 +1309,31 @@ function disegnaStorico() {
   $('storico-conta').textContent = letture.length ? letture.length + ' letture salvate su questo telefono.' : 'Nessuna lettura salvata.';
   $('esporta').disabled = !letture.length; $('svuota').disabled = !letture.length;
   $('stato-esporta').textContent = '';
+  // svuota una pressa sola: un pulsante con la × per ogni pressa che ha letture
+  const conLetture = [...new Set(letture.map(l => l.pressa))].sort((a, b) => a - b);
+  $('svuota-presse-blocco').hidden = !conLetture.length;
+  $('svuota-presse').innerHTML = conLetture.map(p => '<button class="chip" data-svuota="' + p + '" aria-label="Svuota lo storico della pressa ' + p + '">' + p + ' ×</button>').join('');
+  document.querySelectorAll('[data-svuota]').forEach(b => {
+    b.onclick = () => {
+      const p = Number(b.dataset.svuota);
+      if (!b.dataset.confermare) {
+        b.dataset.confermare = '1'; b.textContent = 'Svuota la ' + p; b.setAttribute('aria-pressed', 'true');
+        setTimeout(() => { if (b.isConnected) { b.textContent = p + ' ×'; b.setAttribute('aria-pressed', 'false'); delete b.dataset.confermare; } }, 3000);
+        return;
+      }
+      letture = letture.filter(l => l.pressa !== p); salva(CHIAVE, letture); aggiornaFerme();
+      if (pressaAperta === p) { pressaAperta = null; azzera(); }
+      disegnaStorico(); disegnaElencoPresse(); disegnaRiepilogo(); disegnaHome();
+      $('stato-esporta').textContent = 'Storico della pressa ' + p + ' svuotato.';
+    };
+  });
   $('storico-elenco').innerHTML = letture.map((l, i) => {
     const d = new Date(l.ora), delta = cicliDaUltima(i), ev = testoEvento(l), dur = durateLettura(i);
-    const coppia = (titolo, x) => '<div class="st-dati"><span>' + titolo + ': reale <strong>' + formatoOre(x.reale) + '</strong></span><span>effettiva <strong>' + formatoOre(x.effettiva) + '</strong></span></div>';
-    return '<div class="card"><div class="st-testa"><b>Pressa ' + l.pressa + '</b><span class="piccolo">' + dataIt(d) + ' · ' + oraIt(d) + '</span></div>' +
+    // una voce sola se reale ed effettiva coincidono (nessun fermo in mezzo)
+    const coppia = (titolo, x) => formatoOre(x.reale) === formatoOre(x.effettiva)
+      ? '<div class="st-dati"><span>' + titolo + ': <strong>' + formatoOre(x.reale) + '</strong></span></div>'
+      : '<div class="st-dati"><span>' + titolo + ': reale <strong>' + formatoOre(x.reale) + '</strong></span><span>effettiva <strong>' + formatoOre(x.effettiva) + '</strong></span></div>';
+    return '<div class="card storico-card" data-cor="' + l.ora + '"><div class="st-testa"><b>Pressa ' + l.pressa + '</b><span class="piccolo">' + dataIt(d) + ' · ' + oraIt(d) + '</span></div>' +
       '<div class="st-dati"><span>Articolo: <strong>' + esc(l.articolo || '—') + '</strong></span><span>Commessa: <strong>' + esc(l.commessa || '—') + '</strong></span></div>' +
       '<div class="st-dati"><span>Cicli totali: <strong>' + l.cicli + '</strong></span>' +
       (delta != null ? '<span>Cicli dall\'ultima lettura: <strong>' + delta + '</strong></span>' : '') + '</div>' +
@@ -1172,7 +1342,52 @@ function disegnaStorico() {
       '<div class="st-dati"><span>Ore turno: <strong>' + formatoOre(oreDi(l)) + '</strong>' + (l.ore_manuali ? ' (a mano)' : '') + '</span></div>' +
       (ev ? '<span class="ev">' + esc(ev) + '</span>' : '') + '</div>';
   }).reverse().join('');
+  document.querySelectorAll('.storico-card').forEach(c => { c.onclick = () => apriCorreggi(c.dataset.cor); });
 }
+
+// ---------------- Correggi una lettura ----------------
+const dialogoCorreggi = $('dialogo-correggi');
+let corLettura = null;
+function apriCorreggi(ora) {
+  const l = letture.find(x => x.ora === ora);
+  if (!l) return;
+  corLettura = l;
+  const d = new Date(l.ora);
+  $('titolo-correggi').textContent = 'Correggi pressa ' + l.pressa;
+  $('correggi-quando').textContent = 'Lettura del ' + dataIt(d) + ' alle ' + oraIt(d) + (testoEvento(l) ? ' · ' + testoEvento(l) : '');
+  $('cor-cicli').value = l.cicli;
+  $('cor-ore').value = testoOreCampo(oreDi(l));
+  $('cor-articolo').value = l.articolo || '';
+  $('cor-commessa').value = (l.commessa || '').replace(/^P/i, '');
+  $('cor-rip-blocco').hidden = !l.ripartita_alle;          // "Riparte ora" sbagliato: si toglie da qui
+  if (l.ripartita_alle) { $('cor-rip-testo').textContent = 'Ripartita alle ' + oraIt(new Date(l.ripartita_alle)); $('cor-rip-togli').textContent = 'Togli'; $('cor-rip-togli').setAttribute('aria-pressed', 'false'); }
+  $('avviso-correggi').textContent = '';
+  if (typeof dialogoCorreggi.showModal === 'function') dialogoCorreggi.showModal(); else dialogoCorreggi.setAttribute('open', '');
+}
+$('cor-rip-togli').onclick = () => {
+  const togli = $('cor-rip-togli').getAttribute('aria-pressed') !== 'true';
+  $('cor-rip-togli').setAttribute('aria-pressed', String(togli));
+  $('cor-rip-togli').textContent = togli ? 'Rimetti' : 'Togli';
+  $('cor-rip-testo').textContent = togli ? 'Ripartenza tolta' : 'Ripartita alle ' + oraIt(new Date(corLettura.ripartita_alle));
+};
+$('conferma-correggi').onclick = () => {
+  const l = corLettura, t = $('cor-cicli').value.trim(), cicli = Number(t), ore = leggiOre($('cor-ore').value);
+  if (!t || !Number.isInteger(cicli) || cicli < 0) { $('avviso-correggi').textContent = 'Scrivi il numero dei cicli totali.'; return; }
+  if (ore == null) { $('avviso-correggi').textContent = 'Scrivi le ore, es. 7:30 oppure 8.'; return; }
+  l.cicli = cicli;
+  if ($('cor-ore').value.trim() !== testoOreCampo(oreDi(l))) { l.ore = ore; l.ore_manuali = true; }
+  const articolo = $('cor-articolo').value.trim(), cifre = $('cor-commessa').value.trim().replace(/^P/i, '');
+  if (articolo) l.articolo = articolo; else delete l.articolo;
+  if (cifre) l.commessa = 'P' + cifre; else delete l.commessa;
+  if ($('cor-rip-togli').getAttribute('aria-pressed') === 'true') delete l.ripartita_alle;   // la pressa torna ferma
+  salva(CHIAVE, letture); aggiornaFerme();
+  dialogoCorreggi.close();
+  disegnaElencoPresse(); disegnaRiepilogo();
+  if (location.hash === '#storico') disegnaStorico();
+  $('msg').textContent = 'Lettura della pressa ' + l.pressa + ' corretta.';
+};
+$('annulla-correggi').onclick = () => dialogoCorreggi.close();
+dialogoCorreggi.addEventListener('click', e => { if (e.target === dialogoCorreggi) dialogoCorreggi.close(); });
 // "Svuota": al primo tocco cambia la scritta, al secondo cancella tutte le letture salvate sul telefono
 $('svuota').onclick = () => {
   const b = $('svuota');
