@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028160517">
+<meta name="versione" content="20261028161940">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1071,9 +1071,14 @@ aggiornaFerme();
 function fermiNelTurno(p) {
   const t = turnoDi(new Date());
   let n = 0, min = 0;
-  letture.forEach(l => {
-    if (l.pressa !== p || !eFermo(l) || !l.ripartita_alle) return;
-    const a = Math.max(new Date(l.ora), t.inizio), b = Math.min(new Date(l.ripartita_alle), t.fine);
+  const lp = letture.filter(l => l.pressa === p);
+  lp.forEach((l, k) => {
+    if (!eFermo(l)) return;
+    const dopo = lp[k + 1];
+    // la ripartenza: "Riparte ora" sulla lettura, oppure l'ora scritta nella lettura dopo
+    const fine = l.ripartita_alle || (dopo && dopo.ripartenza);
+    if (!fine) return;
+    const a = Math.max(new Date(l.ora), t.inizio), b = Math.min(new Date(fine), t.fine);
     if (b > a) { n++; min += (b - a) / 60000; }
   });
   return { n, min: Math.round(min) };
@@ -1085,8 +1090,13 @@ function testoDurata(min) {
   return [ore, minuti].filter(Boolean).join(' e ');
 }
 const TESTO_MOTIVO = { manutenzione: 'manutenzione', mancanza_materiale: 'mancanza materiale', altro: 'altro' };
-function testoEvento(l) {
+// opz.totale (elenco presse): per un fermo solo "Fermo per manutenzione · minuti totali di fermo nel turno"
+function testoEvento(l, opz) {
   const parti = [];
+  if (opz && eFermo(l) && !l.ripresa_stessa) {
+    const m = TESTO_MOTIVO[l.motivo] || '';
+    return 'Fermo' + (l.motivo === 'altro' ? (l.nota ? ': ' + l.nota : ' per altro') : m ? ' per ' + m : '') + (opz.totale >= 1 ? ' · ' + testoDurata(opz.totale) : '');
+  }
   if (l && l.ripartenza) parti.push('Ripartita alle ' + new Date(l.ripartenza).toTimeString().slice(0, 5));
   if (l && l.controllo) parti.push('Lettura di controllo');
   if (l && l.contatore_ripartito) parti.push('Contatore ripartito');
@@ -1240,7 +1250,7 @@ function disegnaElencoPresse() {
     if (l) { prec = null; for (let i = letture.indexOf(l) - 1; i >= 0; i--) if (letture[i].pressa === p && !eSolo(letture[i])) { prec = letture[i]; break; } }
     const ultima = !f && prec ? '<span class="ultima"><b>' + prec.cicli + '</b><span>' + quandoBreve(new Date(prec.ora)) + '</span>' + (prec.nome ? '<span class="da">' + esc(prec.nome) + '</span>' : '') + '</span>' : '';
     const ft = fermiNelTurno(p);
-    const ev = [testoEvento(f || (!l && eFermo(u)) ? u : l), ft.n > 1 && ft.min >= 1 ? 'Fermo in tutto ' + testoDurata(ft.min) + ' (' + ft.n + ' volte)' : ''].filter(Boolean).join(' · ');   // anche "Ripartita alle…" finché non si legge
+    const ev = testoEvento(f || (!l && eFermo(u)) ? u : l, { totale: ft.min });   // anche "Ripartita alle…" finché non si legge
     return '<div class="voce' + (aperta ? ' aperta' : '') + (f ? ' ferma-p' : '') + '" data-p="' + p + '"><div class="testa-p">' +
       '<button class="togli-sw" data-togli="' + p + '" tabindex="-1">Togli</button><div class="scorre">' +
       '<button class="pressa-btn" data-p="' + p + '" aria-expanded="' + aperta + '"><span class="titolo-p"><span class="num">Pressa ' + p + '</span>' +
@@ -2029,7 +2039,7 @@ $('esporta').onclick = async () => {
 {
   const s = document.createElement('div');
   s.className = PROVA ? 'striscia-prova' : 'striscia-beta';
-  s.textContent = PROVA ? 'SVILUPPATORE' : 'BETA 1';
+  s.textContent = PROVA ? 'SVILUPPATORE · v' + document.querySelector('meta[name="versione"]').content.slice(8, 12) : 'BETA 1';   // ora e minuti della versione: si vede subito se il telefono è aggiornato
   document.querySelector('.pagina').prepend(s);
   if (PROVA) document.title = 'NIS Sviluppatore';
 }
