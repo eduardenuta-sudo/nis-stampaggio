@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028101248">
+<meta name="versione" content="20261028103533">
 <meta name="theme-color" content="#0b2d6c">
 <title>NIS Stampaggio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -259,6 +259,12 @@
   .sep { color: var(--muted); font: 600 .8rem/1 var(--font); letter-spacing: .1em; text-transform: uppercase; margin-top: 6px; }
   .voce { scroll-margin-top: 12px; }
   .testa-p { position: relative; }
+  /* scorrendo la pressa verso sinistra compare "Togli" (toglie la pressa dall'elenco) */
+  .scorre { position: relative; z-index: 1; touch-action: pan-y; transition: transform .25s cubic-bezier(.16,1,.3,1); }
+  .scorre.trascina { transition: none; }
+  button.togli-sw { position: absolute; z-index: 0; right: 0; top: 0; bottom: 8px; width: 104px; padding: 0; border: 0; border-radius: 26px;
+    background: linear-gradient(#e0574a, #b8382d); color: #fff; box-shadow: 0 8px 0 #7a1f17; font-size: 1rem; letter-spacing: .05em; text-transform: uppercase; }
+  button.togli-sw::after { display: none; }
   .pressa-btn .st.spazio-rip { flex: none; width: 112px; }   /* spazio per "Riparte ora", che sta sopra */
   button.riparte { position: absolute; z-index: 2; right: 54px; top: 50%; transform: translateY(-50%); padding: 10px 14px; font-size: .9rem; white-space: nowrap; }
   button.riparte:active { transform: translateY(calc(-50% + 4px)); }
@@ -508,8 +514,6 @@
     </div>
 
     <div class="avviso" id="avviso-salva" role="alert"></div>
-    <!-- la pressa esce dall'elenco, le sue letture restano nello storico -->
-    <button id="togli-pressa" class="annulla" style="margin-top:6px">Togli dall'elenco</button>
   </div>
 
   <section class="riepilogo" aria-labelledby="titolo-riepilogo">
@@ -826,17 +830,27 @@ function disegnaElencoPresse() {
     const u = ultimaLettura(p);
     const ev = testoEvento(f || (!l && eFermo(u)) ? u : l);   // anche "Ripartita alle…" finché non si legge
     return '<div class="voce' + (aperta ? ' aperta' : '') + (f ? ' ferma-p' : '') + '" data-p="' + p + '"><div class="testa-p">' +
+      '<button class="togli-sw" data-togli="' + p + '" tabindex="-1">Togli</button><div class="scorre">' +
       '<button class="pressa-btn" data-p="' + p + '" aria-expanded="' + aperta + '"><span class="titolo-p"><span class="num">Pressa ' + p + '</span>' +
       (ev ? '<span class="sub">' + ev.replace(/</g, '&lt;') + '</span>' : '') + '</span>' + stato + CHEVRON + '</button>' +
       (f ? '<button class="chip riparte" data-riparte="' + p + '">Riparte ora</button>' : '') +
-      '</div><div class="slot"></div></div>';
+      '</div></div><div class="slot"></div></div>';
   };
   // ordine fisso nel tempo: in cima la pressa letta per ultima (di qualunque turno), poi le precedenti; mai lette in fondo, nell'ordine solito
   const quando = p => { const u = ultimaLettura(p); return u ? new Date(u.ora).getTime() : 0; };
   const inF = PRESSE.filter(p => !ferme.includes(p)).sort((a, b) => quando(b) - quando(a)), ferm = PRESSE.filter(p => ferme.includes(p));
   $('elenco-presse').innerHTML = inF.map(voce).join('') + (ferm.length ? '<div class="sep">Ferme</div>' + ferm.map(voce).join('') : '');
-  document.querySelectorAll('.pressa-btn').forEach(b => { b.onclick = () => apri(Number(b.dataset.p)); });
-  document.querySelectorAll('[data-riparte]').forEach(b => { b.onclick = () => riparte(Number(b.dataset.riparte)); });
+  // dopo uno scorrimento il tocco non apre la pressa; con "Togli" scoperto, il tocco lo richiude
+  const dopoScorrimento = () => {
+    if (trascinato) return true;
+    if (scorsa) { scorsa.style.transform = ''; scorsa = null; return true; }
+    return false;
+  };
+  document.querySelectorAll('.pressa-btn').forEach(b => { b.onclick = () => { if (!dopoScorrimento()) apri(Number(b.dataset.p)); }; });
+  document.querySelectorAll('[data-riparte]').forEach(b => { b.onclick = () => { if (!dopoScorrimento()) riparte(Number(b.dataset.riparte)); }; });
+  document.querySelectorAll('.scorre').forEach(attivaScorrimento);
+  document.querySelectorAll('[data-togli]').forEach(b => { b.onclick = () => togliPressa(Number(b.dataset.togli)); });
+  scorsa = null;
   if (pressaAperta != null) {
     const slot = document.querySelector('.voce.aperta .slot');
     if (slot) { slot.appendChild(pannello); pannello.hidden = false; }
@@ -864,18 +878,48 @@ $('aggiungi-ok').onclick = () => {
   disegnaElencoPresse();
   $('msg').textContent = 'Pressa ' + p + ' aggiunta all\'elenco.';
 };
-$('togli-pressa').onclick = () => {
-  const b = $('togli-pressa'), p = pressaAperta;
-  if (!b.dataset.confermare) {
-    b.dataset.confermare = '1'; b.textContent = 'Togli la ' + p;
-    setTimeout(() => { b.textContent = 'Togli dall\'elenco'; delete b.dataset.confermare; }, 3000);
-    return;
-  }
-  b.textContent = 'Togli dall\'elenco'; delete b.dataset.confermare;
+function togliPressa(p) {
   PRESSE = PRESSE.filter(x => x !== p); salvaPresse();
-  chiudi(); disegnaRiepilogo();
+  if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
+  disegnaRiepilogo();
   $('msg').textContent = 'Pressa ' + p + ' tolta dall\'elenco. Le sue letture restano nello storico.';
-};
+}
+// scorrimento verso sinistra sulla pressa: oltre metà strada resta aperto e scopre "Togli", altrimenti torna al suo posto
+const LARGO_TOGLI = 116;
+let scorsa = null, trascinato = false;           // scorsa: la pressa che ha "Togli" scoperto
+function attivaScorrimento(el) {
+  let x0 = null, y0 = 0, dx = 0, oriz = null;
+  el.addEventListener('pointerdown', e => {
+    if (scorsa && scorsa !== el) { scorsa.style.transform = ''; scorsa = null; }
+    x0 = e.clientX; y0 = e.clientY; dx = 0; oriz = null; trascinato = false;
+  });
+  el.addEventListener('pointermove', e => {
+    if (x0 == null) return;
+    const mx = e.clientX - x0, my = e.clientY - y0;
+    if (oriz == null && Math.abs(mx) + Math.abs(my) > 8) oriz = Math.abs(mx) > Math.abs(my);   // si decide al primo movimento
+    if (!oriz) return;
+    if (!trascinato && el.setPointerCapture) try { el.setPointerCapture(e.pointerId); } catch (err) {}   // il dito può uscire dalla pressa
+    trascinato = true;
+    const base = scorsa === el ? -LARGO_TOGLI : 0;
+    dx = Math.max(-LARGO_TOGLI - 30, Math.min(0, base + mx));
+    el.classList.add('trascina'); el.style.transform = 'translateX(' + dx + 'px)';
+  });
+  const fine = () => {
+    if (x0 == null) return;
+    x0 = null; el.classList.remove('trascina');
+    if (!oriz) return;
+    const apri = dx < -LARGO_TOGLI / 2;
+    el.style.transform = apri ? 'translateX(' + -LARGO_TOGLI + 'px)' : '';
+    scorsa = apri ? el : null;
+    setTimeout(() => { trascinato = false; }, 0);   // il click che segue lo scorrimento viene ignorato
+  };
+  el.addEventListener('pointerup', fine);
+  el.addEventListener('pointercancel', fine);
+}
+// un tocco fuori dalla pressa scorsa la richiude
+document.addEventListener('pointerdown', e => {
+  if (scorsa && !scorsa.parentNode.contains(e.target)) { scorsa.style.transform = ''; scorsa = null; }
+});
 
 // "Riparte ora": si apre l'orologio con l'ora attuale. Si può spostare (indietro fino al fermo, avanti fino ad adesso) e poi si conferma
 const dialogoRiparte = $('dialogo-riparte');
