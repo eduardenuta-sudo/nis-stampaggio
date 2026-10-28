@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028125314">
+<meta name="versione" content="20261028125930">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -351,7 +351,6 @@ if (/prove/.test(location.pathname)) {
   /* primo avvio: entra nel reparto */
   .entra { margin-top: max(40px, 8vh); }
   .entra .marchio-entra { display: block; width: 150px; margin: 0 auto 28px; filter: brightness(1.35) saturate(.9); }
-  #entra-chiave-blocco[hidden] { display: none; }
   .letta-da { color: var(--muted); font-size: .85rem; }
   .importa-elenco { max-height: 46vh; overflow-y: auto; margin: 0 0 18px; }
   .importa-elenco .opzione { font-size: 1rem; }
@@ -490,10 +489,8 @@ if (/prove/.test(location.pathname)) {
     <p class="nota-avviso" id="entra-home" style="margin:18px 0 0" hidden>Su iPhone si entra dall'icona: tocca Condividi → "Aggiungi alla schermata Home", poi apri l'app da lì.</p>
     <div id="entra-passo1">
       <div class="blocco campo"><label for="entra-codice">Codice reparto</label><input class="testo" id="entra-codice" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="4 cifre"></div>
-      <div class="blocco campo" id="entra-chiave-blocco" hidden><label for="entra-chiave">Chiave responsabile</label><input class="testo" id="entra-chiave" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="4 cifre"></div>
       <div class="avviso" id="avviso-entra" role="alert"></div>
       <button id="entra-ok" class="salva" style="width:100%;margin-top:6px">Avanti</button>
-      <p style="margin:22px 0 0;text-align:center"><button class="linea" id="entra-resp">Sono il responsabile</button></p>
     </div>
     <!-- passo 2: chi sei. Ogni nome resta legato al suo telefono -->
     <div id="entra-passo2" hidden>
@@ -794,6 +791,7 @@ async function dbFirebase(cfg) {
       let s, p;
       try {
         s = await F.getDocFromServer(F.doc(fs, 'reparti', codice));   // dal server: un codice sbagliato non deve passare dalla cache
+        if (s.exists() && s.data().responsabile_di) return { responsabileDi: s.data().responsabile_di };   // codice del responsabile
         if (s.exists()) p = await F.getDocsFromServer(F.collection(fs, 'reparti', codice, 'persone'));
       } catch (e) { return { errore: 'Non riesco a raggiungere il database: serve la rete per entrare la prima volta.' }; }
       if (!s.exists()) return { errore: 'Codice reparto non trovato. Controlla con il responsabile.' };
@@ -870,6 +868,7 @@ function dbFinto() {
     async entra(codice) {
       const r = reparti()[codice];
       if (!r) return { errore: 'Codice reparto non trovato. Controlla con il responsabile.' };
+      if (r.responsabile_di) return { responsabileDi: r.responsabile_di };
       return { rotazione: r.rotazione || null, persone: { ...(r.persone || {}) } };
     },
     async diventaAdmin(chiave, nome) {
@@ -1013,6 +1012,7 @@ function mioTurno(adesso) {
   if (!accesso || accesso.attesa || !db) return null;
   if (accesso.ospite ? !gruppo.ospiti.some(x => x.uid === db.uid)                       // ospite: solo finché la sostituzione è attiva
     : gruppo.persone[accesso.nome] && gruppo.persone[accesso.nome] !== db.uid) return null;   // nome passato a un altro telefono
+  if (PROVA) return turnoDi(adesso);               // versione sviluppatore: nessun blocco dei turni, si scrive a qualsiasi ora
   for (const t of [turnoDi(adesso), turnoDi(new Date(adesso - MARGINE))])
     if (diTurno(t) === accesso.nome && adesso >= t.inizio && adesso <= new Date(t.fine.getTime() + MARGINE)) return t;
   return null;
@@ -2013,21 +2013,24 @@ function aggiornaVista() {
   if (!$('vista-home').hidden) disegnaHome();
 }
 setInterval(aggiornaVista, 30000);                 // il turno finisce anche con l'app aperta
-$('entra-resp').onclick = () => { $('entra-chiave-blocco').hidden = false; $('entra-resp').hidden = true; $('entra-chiave').focus(); };
 // passo 1: il codice. Se esiste si passa alla scelta del nome (i nomi sono quelli della rotazione dei turni)
 let entrata = null;                                // { codice, chiave, rotazione, persone } durante l'accesso
 const safariIphone = /iPhone|iPod/.test(navigator.userAgent) && navigator.standalone === false;
 $('entra-home').hidden = !safariIphone;
 $('entra-ok').onclick = async () => {
   if (safariIphone) return;                        // il nome resterebbe legato a Safari e non all'icona
-  const codice = normaCodice($('entra-codice').value), chiave = $('entra-chiave').value.trim();
+  let codice = normaCodice($('entra-codice').value), chiave = '';
   const avviso = t => { $('avviso-entra').textContent = t; };
   if (codice.length !== 4) { avviso('Scrivi il codice del reparto: 4 cifre.'); $('entra-codice').focus(); return; }
   const b = $('entra-ok');
   b.disabled = true; avviso('');
   try {
     await preparaDb();
-    const r = await db.entra(repartoDi(codice));
+    let r = await db.entra(repartoDi(codice));
+    if (r.responsabileDi) {                        // codice del responsabile: si entra nel suo reparto con i permessi da responsabile
+      chiave = codice; codice = r.responsabileDi;
+      r = await db.entra(repartoDi(codice));
+    }
     if (r.errore) { avviso(r.errore); return; }
     if (!r.rotazione) { avviso('Il reparto non ha ancora la rotazione dei turni. Avvisa il responsabile.'); return; }
     db.usa(repartoDi(codice));
