@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028154435">
+<meta name="versione" content="20261028155616">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -189,7 +189,7 @@ if (/prove/.test(location.pathname)) {
   .casella::after { content: ""; width: 16px; height: 9px; border-left: 4px solid var(--su-giallo); border-bottom: 4px solid var(--su-giallo);
     transform: rotate(-45deg) translate(1px, -2px) scale(0); transition: transform .18s cubic-bezier(.16,1,.3,1); }
   #motivo-scelto { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: -2px 0 16px; padding: 0 6px 0 18px; font-weight: 600; color: var(--giallo); overflow-wrap: anywhere; }
-  #motivo-scelto[hidden], #entra-nomi[hidden], #entra-chisei[hidden], #entra-ospite[hidden] { display: none; }
+  #btn-ferma[hidden], #btn-riparte[hidden], #motivo-scelto[hidden], #entra-nomi[hidden], #entra-chisei[hidden], #entra-ospite[hidden] { display: none; }
   #motivo-scelto .chip { flex: none; }
   .opzione:has(input:checked) { border-color: var(--giallo); }
   .opzione input:checked + .casella { background: var(--giallo); border-color: var(--giallo); }
@@ -562,6 +562,11 @@ if (/prove/.test(location.pathname)) {
 
   <!-- pannello di lettura: si sposta sotto la pressa toccata -->
   <div class="pannello" id="pannello-lettura" hidden>
+    <!-- fermo e ripartenza senza cicli: si sceglie l'ora (adesso o indietro) -->
+    <div class="blocco" id="azioni-fermo">
+      <button id="btn-ferma" class="salva" style="width:100%">Ferma la pressa</button>
+      <button id="btn-riparte" class="salva" style="width:100%" hidden>La pressa riparte</button>
+    </div>
     <!-- solo se l'ultima lettura della pressa era un fermo macchina -->
     <div class="blocco" id="ripartenza" hidden>
       <label>La pressa era ferma: quando è ripartita?</label>
@@ -1054,6 +1059,8 @@ function inTurno() {
 let letture = [];                                  // arrivano dal database comune (vedi avviaDati)
 // una pressa è "ferma" se la sua ultima lettura è stata salvata con "Fermo macchina" e non è stata segnata "Riparte ora"
 let ferme = [];
+const eSolo = l => !!l && l.solo_evento === true;   // fermo registrato senza lettura dei cicli
+function ultimaReale(p) { for (let i = letture.length - 1; i >= 0; i--) if (letture[i].pressa === p && !eSolo(letture[i])) return letture[i]; return null; }
 function ultimaLettura(p) { for (let i = letture.length - 1; i >= 0; i--) if (letture[i].pressa === p) return letture[i]; return null; }
 const eFermo = l => !!l && (l.fermo === true || l.evento === 'fermo');
 const eFerma = l => eFermo(l) && !l.ripartita_alle;
@@ -1079,7 +1086,7 @@ function testoEvento(l) {
   }
   if (eFermo(l)) {
     const m = TESTO_MOTIVO[l.motivo] || '';
-    parti.push('Fermo' + (m ? ' · ' + m : '') + (l.motivo === 'altro' && l.nota ? ': ' + l.nota : ''));
+    parti.push((eSolo(l) ? 'Fermo dalle ' + new Date(l.ora).toTimeString().slice(0, 5) : 'Fermo') + (m ? ' · ' + m : '') + (l.motivo === 'altro' && l.nota ? ': ' + l.nota : ''));
     if (l.ripartita_alle) {
       const min = Math.round((new Date(l.ripartita_alle) - new Date(l.ora)) / 60000);   // quanto è stata ferma: dalla lettura con Fermo alla ripartenza
       if (min >= 1) parti.push(testoDurata(min));
@@ -1132,7 +1139,7 @@ const letturePerTurno = chiave => letture.filter(l => chiaveTurno(turnoDi(new Da
 // l'ultima lettura di ogni pressa nel turno
 function ultimePerPressa(chiave) {
   const m = {};
-  letturePerTurno(chiave).forEach(l => { m[l.pressa] = l; });
+  letturePerTurno(chiave).forEach(l => { if (!eSolo(l)) m[l.pressa] = l; });
   return m;
 }
 
@@ -1218,8 +1225,8 @@ function disegnaElencoPresse() {
     const stato = f ? (scr ? '<span class="st spazio-rip"></span>' : '<span class="st">ferma</span>') : l ? '<span class="st letta">' + SPUNTA + l.cicli + '</span>' : '<span class="st manca">da leggere</span>';
     const u = ultimaLettura(p);
     // in mezzo la lettura che precede quella di questo turno (se la pressa è già letta), altrimenti l'ultima (di solito del turno prima): cicli e ora
-    let prec = u;
-    if (l) { prec = null; for (let i = letture.indexOf(l) - 1; i >= 0; i--) if (letture[i].pressa === p) { prec = letture[i]; break; } }
+    let prec = ultimaReale(p);
+    if (l) { prec = null; for (let i = letture.indexOf(l) - 1; i >= 0; i--) if (letture[i].pressa === p && !eSolo(letture[i])) { prec = letture[i]; break; } }
     const ultima = !f && prec ? '<span class="ultima"><b>' + prec.cicli + '</b><span>' + quandoBreve(new Date(prec.ora)) + '</span>' + (prec.nome ? '<span class="da">' + esc(prec.nome) + '</span>' : '') + '</span>' : '';
     const ev = testoEvento(f || (!l && eFermo(u)) ? u : l);   // anche "Ripartita alle…" finché non si legge
     return '<div class="voce' + (aperta ? ' aperta' : '') + (f ? ' ferma-p' : '') + '" data-p="' + p + '"><div class="testa-p">' +
@@ -1349,6 +1356,21 @@ function mostraRiparte(avviso) {
   $('rip-giorno').textContent = ripData.toDateString() === new Date().toDateString() ? 'Oggi' : 'Il ' + ripData.toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: '2-digit' });
   $('avviso-riparte').textContent = avviso || '';
 }
+const testoPrima = () => (ripModo === 'ferma' ? "Prima dell'ultima lettura (" : 'Prima del fermo (') + ripMin.toTimeString().slice(0, 5) + ') non si può.';
+// fermo senza cicli: si sceglie l'ora (adesso o indietro, mai prima dell'ultima lettura della pressa), poi il motivo
+let fermoSolo = false;
+function ferma(p) {
+  if (!inTurno()) return;
+  ripPressa = p; ripModo = 'ferma';
+  const u = ultimaLettura(p);
+  ripMin = u ? alMinuto(u.ora) : turnoDi(new Date(Date.now() - 8 * 3600e3)).inizio;
+  ripData = alMinuto(new Date());
+  if (ripData < ripMin) ripData = ripMin;
+  $('riparte-pressa').textContent = p;
+  $('titolo-riparte').firstChild.textContent = 'Pressa '; $('titolo-riparte').lastChild.textContent = ' ferma dalle';
+  mostraRiparte();
+  if (typeof dialogoRiparte.showModal === 'function') dialogoRiparte.showModal(); else dialogoRiparte.setAttribute('open', '');
+}
 function riparte(p, modo) {
   if (!inTurno()) return;
   ripPressa = p; ripModo = modo || null;
@@ -1370,7 +1392,7 @@ document.querySelectorAll('#dialogo-riparte [data-passo]').forEach(b => {
     const max = alMinuto(new Date());
     let n = new Date(ripData.getTime() + Number(b.dataset.passo) * 60000), avviso = '';
     if (n > max) { n = max; avviso = 'Più avanti di adesso non si può.'; }
-    if (n < ripMin) { n = ripMin; avviso = 'Prima del fermo (' + ripMin.toTimeString().slice(0, 5) + ') non si può.'; }
+    if (n < ripMin) { n = ripMin; avviso = testoPrima(); }
     ripData = n; mostraRiparte(avviso);
   };
 });
@@ -1384,7 +1406,7 @@ $('rip-orologio').onchange = () => {
     n.setDate(n.getDate() - 1);
     if (n < ripMin) { mostraRiparte('Più avanti di adesso non si può.'); return; }
   }
-  if (n < ripMin) { mostraRiparte('Prima del fermo (' + ripMin.toTimeString().slice(0, 5) + ') non si può.'); return; }
+  if (n < ripMin) { mostraRiparte(testoPrima()); return; }
   ripData = n; mostraRiparte();
 };
 $('annulla-riparte').onclick = () => dialogoRiparte.close();
@@ -1395,6 +1417,7 @@ dialogoRiparte.addEventListener('close', () => {
 });
 $('conferma-riparte').onclick = () => {
   const p = ripPressa;
+  if (ripModo === 'ferma') { dialogoRiparte.close(); fermoSolo = true; apriMotivi(); return; }   // ora scelta: ora il motivo
   if (ripModo === 'lettura') {                   // l'ora va nella casella "Ripartita alle" e le ore si contano da lì
     $('rip-ora').value = ripData.toTimeString().slice(0, 5);
     $('rip-ora-blocco').hidden = false;
@@ -1467,7 +1490,7 @@ function chiudi() {
 let ripScelta = null, oreManuali = false;
 const botRip = () => document.querySelectorAll('#ripartenza [data-rip]');
 function preparaCampi(p) {
-  const u = ultimaLettura(p);
+  const u = ultimaReale(p), ult = ultimaLettura(p);
   const stessa = u && !eFine(u);                   // dopo "Fine commessa" articolo e commessa ripartono vuoti
   const nuova = commesseNuove[p];                  // scritti con "Aggiungi pressa": hanno la precedenza
   $('articolo').value = nuova ? nuova.articolo : stessa && u.articolo || '';
@@ -1477,13 +1500,14 @@ function preparaCampi(p) {
   ripScelta = null; $('rip-ora').value = '';
   botRip().forEach(b => b.setAttribute('aria-pressed', 'false'));
   $('rip-ora-blocco').hidden = true;
-  $('ripartenza').hidden = !eFerma(u);             // con "Riparte ora" l'ora è già segnata: niente domanda
+  $('ripartenza').hidden = !eFerma(u) || eSolo(ult);   // con "Riparte ora" l'ora è già segnata: niente domanda
+  $('btn-ferma').hidden = eFerma(ult); $('btn-riparte').hidden = !eFerma(ult);
   oreManuali = false;
   aggiornaOre();
 }
 // ora di ripartenza scritta (hh:mm) → data dentro il turno in corso (il turno di notte passa la mezzanotte)
 function dataRipartenza(adesso) {
-  const u = pressaAperta != null ? ultimaLettura(pressaAperta) : null;
+  const u = pressaAperta != null ? ultimaReale(pressaAperta) : null;
   if (eFermo(u) && u.ripartita_alle) return new Date(u.ripartita_alle);   // segnata col pulsante "Riparte ora"
   const v = $('rip-ora').value;
   if (ripScelta !== 'mio' || !v) return null;
@@ -1495,14 +1519,28 @@ function dataRipartenza(adesso) {
 }
 // dopo una "Fine commessa" nello stesso turno, la commessa nuova parte da quella lettura
 function partenzaNuovaCommessa(adesso) {
-  const u = pressaAperta != null ? ultimaLettura(pressaAperta) : null;
+  const u = pressaAperta != null ? ultimaReale(pressaAperta) : null;
   if (eFine(u) && u.partenza_commessa) return new Date(u.partenza_commessa);   // scelta con l'orologio
   return eFine(u) && chiaveTurno(turnoDi(new Date(u.ora))) === chiaveTurno(turnoDi(adesso)) ? new Date(u.ora) : null;
 }
+// ore di produzione in cui la pressa è stata ferma con un fermo senza cicli, nel turno di d (da togliere alle ore lavorate)
+function oreFermoManuale(p, d, partenza) {
+  const pr = produzioneDi(d);
+  if (!pr) return 0;
+  const fine = eFineTurno(d) ? pr.fine : d;
+  return letture.reduce((somma, l, i) => {
+    if (l.pressa !== p || !eSolo(l) || !eFermo(l)) return somma;
+    const dopo = letture.slice(i + 1).find(x => x.pressa === p);
+    const a = new Date(Math.max(new Date(l.ora), pr.inizio, partenza || 0));
+    const b = new Date(Math.min(l.ripartita_alle ? new Date(l.ripartita_alle) : dopo ? new Date(dopo.ora) : fine, fine));
+    return b > a ? somma + oreProduzione(a, b) : somma;
+  }, 0);
+}
 function aggiornaOre() {
   if (oreManuali) return;
-  const adesso = new Date();
-  $('ore-input').value = testoOreCampo(oreLavorate(adesso, dataRipartenza(adesso) || partenzaNuovaCommessa(adesso)));
+  const adesso = new Date(), partenza = dataRipartenza(adesso) || partenzaNuovaCommessa(adesso);
+  const fermo = pressaAperta != null ? oreFermoManuale(pressaAperta, adesso, partenza) : 0;
+  $('ore-input').value = testoOreCampo(Math.max(0, oreLavorate(adesso, partenza) - fermo));
 }
 botRip().forEach(b => {
   b.onclick = () => {
@@ -1566,7 +1604,23 @@ botMotivi().forEach(b => {
 $('conferma-altro').onclick = () => { motivo = 'altro'; notaAltro = $('altro-nota').value.trim(); dialogo.close('scelto'); };
 $('annulla-motivo').onclick = () => dialogo.close('annulla');
 dialogo.addEventListener('click', e => { if (e.target === dialogo) dialogo.close('annulla'); });   // tocco sullo sfondo scuro
+function salvaFermoSolo(m, nota) {
+  const p = ripPressa, r = ultimaReale(p);
+  const l = { pressa: p, cicli: r ? r.cicli : 0, ora: ripData.toISOString(), ore: 0, fermo: true, solo_evento: true, motivo: m };   // i cicli non si chiedono: resta quelli dell'ultima lettura
+  if (m === 'altro' && nota) l.nota = nota;
+  nuovaLettura(l); aggiornaFerme();
+  if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
+  disegnaRiepilogo();
+  $('msg').textContent = 'Pressa ' + p + ' ferma dalle ' + ripData.toTimeString().slice(0, 5) + '.';
+}
 dialogo.addEventListener('close', () => {
+  if (fermoSolo) {                                       // fermo senza cicli: con il motivo si salva, con Annulla non resta niente
+    fermoSolo = false;
+    const m = motivo, nota = notaAltro;
+    motivo = null; notaAltro = ''; precedente = null; optFermo.checked = false; aggiornaMotivo();
+    if (m) salvaFermoSolo(m, nota);
+    return;
+  }
   if (!motivo) {
     if (precedente) { motivo = precedente.motivo; notaAltro = precedente.nota; }   // "Cambia" annullato: resta il motivo di prima
     else optFermo.checked = false;                                                  // prima scelta annullata: niente fermo
@@ -1584,7 +1638,7 @@ function cicliOrari(p) {
   const media = da => {
     let cicli = 0, ore = 0;
     letture.forEach((l, i) => {
-      if (i <= da || l.pressa !== p) return;
+      if (i <= da || l.pressa !== p || eSolo(l)) return;
       const delta = cicliDaUltima(i), d = durateLettura(i).ultima;
       if (delta > 0 && d && d.effettiva >= 0.5) { cicli += delta; ore += d.effettiva; }   // tratti troppo corti danno medie sballate
     });
@@ -1594,7 +1648,7 @@ function cicliOrari(p) {
 }
 // più bassa dell'ultima lettura, oppure molti più cicli di quelli possibili nel tempo passato (media × 1,5, più mezz'ora di margine)
 function controllaLettura(p, cicli, adesso, ripartenza) {
-  const u = ultimaLettura(p);
+  const u = ultimaReale(p);
   if (!u || eFine(u)) return null;                // dopo Fine commessa il contatore riparte da zero
   const n = x => Math.round(x).toLocaleString('it-IT');
   if (cicli < u.cicli) return { bassa: true, testo: 'Più bassa dell\'ultima lettura (' + n(u.cicli) + '). Correggi il numero, oppure tocca Confermo se è giusta (contatore ripartito).' };
@@ -1673,6 +1727,8 @@ function registra() {
   const ev = testoEvento(lettura);
   $('msg').textContent = 'Salvato: pressa ' + p + ', ' + cicli + ' cicli' + (ev ? ' (' + ev.toLowerCase() + ')' : '') + '.';
 }
+$('btn-ferma').onclick = () => ferma(pressaAperta);
+$('btn-riparte').onclick = () => riparte(pressaAperta);
 let segnala = false;                         // true: la finestra di scelta è stata chiesta col pulsante, anche a fine turno
 $('salva').onclick = () => { segnala = false; registra(); };
 $('segnala').onclick = () => { segnala = true; registra(); };
@@ -1715,9 +1771,10 @@ function disegnaRighe() {
   const righe = [];
   [...new Set([...PRESSE, ...delTurno.map(l => l.pressa)])].forEach(p => {   // anche le presse tolte dall'elenco dopo la lettura
     // una riga per commessa: ogni "Fine commessa" chiude la sua, poi l'ultima lettura della commessa nuova
-    const lp = delTurno.filter(l => l.pressa === p), rp = [];
+    const lp = delTurno.filter(l => l.pressa === p && !eSolo(l)), rp = [];
     lp.forEach((l, k) => { if (eFine(l) || k === lp.length - 1) rp.push(l); });
     rp.forEach(l => righe.push({ pressa: p, lettura: l, piu: rp.length > 1 }));   // le presse non lette non compaiono
+    delTurno.filter(l => l.pressa === p && eSolo(l)).forEach(l => righe.push({ pressa: p, lettura: l, piu: false }));   // i fermi senza cicli
   });
   const segnate = righe.filter(r => eSegnata(r.lettura)).length;
   // correzione ed eliminazione: solo sulle proprie letture (il responsabile su tutte); sulle altrui si può solo togliere un "Riparte ora"
@@ -1725,8 +1782,8 @@ function disegnaRighe() {
   $('righe').innerHTML = righe.filter(r => mostraSegnate || !eSegnata(r.lettura)).map(r =>
     '<tr' + (correggibile(r.lettura) ? ' data-cor="' + r.lettura.id + '"' : '') + (eSegnata(r.lettura) ? ' class="segnata"' : '') + '><td class="sp"><button class="x ok" data-mes="' + r.lettura.id + '" aria-pressed="' + eSegnata(r.lettura) +
       '" aria-label="' + (eSegnata(r.lettura) ? 'Rimetti in elenco' : 'Segnata sul MES') + ' pressa ' + r.pressa + '">✓</button></td><td class="pressa">' + r.pressa + (r.piu ? '<span class="ev">' + esc([r.lettura.articolo && 'Art. ' + r.lettura.articolo, r.lettura.commessa].filter(Boolean).join(' · ')) + '</span>' : '') +
-      (testoEvento(r.lettura) ? '<span class="ev">' + testoEvento(r.lettura).replace(/</g, '&lt;') + '</span>' : '') + '</td><td class="n">' + r.lettura.cicli + '</td><td class="n ore">' +
-      formatoOre(oreDi(r.lettura)) + '</td><td class="az">' + (mie(r.lettura) && scr ? '<button class="x" data-del="' + r.lettura.id +
+      (testoEvento(r.lettura) ? '<span class="ev">' + testoEvento(r.lettura).replace(/</g, '&lt;') + '</span>' : '') + '</td><td class="n">' + (eSolo(r.lettura) ? '—' : r.lettura.cicli) + '</td><td class="n ore">' +
+      (eSolo(r.lettura) ? '—' : formatoOre(oreDi(r.lettura))) + '</td><td class="az">' + (mie(r.lettura) && scr ? '<button class="x" data-del="' + r.lettura.id +
       '" aria-label="Elimina lettura pressa ' + r.pressa + '">×</button>' : '') + '</td></tr>').join('');
   document.querySelectorAll('[data-mes]').forEach(b => {
     b.onclick = () => {                         // segnata sul MES: sparisce dall'elenco ma resta nello Storico e nei calcoli
@@ -1752,7 +1809,8 @@ function disegnaRighe() {
 // cicli dall'ultima lettura della stessa pressa; dopo "Fine commessa" il contatore riparte da zero
 function cicliDaUltima(i) {
   const l = letture[i];
-  for (let j = i - 1; j >= 0; j--) if (letture[j].pressa === l.pressa) return l.cicli - (eFine(letture[j]) || l.contatore_ripartito ? 0 : letture[j].cicli);
+  if (eSolo(l)) return null;
+  for (let j = i - 1; j >= 0; j--) if (letture[j].pressa === l.pressa && !eSolo(letture[j])) return l.cicli - (eFine(letture[j]) || l.contatore_ripartito ? 0 : letture[j].cicli);
   return null;
 }
 // ore di produzione tra due istanti: solo le ore dei turni in cui si produce (niente fine settimana)
@@ -1769,10 +1827,10 @@ function oreProduzione(a, b) {
 function fermiDi(pressa) {
   const lp = letture.filter(l => l.pressa === pressa), fermi = [];
   lp.forEach((l, k) => {
-    const dopo = lp[k + 1];
-    if (!eFermo(l) || !dopo) return;
+    const dopo = lp[k + 1], chiuso = eSolo(l) && l.ripartita_alle;   // il fermo senza cicli finisce con "Riparte"
+    if (!eFermo(l) || (!dopo && !chiuso)) return;
     const inizio = new Date(l.ora);
-    let fine = dopo.ripartenza ? new Date(dopo.ripartenza)
+    let fine = chiuso ? new Date(l.ripartita_alle) : dopo.ripartenza ? new Date(dopo.ripartenza)
       : (dopo.ripartenza_prima || !eFermo(dopo)) ? turnoDi(new Date(dopo.ora)).inizio
       : new Date(dopo.ora);                       // ancora ferma alla lettura dopo
     if (fine < inizio) fine = inizio;
@@ -1791,18 +1849,19 @@ function inizioCommessa(i) {
   const l = letture[i];
   let inizio = l;
   for (let j = i - 1; j >= 0; j--) {
-    if (letture[j].pressa !== l.pressa) continue;
+    if (letture[j].pressa !== l.pressa || eSolo(letture[j])) continue;
     if (eFine(letture[j])) break;
     inizio = letture[j];
   }
   return new Date(inizio.ora);
 }
 function letturaPrima(i) {
-  for (let j = i - 1; j >= 0; j--) if (letture[j].pressa === letture[i].pressa) return letture[j];
+  for (let j = i - 1; j >= 0; j--) if (letture[j].pressa === letture[i].pressa && !eSolo(letture[j])) return letture[j];
   return null;
 }
 function durateLettura(i) {
   const l = letture[i], d = new Date(l.ora), prima = letturaPrima(i);
+  if (eSolo(l)) return { ultima: null, commessa: { reale: 0, effettiva: 0 } };
   return { ultima: prima ? durate(l.pressa, new Date(prima.ora), d) : null, commessa: durate(l.pressa, inizioCommessa(i), d) };
 }
 window.__durateLettura = durateLettura; // per i test
@@ -1838,6 +1897,8 @@ function disegnaStorico() {
   });
   $('storico-elenco').innerHTML = letture.map((l, i) => {
     const d = new Date(l.ora), delta = cicliDaUltima(i), ev = testoEvento(l), dur = durateLettura(i);
+    if (eSolo(l)) return '<div class="card' + (mie(l) || l.ripartita_alle ? ' storico-card" data-cor="' + l.id : '') + '"><div class="st-testa"><b>Pressa ' + l.pressa + '</b><span class="piccolo">' + dataIt(d) + ' · ' + oraIt(d) + '</span></div>' +
+      '<span class="ev">' + esc(ev) + '</span>' + (l.nome ? '<div class="letta-da" style="margin-top:8px">Registrato da ' + esc(l.nome) + '</div>' : '') + '</div>';
     // una voce sola se reale ed effettiva coincidono (nessun fermo in mezzo)
     const coppia = (titolo, x) => formatoOre(x.reale) === formatoOre(x.effettiva)
       ? '<div class="st-dati"><span>' + titolo + ': <strong>' + formatoOre(x.reale) + '</strong></span></div>'
@@ -1867,7 +1928,7 @@ function apriCorreggi(id) {
   $('titolo-correggi').textContent = 'Correggi pressa ' + l.pressa;
   $('correggi-quando').textContent = 'Lettura del ' + dataIt(d) + ' alle ' + oraIt(d) + (l.nome ? ', letta da ' + l.nome : '') + (l.modifica_di ? ', modificata da ' + l.modifica_di : '') + (testoEvento(l) ? ' · ' + testoEvento(l) : '') +
     (propria ? '' : '. È di un collega: puoi solo togliere la ripartenza.');
-  ['cor-cicli', 'cor-ore', 'cor-articolo', 'cor-commessa'].forEach(c => { $(c).disabled = !propria; });   // lettura di un collega: dati bloccati
+  ['cor-cicli', 'cor-ore', 'cor-articolo', 'cor-commessa'].forEach(c => { $(c).disabled = !propria || eSolo(l); });   // lettura di un collega: dati bloccati
   $('cor-cicli').value = l.cicli;
   $('cor-ore').value = testoOreCampo(oreDi(l));
   $('cor-articolo').value = l.articolo || '';
@@ -1934,10 +1995,10 @@ $('esporta').onclick = async () => {
     'Ore turno', 'Ore a mano', 'Ripartenza', 'Evento']];
   letture.forEach((l, i) => {
     const d = new Date(l.ora), delta = cicliDaUltima(i), dur = durateLettura(i);
-    righe.push([dataIt(d), oraIt(d), String(l.pressa), l.articolo || '', l.commessa || '', String(l.cicli), delta != null ? String(delta) : '',
+    righe.push([dataIt(d), oraIt(d), String(l.pressa), l.articolo || '', l.commessa || '', eSolo(l) ? '' : String(l.cicli), delta != null ? String(delta) : '',
       dur.ultima ? oreDecimali(dur.ultima.reale) : '', dur.ultima ? oreDecimali(dur.ultima.effettiva) : '',
-      oreDecimali(dur.commessa.reale), oreDecimali(dur.commessa.effettiva),
-      oreDecimali(oreDi(l)), l.ore_manuali ? 'sì' : '', l.ripartenza ? oraIt(new Date(l.ripartenza)) : '', testoEvento(l)]);
+      eSolo(l) ? '' : oreDecimali(dur.commessa.reale), eSolo(l) ? '' : oreDecimali(dur.commessa.effettiva),
+      eSolo(l) ? '' : oreDecimali(oreDi(l)), l.ore_manuali ? 'sì' : '', l.ripartenza ? oraIt(new Date(l.ripartenza)) : '', testoEvento(l)]);
   });
   // punto e virgola e BOM: così Excel e Numbers in italiano aprono le colonne giuste e le lettere accentate
   const testo = '﻿' + righe.map(r => r.map(cella).join(';')).join('\r\n');
