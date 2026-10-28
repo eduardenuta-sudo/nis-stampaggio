@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028194318">
+<meta name="versione" content="20261028195432">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -166,14 +166,14 @@ if (/prove/.test(location.pathname)) {
   button.salva:active { box-shadow: 0 1px 0 #7d8100, 0 3px 6px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -3px 0 rgba(0,0,0,.12); }
   /* Lettura cicli e Produzione: in alto Home a sinistra e l'altra sezione a destra, sotto il titolo con il logo */
   #vai-altra[hidden] { display: none; }
-  header.con-nav { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "home altra" "titolo titolo"; align-items: stretch; gap: 14px 12px; padding-top: 6px; }
+  header.con-nav { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "home logo altra" "titolo titolo titolo"; align-items: center; gap: 14px 12px; padding-top: 6px; }
   header.con-nav #indietro { grid-area: home; }
   header.con-nav #vai-altra { grid-area: altra; }
-  header.con-nav .indietro { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 11px 12px 10px; width: 100%; }
-  header.con-nav h1 { grid-area: titolo; justify-self: center; text-align: center; margin: 8px 0 0; }
-  header.con-nav .sigla { display: none; }
-  .n-grande { font: 700 1.35rem/1 var(--font-titoli); letter-spacing: .08em; text-transform: uppercase; }
-  .n-piccolo { font: 600 .8rem/1 var(--font); letter-spacing: .04em; opacity: .8; }
+  header.con-nav .indietro { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 8px 8px; width: 126px; }   /* tutti e due larghi uguale */
+  header.con-nav h1 { grid-area: titolo; justify-self: center; text-align: center; margin: 6px 0 0; }
+  header.con-nav .sigla { grid-area: logo; justify-self: center; width: 54px; }   /* il logo NIS sta in mezzo ai due pulsanti */
+  .n-grande { font: 700 1.15rem/1 var(--font-titoli); letter-spacing: .08em; text-transform: uppercase; }
+  .n-piccolo { font: 600 .75rem/1 var(--font); letter-spacing: .04em; opacity: .8; }
   .indietro { padding: 11px 16px; border-radius: 20px; box-shadow: 0 5px 0 #0a2253, 0 10px 14px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.35); }
   .indietro:active { transform: translateY(4px); box-shadow: 0 1px 0 #0a2253, 0 2px 4px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.2); }
   .riga { display: flex; gap: 12px; }
