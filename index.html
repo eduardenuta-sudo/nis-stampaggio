@@ -4,12 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028122504">
+<meta name="versione" content="20261028123725">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icona-180.png">
 <meta name="apple-mobile-web-app-title" content="NIS Stampaggio">
+<script>
+// versione da sviluppatore (indirizzo con "prove"): nome, icona e manifest diversi, così sulla Home si distinguono
+if (/prove/.test(location.pathname)) {
+  document.querySelector('link[rel="manifest"]').href = 'manifest-prove.webmanifest';
+  document.querySelector('link[rel="apple-touch-icon"]').href = 'icona-prove-180.png';
+  document.querySelector('meta[name="apple-mobile-web-app-title"]').content = 'Sviluppatore';
+}
+</script>
 <title>NIS Stampaggio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:ital,wght@0,600;0,700;1,700&display=swap">
@@ -247,6 +255,15 @@
   .st-dati { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px 18px; font-variant-numeric: tabular-nums; }
   .st-dati strong { color: var(--giallo); }
   .storico-card { cursor: pointer; }
+  /* fuori turno: si guarda soltanto */
+  .fuori-turno { margin-bottom: 18px; padding: 14px 18px; border-radius: 22px; border: 1.5px solid var(--warn); background: rgba(255,138,125,.12); color: #fff; font-weight: 600; }
+  .fuori-turno[hidden], #richieste[hidden] { display: none; }
+  /* richieste dei colleghi (cambio telefono, ospite) */
+  #richieste { margin: 0 0 18px; }
+  #richieste .card { border-color: var(--giallo); }
+  #richieste p { margin: 0 0 16px; font-weight: 600; }
+  #entra-nomi { margin-bottom: 22px; }
+  #ospite-chi { flex-wrap: wrap; }
   .svuota-presse { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
   .svuota-presse button.chip { padding: 10px 14px; }
 
@@ -327,6 +344,17 @@
   button.linea::after { display: none; }
   button.x:active { transform: translateY(3px); box-shadow: 0 1px 0 #0a2253; }
   .nota-avviso { color: var(--warn); font-weight: 600; }
+  /* versione da sviluppatore: striscia arancio fissa in cima; versione per i colleghi: "BETA 1" discreto */
+  .striscia-prova { position: sticky; top: 0; z-index: 50; margin: 0 -16px 12px; padding: 6px 16px; padding-top: max(6px, env(safe-area-inset-top, 0px));
+    background: #ff7a1a; color: #1a0d00; text-align: center; font: 700 1rem/1.1 var(--font-titoli); letter-spacing: .3em; }
+  .striscia-beta { margin: 0 0 6px; padding-top: max(6px, env(safe-area-inset-top, 0px)); text-align: center; color: var(--giallo); font: 700 .8rem/1 var(--font-titoli); letter-spacing: .3em; opacity: .8; }
+  /* primo avvio: entra nel reparto */
+  .entra { margin-top: max(40px, 8vh); }
+  .entra .marchio-entra { display: block; width: 150px; margin: 0 auto 28px; filter: brightness(1.35) saturate(.9); }
+  #entra-chiave-blocco[hidden] { display: none; }
+  .letta-da { color: var(--muted); font-size: .85rem; }
+  .importa-elenco { max-height: 46vh; overflow-y: auto; margin: 0 0 18px; }
+  .importa-elenco .opzione { font-size: 1rem; }
   @media (prefers-reduced-motion: reduce) {
     .pannello { animation: none; }
     .chev { transition: none; }
@@ -422,6 +450,9 @@
   <img class="sigla" src="logo-nis.png" alt="NIS">
 </header>
 
+<!-- richieste dei colleghi da confermare (cambio telefono, ospite) e sostituzione in corso: in cima a ogni pagina -->
+<div id="richieste" hidden></div>
+
 <!-- PRIMA PAGINA -->
 <main id="vista-home" class="vetrina" hidden>
   <div class="gruppo">
@@ -448,6 +479,47 @@
   <div class="turno"><span class="spia" aria-hidden="true"></span><span id="turno"></span></div>
 </main>
 
+<!-- PRIMO AVVIO: codice del reparto e nome, poi l'app li ricorda -->
+<main id="vista-entra" hidden>
+  <div class="card entra">
+    <img class="marchio-entra" src="logo-nis.png" alt="NIS">
+    <h2 class="titolo-sez">Entra nel reparto</h2>
+    <p class="piccolo" style="margin:0">Il codice te lo dà il responsabile. La prima volta serve la rete.</p>
+    <!-- passo 1: codice del reparto -->
+    <div id="entra-passo1">
+      <div class="blocco campo"><label for="entra-codice">Codice reparto</label><input class="testo" id="entra-codice" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="4 cifre"></div>
+      <div class="blocco campo" id="entra-chiave-blocco" hidden><label for="entra-chiave">Chiave responsabile</label><input class="testo" id="entra-chiave" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="4 cifre"></div>
+      <div class="avviso" id="avviso-entra" role="alert"></div>
+      <button id="entra-ok" class="salva" style="width:100%;margin-top:6px">Avanti</button>
+      <p style="margin:22px 0 0;text-align:center"><button class="linea" id="entra-resp">Sono il responsabile</button></p>
+    </div>
+    <!-- passo 2: chi sei. Ogni nome resta legato al suo telefono -->
+    <div id="entra-passo2" hidden>
+      <label class="blocco">Chi sei</label>
+      <div class="motivi-lista" id="entra-nomi"></div>
+      <div id="entra-gia" hidden>
+        <p class="nota-avviso" id="entra-gia-testo" style="margin:0 0 14px"></p>
+        <button id="entra-cambiato" class="salva" style="width:100%">Ho cambiato telefono</button>
+      </div>
+      <button class="chip" id="entra-ospite" style="width:100%">Sono un ospite: sostituisco un collega</button>
+      <!-- ospite: nome vero e chi sostituisce; lo conferma uno degli altri due, finisce quando il titolare riprende il turno -->
+      <div id="entra-ospite-blocco" hidden>
+        <div class="blocco campo"><label for="ospite-nome">Il tuo nome e cognome</label><input class="testo" id="ospite-nome" autocomplete="name" maxlength="40"></div>
+        <label class="blocco">Sostituisco</label>
+        <div class="riga" id="ospite-chi"></div>
+        <button id="ospite-invia" class="salva" style="width:100%;margin-top:22px">Invia la richiesta</button>
+      </div>
+      <div class="avviso" id="avviso-entra2" role="alert"></div>
+    </div>
+    <!-- passo 3: in attesa che un collega confermi -->
+    <div id="entra-attesa" hidden>
+      <p style="margin:18px 0 0" id="attesa-testo"></p>
+      <p class="piccolo" style="margin:14px 0 0">Appena confermano, l'app si apre da sola. Puoi chiuderla e riaprirla più tardi.</p>
+      <button id="attesa-annulla" class="annulla" style="margin-top:22px">Annulla la richiesta</button>
+    </div>
+  </div>
+</main>
+
 <!-- PRODUZIONE (in arrivo) -->
 <main id="vista-produzione" hidden>
   <div class="card">
@@ -458,6 +530,7 @@
 
 <!-- LETTURA CICLI: elenco presse (tendine) + riepilogo -->
 <main id="vista-leggi" hidden>
+  <div class="fuori-turno" id="fuori-turno" hidden></div>
   <div class="avanz"><span id="avanz-testo">0 di 7 presse lette</span><span class="segmenti" id="avanz-seg" aria-hidden="true"></span></div>
   <div class="piccolo msg" id="msg" role="status"></div>
 
@@ -468,7 +541,9 @@
     <button id="aggiungi-apri" class="annulla" aria-expanded="false">+ Aggiungi pressa</button>
     <div id="aggiungi-blocco" hidden>
       <label for="aggiungi-num">Numero pressa</label>
-      <input class="manuale" id="aggiungi-num" inputmode="numeric" pattern="[0-9]*" placeholder="es. 76">
+      <input class="manuale" id="aggiungi-num" inputmode="numeric" pattern="[0-9]*" placeholder="es. 74">
+      <!-- presse del reparto non ancora in elenco: un tocco scrive il numero -->
+      <div class="svuota-presse" id="aggiungi-scorciatoie"></div>
       <!-- facoltativi: si ripropongono alla prima lettura della pressa -->
       <div class="blocco riga">
         <div class="campo"><label for="aggiungi-articolo">Articolo</label><input class="testo" id="aggiungi-articolo" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div>
@@ -567,7 +642,7 @@
       <label>Svuota una pressa sola</label>
       <div class="svuota-presse" id="svuota-presse"></div>
     </div>
-    <p class="piccolo" style="margin:18px 0 0">Tocca una lettura per correggerla.</p>
+    <p class="piccolo" style="margin:18px 0 0" id="storico-nota">Tocca una lettura per correggerla.</p>
   </div>
   <div id="storico-elenco"></div>
 </main>
@@ -605,6 +680,15 @@
   <div class="avviso" id="avviso-riparte" role="alert"></div>
   <button id="conferma-riparte" class="salva" autofocus style="width:100%;margin:6px 0 20px">Confermo</button>   <!-- autofocus: senza, iPhone apre da solo il selettore dell'ora sul campo -->
   <button id="annulla-riparte" class="annulla">Annulla</button>
+</dialog>
+
+<!-- una volta sola, per il responsabile: le letture salvate sul telefono prima del database comune -->
+<dialog id="dialogo-importa" aria-labelledby="titolo-importa">
+  <h2 class="titolo-sez" id="titolo-importa">Letture già sul telefono</h2>
+  <p class="piccolo" style="margin:0 0 18px">Scegli quali caricare nel database comune. Le altre restano solo su questo telefono.</p>
+  <div class="importa-elenco" id="importa-elenco"></div>
+  <button id="importa-ok" class="salva" style="width:100%;margin:6px 0 20px">Carica nel database</button>
+  <button id="importa-no" class="annulla">Non caricare niente</button>
 </dialog>
 
 <!-- correzione di una lettura già salvata (dal riepilogo o dallo storico) -->
@@ -663,10 +747,165 @@
 <script>
 // ---------------- Configurazione ----------------
 // elenco presse: si aggiungono e si tolgono dall'app; si parte da quelle di Eduard
-const CHIAVE_PRESSE = 'cicli-elenco-presse';
-let PRESSE = [33, 36, 40, 51, 55, 57, 67, 68, 69];
+// due versioni sullo stesso sito: definitiva e prova (indirizzo con "prove"). Ogni chiave sul telefono ha il prefisso della sua versione
+const PROVA = /prove/.test(location.pathname);
+const PREF = PROVA ? 'prova-' : 'def-';
+const CHIAVE_PRESSE = PREF + 'elenco-presse';
+let PRESSE = [40, 68, 69];                         // all'inizio le presse che lavorano oggi (28/10/2026)
+const PRESSE_REPARTO = [33, 36, 40, 51, 55, 57, 67, 68, 69, 74];   // scorciatoie in "Aggiungi pressa"
 try { const e = JSON.parse(localStorage.getItem(CHIAVE_PRESSE)); if (Array.isArray(e)) PRESSE = e; } catch (e) {}
-const CHIAVE = 'cicli-presse-letture';
+const VECCHIA_CHIAVE = 'cicli-presse-letture';   // letture salvate solo sul telefono, prima del database comune: servono solo per l'importazione
+
+// ---------------- Database comune (Firebase) ----------------
+// progetto Firebase "nis-stampaggio" (creato da Eduard il 28/10/2026). Questi dati non sono segreti: le protezioni stanno nelle regole del database
+const FIREBASE = {
+  apiKey: 'AIzaSyCaUSToBkhjYomUIMWVZjmaY_jLQ4uwg1w',
+  authDomain: 'nis-stampaggio.firebaseapp.com',
+  projectId: 'nis-stampaggio',
+  storageBucket: 'nis-stampaggio.firebasestorage.app',
+  messagingSenderId: '918354980139',
+  appId: '1:918354980139:web:6a2be0b8bc2d97decf696e'
+};
+const CONFIG_PRONTA = !window.__finto;           // nelle prove automatiche si usa il database finto
+const GIORNI_LETTURE = 45;                         // si scaricano solo le letture degli ultimi 45 giorni (resta nei limiti gratuiti)
+const leggiLocale = (chiave, base) => { try { const v = JSON.parse(localStorage.getItem(chiave)); return v == null ? base : v; } catch (e) { return base; } };
+// i campi che chiunque può cambiare anche sulle letture dei colleghi (Riparte ora, commessa nuova, vecchia commessa)
+const CAMPI_COMUNI = ['ripartita_alle', 'partenza_commessa', 'fermo', 'ripresa_stessa', 'fine_commessa', 'evento'];
+
+// interfaccia unica: entra, usa, ascolta, nuovoId, scrivi, aggiorna, elimina. Campi a null = da togliere
+async function dbFirebase(cfg) {
+  const V = 'https://www.gstatic.com/firebasejs/10.12.2/';
+  const [{ initializeApp }, A, F] = await Promise.all([import(V + 'firebase-app.js'), import(V + 'firebase-auth.js'), import(V + 'firebase-firestore.js')]);
+  const app = initializeApp(cfg);
+  const auth = A.getAuth(app);
+  // cache sul telefono: senza rete si legge e si salva lo stesso, l'invio parte appena torna il segnale
+  const fs = F.initializeFirestore(app, { localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) });
+  await auth.authStateReady();
+  if (!auth.currentUser) await A.signInAnonymously(auth);
+  const uid = auth.currentUser.uid;
+  let rep = null;
+  const coll = () => F.collection(fs, 'reparti', rep, 'letture');
+  return {
+    uid,
+    // il codice esiste? Torna anche la rotazione dei turni e i nomi già legati a un telefono
+    async entra(codice) {
+      let s, p;
+      try {
+        s = await F.getDocFromServer(F.doc(fs, 'reparti', codice));   // dal server: un codice sbagliato non deve passare dalla cache
+        if (s.exists()) p = await F.getDocsFromServer(F.collection(fs, 'reparti', codice, 'persone'));
+      } catch (e) { return { errore: 'Non riesco a raggiungere il database: serve la rete per entrare la prima volta.' }; }
+      if (!s.exists()) return { errore: 'Codice reparto non trovato. Controlla con il responsabile.' };
+      const persone = {};
+      p.forEach(d => { persone[d.id] = d.data().uid; });
+      return { rotazione: s.data().rotazione || null, persone };
+    },
+    async diventaAdmin(chiave, nome) {
+      try { await F.setDoc(F.doc(fs, 'reparti', rep, 'amministratori', uid), { chiave, nome }); return true; }
+      catch (e) { return false; }
+    },
+    usa(codice) { rep = codice; },
+    // persone (nome → telefono), richieste in attesa e ospiti attivi: un solo richiamo a ogni cambiamento
+    ascoltaGruppo(cb) {
+      const g = { persone: {}, richieste: [], ospiti: [] }, manda = () => cb({ ...g });
+      F.onSnapshot(F.collection(fs, 'reparti', rep, 'persone'), s => { g.persone = {}; s.forEach(d => { g.persone[d.id] = d.data().uid; }); manda(); });
+      F.onSnapshot(F.collection(fs, 'reparti', rep, 'richieste'), s => { g.richieste = s.docs.map(d => ({ ...d.data(), id: d.id })); manda(); });
+      F.onSnapshot(F.collection(fs, 'reparti', rep, 'ospiti'), s => { g.ospiti = s.docs.map(d => ({ ...d.data(), uid: d.id })); manda(); });
+    },
+    prendiNome(nome, richiesta) { return F.setDoc(F.doc(fs, 'reparti', rep, 'persone', nome), richiesta ? { uid, richiesta } : { uid }); },   // con la richiesta confermata se è un telefono nuovo
+    async richiedi(dati) { const r = F.doc(F.collection(fs, 'reparti', rep, 'richieste')); await F.setDoc(r, { ...dati, uid, stato: 'attesa' }); return r.id; },
+    rispondi(id, campi) { return F.updateDoc(F.doc(fs, 'reparti', rep, 'richieste', id), campi); },
+    togliRichiesta(id) { return F.deleteDoc(F.doc(fs, 'reparti', rep, 'richieste', id)); },
+    diventaOspite(nome, sostituisce, richiesta) { return F.setDoc(F.doc(fs, 'reparti', rep, 'ospiti', uid), { nome, sostituisce, richiesta }); },
+    fineOspite(uidOspite) { return F.deleteDoc(F.doc(fs, 'reparti', rep, 'ospiti', uidOspite)); },
+    ascolta(cb, errore) {
+      const da = new Date(Date.now() - GIORNI_LETTURE * 864e5).toISOString();
+      return F.onSnapshot(F.query(coll(), F.where('ora', '>=', da), F.orderBy('ora')), s => cb(s.docs.map(d => ({ ...d.data(), id: d.id }))), errore);
+    },
+    nuovoId() { return F.doc(coll()).id; },
+    scrivi(l) { const { id, ...dati } = l; return F.setDoc(F.doc(coll(), id), dati); },
+    aggiorna(id, campi) {
+      const c = {};
+      for (const k in campi) c[k] = campi[k] == null ? F.deleteField() : campi[k];
+      return F.updateDoc(F.doc(coll(), id), c);
+    },
+    async elimina(ids) {                           // a gruppi: un invio ne accetta al massimo 500
+      for (let i = 0; i < ids.length; i += 400) {
+        const b = F.writeBatch(fs);
+        ids.slice(i, i + 400).forEach(id => b.delete(F.doc(coll(), id)));
+        await b.commit();
+      }
+    }
+  };
+}
+// database finto sul telefono, con le stesse regole di quello vero: per le prove e finché manca la configurazione
+function dbFinto() {
+  const K = PREF + 'finto-';
+  let uid = leggiLocale(K + 'uid', null);
+  if (!uid) { uid = 'u' + Math.random().toString(36).slice(2, 10); salva(K + 'uid', uid); }
+  let rep = null, ascoltatore = null;
+  const reparti = () => leggiLocale(K + 'reparti', {});
+  const tutte = () => (leggiLocale(K + 'letture', {})[rep] || []);
+  const metti = arr => { const t = leggiLocale(K + 'letture', {}); t[rep] = arr; salva(K + 'letture', t); };
+  const avvisa = () => { if (ascoltatore) setTimeout(() => ascoltatore(tutte().map(l => ({ ...l })).sort((a, b) => a.ora < b.ora ? -1 : a.ora > b.ora ? 1 : 0)), 0); };
+  const admin = () => !!((reparti()[rep] || {}).amministratori || {})[uid];
+  const vietato = () => Promise.reject(Object.assign(new Error('Permesso negato'), { code: 'permission-denied' }));
+  // persone, richieste e ospiti stanno dentro il reparto finto
+  let gruppo = null;
+  const avvisaGruppo = () => {
+    if (!gruppo) return;
+    const r = reparti()[rep] || {};
+    setTimeout(() => gruppo({ persone: { ...(r.persone || {}) }, richieste: (r.richieste || []).map(x => ({ ...x })),
+      ospiti: Object.entries(r.ospiti || {}).map(([u, o]) => ({ ...o, uid: u })) }), 0);
+  };
+  const cambiaRep = f => { const tutti = reparti(); f(tutti[rep]); salva(K + 'reparti', tutti); avvisaGruppo(); };
+  return {
+    uid,
+    async entra(codice) {
+      const r = reparti()[codice];
+      if (!r) return { errore: 'Codice reparto non trovato. Controlla con il responsabile.' };
+      return { rotazione: r.rotazione || null, persone: { ...(r.persone || {}) } };
+    },
+    async diventaAdmin(chiave, nome) {
+      const tutti = reparti(), r = tutti[rep];
+      if (!(r.chiavi || []).includes(chiave)) return false;
+      r.amministratori = { ...(r.amministratori || {}), [uid]: { chiave, nome } }; salva(K + 'reparti', tutti);
+      return true;
+    },
+    usa(codice) { rep = codice; },
+    ascoltaGruppo(cb) { gruppo = cb; avvisaGruppo(); },
+    prendiNome(nome) { cambiaRep(r => { r.persone = { ...(r.persone || {}), [nome]: uid }; }); return Promise.resolve(); },
+    async richiedi(dati) {
+      const id = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      cambiaRep(r => { r.richieste = [...(r.richieste || []), { ...dati, uid, stato: 'attesa', id }]; });
+      return id;
+    },
+    rispondi(id, campi) { cambiaRep(r => { r.richieste = (r.richieste || []).map(x => x.id === id ? { ...x, ...campi } : x); }); return Promise.resolve(); },
+    togliRichiesta(id) { cambiaRep(r => { r.richieste = (r.richieste || []).filter(x => x.id !== id); }); return Promise.resolve(); },
+    diventaOspite(nome, sostituisce, richiesta) { cambiaRep(r => { r.ospiti = { ...(r.ospiti || {}), [uid]: { nome, sostituisce, richiesta } }; }); return Promise.resolve(); },
+    fineOspite(u) { cambiaRep(r => { const o = { ...(r.ospiti || {}) }; delete o[u]; r.ospiti = o; }); return Promise.resolve(); },
+    ascolta(cb) { ascoltatore = cb; avvisa(); },
+    nuovoId() { return 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); },
+    scrivi(l) {
+      if (l.uid !== uid) return vietato();
+      const { id, ...dati } = l; metti([...tutte().filter(x => x.id !== id), { ...dati, id }]); avvisa(); return Promise.resolve();
+    },
+    aggiorna(id, campi) {
+      const l = tutte().find(x => x.id === id);
+      if (!l || 'uid' in campi || (l.uid !== uid && !admin() && Object.keys(campi).some(k => !CAMPI_COMUNI.includes(k)))) return vietato();
+      metti(tutte().map(x => {
+        if (x.id !== id) return x;
+        const n = { ...x };
+        for (const k in campi) { if (campi[k] == null) delete n[k]; else n[k] = campi[k]; }
+        return n;
+      }));
+      avvisa(); return Promise.resolve();
+    },
+    elimina(ids) {
+      if (tutte().some(x => ids.includes(x.id) && x.uid !== uid) && !admin()) return vietato();
+      metti(tutte().filter(x => !ids.includes(x.id))); avvisa(); return Promise.resolve();
+    }
+  };
+}
 
 // ---------------- Turni e ore lavorate ----------------
 const ORA = 3600 * 1000;
@@ -740,9 +979,63 @@ function oreDecimali(o) {                          // per Excel: 1,5
 window.__oreLavorate = oreLavorate; // per i test
 window.__eFineTurno = eFineTurno;
 
+// ---------------- Chi è di turno ----------------
+// Rotazione settimanale (la settimana parte il lunedì): ognuno passa da notte a pomeriggio a mattino, poi di nuovo notte.
+// Nel database c'è la settimana di partenza: { lunedi: 'AAAA-MM-GG', turni: { mattino: 'Nome1', pomeriggio: 'Nome2', notte: 'Nome3' } }
+// Si scrive solo nel proprio turno e fino a 15 minuti dopo la fine; sabato e domenica nessuno.
+const SEQ_TURNI = ['notte', 'pomeriggio', 'mattino'];
+const MARGINE = 15 * 60000;
+let gruppo = { persone: {}, richieste: [], ospiti: [] };   // dal database: nomi legati ai telefoni, richieste, ospiti attivi
+function lunediDi(d) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; }
+// il titolare del turno t secondo la rotazione (null nel fine settimana)
+function titolareDi(t) {
+  const rot = accesso && accesso.rotazione, g = t.inizio.getDay();
+  if (!rot || g === 0 || g === 6) return null;
+  const k = Math.round((lunediDi(t.inizio) - lunediDi(new Date(rot.lunedi + 'T12:00'))) / (7 * 864e5));   // settimane dalla partenza
+  for (const s in rot.turni) if (SEQ_TURNI[(((SEQ_TURNI.indexOf(s) + k) % 3) + 3) % 3] === t.nome) return rot.turni[s];
+  return null;
+}
+// chi lavora davvero: se il titolare ha un ospite attivo, l'ospite
+function diTurno(t) {
+  const tit = titolareDi(t), o = gruppo.ospiti.find(x => x.sostituisce === tit);
+  return o ? o.nome : tit;
+}
+// il turno in cui posso scrivere adesso (anche nei 15 minuti dopo la fine), oppure null
+function mioTurno(adesso) {
+  if (!accesso || accesso.attesa || !db) return null;
+  if (accesso.ospite ? !gruppo.ospiti.some(x => x.uid === db.uid)                       // ospite: solo finché la sostituzione è attiva
+    : gruppo.persone[accesso.nome] && gruppo.persone[accesso.nome] !== db.uid) return null;   // nome passato a un altro telefono
+  for (const t of [turnoDi(adesso), turnoDi(new Date(adesso - MARGINE))])
+    if (diTurno(t) === accesso.nome && adesso >= t.inizio && adesso <= new Date(t.fine.getTime() + MARGINE)) return t;
+  return null;
+}
+// il prossimo turno di chi usa il telefono, per l'avviso "fuori turno"
+function prossimoTurno(adesso) {
+  for (let t = turnoDi(adesso), i = 0; i < 90; t = turnoDi(t.fine), i++)
+    if (t.inizio > adesso && diTurno(t) === accesso.nome) return t;
+  return null;
+}
+function testoFuoriTurno() {
+  const adesso = new Date(), mio = gruppo.ospiti.find(x => x.sostituisce === accesso.nome);
+  if (accesso.attesa) return 'In attesa che un collega confermi: per ora puoi solo guardare.';
+  if (mio) return mio.nome + ' ti sostituisce: puoi solo guardare finché non riprendi il tuo turno.';
+  if (accesso.ospite && !gruppo.ospiti.some(x => x.uid === db.uid)) return 'La tua sostituzione è finita: puoi solo guardare.';
+  const p = prossimoTurno(adesso);
+  return 'Fuori turno: puoi solo guardare.' + (p ? ' Il tuo prossimo turno: ' +
+    p.inizio.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'numeric' }) + ' alle ' + p.inizio.toTimeString().slice(0, 5) + '.' : '');
+}
+const scrivibile = () => !!mioTurno(new Date());
+// prima di ogni modifica: fuori turno si avvisa e non si fa niente
+function inTurno() {
+  if (scrivibile()) return true;
+  const t = testoFuoriTurno();
+  if ($('msg')) $('msg').textContent = t;
+  if (!$('vista-storico').hidden) $('stato-esporta').textContent = t;
+  return false;
+}
+
 // ---------------- Dati salvati sul telefono ----------------
-let letture = [];
-try { letture = JSON.parse(localStorage.getItem(CHIAVE) || '[]'); } catch (e) {}
+let letture = [];                                  // arrivano dal database comune (vedi avviaDati)
 // una pressa è "ferma" se la sua ultima lettura è stata salvata con "Fermo macchina" e non è stata segnata "Riparte ora"
 let ferme = [];
 function ultimaLettura(p) { for (let i = letture.length - 1; i >= 0; i--) if (letture[i].pressa === p) return letture[i]; return null; }
@@ -771,6 +1064,41 @@ function testoEvento(l) {
 }
 function salva(chiave, valore) { try { localStorage.setItem(chiave, JSON.stringify(valore)); } catch (e) {} }
 
+// ---------------- Letture nel database comune ----------------
+// ogni modifica si applica subito qui (si vede anche senza rete) e poi va al database; il database rimanda l'elenco aggiornato
+let db = null;
+let accesso = leggiLocale(PREF + 'accesso', null);   // { codice, nome, admin }
+const mie = l => !!l && !!db && (l.uid === db.uid || !!(accesso && accesso.admin));   // correggere ed eliminare: le proprie, o tutte per il responsabile
+function erroreDati(e) {
+  const m = $('msg');
+  if (m) m.textContent = e && e.code === 'permission-denied' ? 'Il database non ha accettato la modifica: non hai il permesso.' : 'Il database non ha accettato la modifica. Riprova.';
+}
+function nuovaLettura(l) {
+  const t = mioTurno(new Date());
+  l.id = db.nuovoId(); l.uid = db.uid; l.nome = accesso.nome;
+  if (t) { l.turno_fine = t.fine.toISOString(); l.turno_fine_ms = t.fine.getTime(); }   // per il database: dopo la fine del turno + 15 minuti non si cambia più
+  letture.push(l);
+  letture.sort((a, b) => a.ora < b.ora ? -1 : a.ora > b.ora ? 1 : 0);
+  db.scrivi(l).catch(erroreDati);
+}
+function aggiornaLettura(id, campi) {
+  const l = letture.find(x => x.id === id);
+  if (l) for (const k in campi) { if (campi[k] == null) delete l[k]; else l[k] = campi[k]; }
+  db.aggiorna(id, campi).catch(erroreDati);
+}
+function eliminaLetture(ids) {
+  if (!ids.length) return;
+  letture = letture.filter(l => !ids.includes(l.id));
+  db.elimina(ids).catch(erroreDati);
+}
+// spunta "segnata sul MES": è di chi la mette, resta sul telefono
+let segnateMes = new Set(leggiLocale(PREF + 'mes', []));
+const eSegnata = l => segnateMes.has(l.id);
+function cambiaMes(id) {
+  if (segnateMes.has(id)) segnateMes.delete(id); else segnateMes.add(id);
+  salva(PREF + 'mes', [...segnateMes]);
+}
+
 const $ = id => document.getElementById(id);
 const letturePerTurno = chiave => letture.filter(l => chiaveTurno(turnoDi(new Date(l.ora))) === chiave);
 // l'ultima lettura di ogni pressa nel turno
@@ -781,13 +1109,15 @@ function ultimePerPressa(chiave) {
 }
 
 // ---------------- Pagine ----------------
-const VISTE = ['home', 'produzione', 'leggi', 'storico'];
+const VISTE = ['home', 'produzione', 'leggi', 'storico', 'entra'];
 const TITOLI = { produzione: 'Produzione', leggi: 'Lettura cicli', storico: 'Storico cicli' };
 function vai(nome) {
   if (nome === 'riepilogo') nome = 'leggi';
   if (!VISTE.includes(nome)) nome = 'home';
+  if (!accesso || accesso.attesa) nome = 'entra';  // senza codice reparto (o in attesa di conferma) si resta alla schermata di accesso
+  else if (nome === 'entra') nome = 'home';
   VISTE.forEach(v => { $('vista-' + v).hidden = v !== nome; });
-  $('testata').hidden = nome === 'home';
+  $('testata').hidden = nome === 'home' || nome === 'entra';
   document.body.classList.toggle('home', nome === 'home');
   
   if (nome !== 'home') $('titolo').textContent = TITOLI[nome];
@@ -795,6 +1125,7 @@ function vai(nome) {
   if (nome === 'home') disegnaHome();
   if (nome === 'leggi') { pressaAperta = null; $('msg').textContent = ''; disegnaElencoPresse(); disegnaRiepilogo(); azzera(); }
   if (nome === 'storico') disegnaStorico();
+  disegnaRichieste();
   if (location.hash !== '#' + nome) history.replaceState(null, '', '#' + nome);
   window.scrollTo(0, 0);
 }
@@ -816,7 +1147,8 @@ document.addEventListener('touchstart', () => {}, { passive: true });   // fa fu
 function disegnaHome() {
   const t = turnoDi(new Date());
   const f = n => String(n).padStart(2, '0') + ':00';
-  $('turno').textContent = 'Turno in corso: ' + NOMI_TURNO[t.nome] + ' ' + f(t.inizio.getHours()) + ' – ' + f(t.fine.getHours());
+  const chi = diTurno(t);
+  $('turno').textContent = 'Turno in corso: ' + NOMI_TURNO[t.nome] + ' ' + f(t.inizio.getHours()) + ' – ' + f(t.fine.getHours()) + (chi ? ' · ' + chi : '');
   const lette = ultimePerPressa(chiaveTurno(t));
   const inFunzione = PRESSE.filter(p => !ferme.includes(p));
   const nLette = inFunzione.filter(p => lette[p]).length;
@@ -828,8 +1160,8 @@ function disegnaHome() {
 
 // ---------------- Elenco presse ----------------
 let pressaScelta = null;
-try { pressaScelta = Number(localStorage.getItem('cicli-ultima-pressa')) || null; } catch (e) {}
-function ricordaPressa() { try { localStorage.setItem('cicli-ultima-pressa', pressaScelta); } catch (e) {} }
+try { pressaScelta = Number(localStorage.getItem(PREF + 'ultima-pressa')) || null; } catch (e) {}
+function ricordaPressa() { try { localStorage.setItem(PREF + 'ultima-pressa', pressaScelta); } catch (e) {} }
 
 let pressaAperta = null;            // la pressa la cui tendina è aperta
 const pannello = $('pannello-lettura');
@@ -849,10 +1181,13 @@ function quandoBreve(d) {
 function disegnaElencoPresse() {
   casaPannello.appendChild(pannello);       // lo metto al sicuro prima di ricostruire l'elenco
   const lette = ultimePerPressa(chiaveTurno(turnoDi(new Date())));
+  const scr = scrivibile();
+  $('fuori-turno').hidden = scr || !accesso;        // fuori turno: avviso in cima e niente modifiche
+  if (!scr && accesso) $('fuori-turno').textContent = testoFuoriTurno();
   const voce = p => {
     const l = lette[p], f = ferme.includes(p), aperta = p === pressaAperta;
     // sulle presse ferme, al posto dello stato, il pulsantino "Riparte ora"
-    const stato = f ? '<span class="st spazio-rip"></span>' : l ? '<span class="st letta">' + SPUNTA + l.cicli + '</span>' : '<span class="st manca">da leggere</span>';
+    const stato = f ? (scr ? '<span class="st spazio-rip"></span>' : '<span class="st">ferma</span>') : l ? '<span class="st letta">' + SPUNTA + l.cicli + '</span>' : '<span class="st manca">da leggere</span>';
     const u = ultimaLettura(p);
     // da leggere: in mezzo l'ultima lettura (di solito del turno prima), cicli e ora
     const ultima = !f && !l && u ? '<span class="ultima"><b>' + u.cicli + '</b><span>' + quandoBreve(new Date(u.ora)) + '</span></span>' : '';
@@ -861,7 +1196,7 @@ function disegnaElencoPresse() {
       '<button class="togli-sw" data-togli="' + p + '" tabindex="-1">Togli</button><div class="scorre">' +
       '<button class="pressa-btn" data-p="' + p + '" aria-expanded="' + aperta + '"><span class="titolo-p"><span class="num">Pressa ' + p + '</span>' +
       (ev ? '<span class="sub">' + ev.replace(/</g, '&lt;') + '</span>' : '') + '</span>' + ultima + stato + CHEVRON + '</button>' +
-      (f ? '<button class="chip riparte" data-riparte="' + p + '">Riparte ora</button>' : '') +
+      (f && scr ? '<button class="chip riparte" data-riparte="' + p + '">Riparte ora</button>' : '') +
       '</div></div><div class="slot"></div></div>';
   };
   // ordine fisso nel tempo: in cima la pressa letta per ultima (di qualunque turno), poi le precedenti; mai lette in fondo, nell'ordine solito
@@ -876,7 +1211,7 @@ function disegnaElencoPresse() {
   };
   document.querySelectorAll('.pressa-btn').forEach(b => { b.onclick = () => { if (!dopoScorrimento()) apri(Number(b.dataset.p)); }; });
   document.querySelectorAll('[data-riparte]').forEach(b => { b.onclick = () => { if (!dopoScorrimento()) riparte(Number(b.dataset.riparte)); }; });
-  document.querySelectorAll('.scorre').forEach(attivaScorrimento);
+  if (scrivibile()) document.querySelectorAll('.scorre').forEach(attivaScorrimento);
   document.querySelectorAll('[data-togli]').forEach(b => { b.onclick = () => togliPressa(Number(b.dataset.togli)); });
   scorsa = null;
   if (pressaAperta != null) {
@@ -890,15 +1225,20 @@ function disegnaElencoPresse() {
 
 // aggiungi e togli presse: le letture restano sempre nello storico
 // articolo e commessa scritti aggiungendo la pressa: valgono fino alla prima lettura, che li salva con sé
-const CHIAVE_COMMESSE = 'cicli-commesse-nuove';
+const CHIAVE_COMMESSE = PREF + 'commesse-nuove';
 let commesseNuove = {};
 try { commesseNuove = JSON.parse(localStorage.getItem(CHIAVE_COMMESSE) || '{}'); } catch (e) {}
 function salvaPresse() { PRESSE.sort((a, b) => a - b); salva(CHIAVE_PRESSE, PRESSE); aggiornaFerme(); }
 $('aggiungi-apri').onclick = () => {
+  if (!inTurno()) return;
   const aprire = $('aggiungi-blocco').hidden;
   $('aggiungi-blocco').hidden = !aprire; $('aggiungi-apri').setAttribute('aria-expanded', String(aprire));
   $('avviso-aggiungi').textContent = '';
-  if (aprire) { $('aggiungi-num').value = $('aggiungi-articolo').value = $('aggiungi-commessa').value = ''; $('aggiungi-num').focus(); }
+  if (!aprire) return;
+  $('aggiungi-num').value = $('aggiungi-articolo').value = $('aggiungi-commessa').value = '';
+  $('aggiungi-scorciatoie').innerHTML = PRESSE_REPARTO.filter(p => !PRESSE.includes(p)).map(p => '<button class="chip" data-scorc="' + p + '">' + p + '</button>').join('');
+  document.querySelectorAll('[data-scorc]').forEach(b => { b.onclick = () => { $('aggiungi-num').value = b.dataset.scorc; $('aggiungi-articolo').focus(); }; });
+  $('aggiungi-num').focus();
 };
 $('aggiungi-ok').onclick = () => {
   const t = $('aggiungi-num').value.trim(), p = Number(t);
@@ -914,6 +1254,7 @@ $('aggiungi-ok').onclick = () => {
 };
 // la pressa sfuma e l'elenco si richiude piano; poi esce davvero dall'elenco
 function togliPressa(p) {
+  if (!inTurno()) return;
   const v = document.querySelector('.voce[data-p="' + p + '"]');
   if (v && !v.classList.contains('via') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     v.style.height = v.offsetHeight + 'px';
@@ -979,6 +1320,7 @@ function mostraRiparte(avviso) {
   $('avviso-riparte').textContent = avviso || '';
 }
 function riparte(p, modo) {
+  if (!inTurno()) return;
   ripPressa = p; ripModo = modo || null;
   ripMin = alMinuto(ultimaLettura(p).ora);                       // la ripartenza non può essere prima del fermo
   if (ripModo === 'lettura') {                                   // "nel mio turno": non prima dell'inizio del turno
@@ -1033,26 +1375,24 @@ $('conferma-riparte').onclick = () => {
   }
   if (ripModo === 'vecchia') {                   // la "Fine commessa" diventa un fermo: il contatore continua, articolo e commessa restano
     const u = ultimaLettura(p);
-    delete u.fine_commessa; delete u.partenza_commessa;
-    if (u.evento === 'fine_commessa') delete u.evento;
-    u.fermo = true; u.ripresa_stessa = true; u.ripartita_alle = ripData.toISOString();
+    // solo campi che si possono cambiare anche sulle letture dei colleghi
+    aggiornaLettura(u.id, { fine_commessa: null, partenza_commessa: null, evento: u.evento === 'fine_commessa' ? null : u.evento,
+      fermo: true, ripresa_stessa: true, ripartita_alle: ripData.toISOString() });
     dialogoRiparte.close();
-    salva(CHIAVE, letture); aggiornaFerme();
+    aggiornaFerme();
     preparaCampi(p); disegnaElencoPresse(); disegnaRiepilogo();
     $('msg').textContent = 'Pressa ' + p + ': ripresa la commessa ' + (u.commessa || 'di prima') + ' alle ' + ripData.toTimeString().slice(0, 5) + '.';
     return;
   }
   if (ripModo === 'nuova') {                            // commessa nuova: l'ora si salva sulla "Fine commessa" e le ore lavorate si ricalcolano da lì
-    ultimaLettura(p).partenza_commessa = ripData.toISOString();
+    aggiornaLettura(ultimaLettura(p).id, { partenza_commessa: ripData.toISOString() });
     dialogoRiparte.close();
-    salva(CHIAVE, letture);
     oreManuali = false; aggiornaOre();
     $('msg').textContent = 'Pressa ' + p + ': commessa nuova partita alle ' + ripData.toTimeString().slice(0, 5) + '.';
     return;
   }
-  ultimaLettura(p).ripartita_alle = ripData.toISOString();
+  aggiornaLettura(ultimaLettura(p).id, { ripartita_alle: ripData.toISOString() });
   dialogoRiparte.close();
-  salva(CHIAVE, letture);
   aggiornaFerme();
   if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
   disegnaRiepilogo();
@@ -1061,6 +1401,7 @@ $('conferma-riparte').onclick = () => {
 
 function apri(p) {
   if (pressaAperta === p) { chiudi(); return; }
+  if (!inTurno()) return;                          // fuori turno la tendina non si apre
   pressaAperta = p; pressaScelta = p; ricordaPressa();
   $('msg').textContent = '';
   azzera();
@@ -1251,6 +1592,7 @@ function azzera() {
 
 function registra() {
   if (pressaAperta == null) return;
+  if (!inTurno()) { chiudi(); inTurno(); return; }   // il turno è finito con la tendina aperta
   const testo = $('cicli-input').value.trim();
   const cicli = Number(testo);
   if (!testo || !Number.isInteger(cicli) || cicli < 0) { $('avviso-salva').textContent = 'Scrivi il numero dei cicli totali.'; $('cicli-input').focus(); return; }
@@ -1293,9 +1635,8 @@ function registra() {
     lettura.fermo = true; lettura.motivo = motivo;
     if (motivo === 'altro' && notaAltro) lettura.nota = notaAltro;
   }
-  letture.push(lettura);
+  nuovaLettura(lettura);                     // con chi l'ha fatta (nome) e il suo codice
   if (commesseNuove[p]) { delete commesseNuove[p]; salva(CHIAVE_COMMESSE, commesseNuove); }   // ora articolo e commessa stanno nella lettura
-  salva(CHIAVE, letture);
   aggiornaFerme();
   chiudi();                                  // la tendina si chiude e la pressa risulta letta
   disegnaRiepilogo();
@@ -1339,6 +1680,7 @@ $('turno-scelto').onchange = () => { turnoSceltoChiave = $('turno-scelto').value
 
 let mostraSegnate = true;                    // true: le letture già segnate sul MES restano in elenco, sbiadite; "Nascondi" le toglie
 function disegnaRighe() {
+  const scr = scrivibile();
   const delTurno = letturePerTurno(turnoSceltoChiave);
   const righe = [];
   [...new Set([...PRESSE, ...delTurno.map(l => l.pressa)])].forEach(p => {   // anche le presse tolte dall'elenco dopo la lettura
@@ -1347,23 +1689,23 @@ function disegnaRighe() {
     lp.forEach((l, k) => { if (eFine(l) || k === lp.length - 1) rp.push(l); });
     rp.forEach(l => righe.push({ pressa: p, lettura: l, piu: rp.length > 1 }));   // le presse non lette non compaiono
   });
-  const segnate = righe.filter(r => r.lettura.mes).length;
-  $('righe').innerHTML = righe.filter(r => mostraSegnate || !r.lettura.mes).map(r =>
-    '<tr data-cor="' + r.lettura.ora + '"' + (r.lettura.mes ? ' class="segnata"' : '') + '><td class="sp"><button class="x ok" data-mes="' + r.lettura.ora + '" aria-pressed="' + !!r.lettura.mes +
-      '" aria-label="' + (r.lettura.mes ? 'Rimetti in elenco' : 'Segnata sul MES') + ' pressa ' + r.pressa + '">✓</button></td><td class="pressa">' + r.pressa + (r.piu ? '<span class="ev">' + esc([r.lettura.articolo && 'Art. ' + r.lettura.articolo, r.lettura.commessa].filter(Boolean).join(' · ')) + '</span>' : '') +
+  const segnate = righe.filter(r => eSegnata(r.lettura)).length;
+  // correzione ed eliminazione: solo sulle proprie letture (il responsabile su tutte); sulle altrui si può solo togliere un "Riparte ora"
+  const correggibile = l => mie(l) || !!l.ripartita_alle;
+  $('righe').innerHTML = righe.filter(r => mostraSegnate || !eSegnata(r.lettura)).map(r =>
+    '<tr' + (correggibile(r.lettura) ? ' data-cor="' + r.lettura.id + '"' : '') + (eSegnata(r.lettura) ? ' class="segnata"' : '') + '><td class="sp"><button class="x ok" data-mes="' + r.lettura.id + '" aria-pressed="' + eSegnata(r.lettura) +
+      '" aria-label="' + (eSegnata(r.lettura) ? 'Rimetti in elenco' : 'Segnata sul MES') + ' pressa ' + r.pressa + '">✓</button></td><td class="pressa">' + r.pressa + (r.piu ? '<span class="ev">' + esc([r.lettura.articolo && 'Art. ' + r.lettura.articolo, r.lettura.commessa].filter(Boolean).join(' · ')) + '</span>' : '') +
       (testoEvento(r.lettura) ? '<span class="ev">' + testoEvento(r.lettura).replace(/</g, '&lt;') + '</span>' : '') + '</td><td class="n">' + r.lettura.cicli + '</td><td class="n ore">' +
-      formatoOre(oreDi(r.lettura)) + '</td><td class="az"><button class="x" data-del="' + r.lettura.ora +
-      '" aria-label="Elimina lettura pressa ' + r.pressa + '">×</button></td></tr>').join('');
+      formatoOre(oreDi(r.lettura)) + '</td><td class="az">' + (mie(r.lettura) && scr ? '<button class="x" data-del="' + r.lettura.id +
+      '" aria-label="Elimina lettura pressa ' + r.pressa + '">×</button>' : '') + '</td></tr>').join('');
   document.querySelectorAll('[data-mes]').forEach(b => {
     b.onclick = () => {                         // segnata sul MES: sparisce dall'elenco ma resta nello Storico e nei calcoli
-      const l = letture.find(x => x.ora === b.dataset.mes);
-      if (l.mes) delete l.mes; else l.mes = true;
-      salva(CHIAVE, letture); disegnaRighe();
+      cambiaMes(b.dataset.mes); disegnaRighe();
     };
   });
   document.querySelectorAll('[data-del]').forEach(b => {
     b.onclick = () => {
-      if (b.dataset.confermare) { letture = letture.filter(l => l.ora !== b.dataset.del); salva(CHIAVE, letture); aggiornaFerme(); disegnaElencoPresse(); disegnaRiepilogo(); return; }
+      if (b.dataset.confermare) { eliminaLetture([b.dataset.del]); aggiornaFerme(); disegnaElencoPresse(); disegnaRiepilogo(); return; }
       b.dataset.confermare = '1'; b.textContent = 'Elimina'; b.classList.add('conferma');
       setTimeout(() => { b.textContent = '×'; b.classList.remove('conferma'); delete b.dataset.confermare; }, 3000);
     };
@@ -1371,7 +1713,7 @@ function disegnaRighe() {
   document.querySelectorAll('#righe [data-cor]').forEach(tr => {
     tr.onclick = e => { if (!e.target.closest('button')) apriCorreggi(tr.dataset.cor); };
   });
-  $('note-riepilogo').innerHTML = 'Compaiono solo le presse lette. Con ✓ una lettura si sbiadisce dopo averla segnata sul MES. Tocca una riga per correggerla.' +
+  $('note-riepilogo').innerHTML = 'Compaiono solo le presse lette. Con ✓ una lettura si sbiadisce dopo averla segnata sul MES. Tocca una tua lettura per correggerla.' +
     (segnate ? ' <button class="linea" id="mostra-segnate">' + (mostraSegnate ? 'Nascondi' : 'Mostra') + ' le ' + segnate + ' segnate</button>' : '');
   if (segnate) $('mostra-segnate').onclick = () => { mostraSegnate = !mostraSegnate; disegnaRighe(); };
 }
@@ -1439,12 +1781,16 @@ const dataIt = d => d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-di
 const oraIt = d => d.toTimeString().slice(0, 5);
 const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 function disegnaStorico() {
-  $('storico-conta').textContent = letture.length ? letture.length + ' letture salvate su questo telefono.' : 'Nessuna lettura salvata.';
+  $('storico-conta').textContent = (letture.length ? letture.length + ' letture del reparto negli ultimi ' + GIORNI_LETTURE + ' giorni.' : 'Nessuna lettura salvata.') +
+    (accesso ? ' Sei entrato come ' + accesso.nome + (accesso.admin ? ' (responsabile).' : '.') : '');
   $('esporta').disabled = !letture.length; $('svuota').disabled = !letture.length;
   $('stato-esporta').textContent = '';
+  const admin = !!(accesso && accesso.admin) && scrivibile();   // svuotare il database comune: solo il responsabile e nel suo turno
+  $('svuota').hidden = !admin;
+  $('storico-nota').textContent = admin ? 'Tocca una lettura per correggerla.' : 'Tocca una tua lettura per correggerla.';
   // svuota una pressa sola: un pulsante con la × per ogni pressa che ha letture
   const conLetture = [...new Set(letture.map(l => l.pressa))].sort((a, b) => a - b);
-  $('svuota-presse-blocco').hidden = !conLetture.length;
+  $('svuota-presse-blocco').hidden = !conLetture.length || !admin;
   $('svuota-presse').innerHTML = conLetture.map(p => '<button class="chip" data-svuota="' + p + '" aria-label="Svuota lo storico della pressa ' + p + '">' + p + ' ×</button>').join('');
   document.querySelectorAll('[data-svuota]').forEach(b => {
     b.onclick = () => {
@@ -1454,7 +1800,7 @@ function disegnaStorico() {
         setTimeout(() => { if (b.isConnected) { b.textContent = p + ' ×'; b.setAttribute('aria-pressed', 'false'); delete b.dataset.confermare; } }, 3000);
         return;
       }
-      letture = letture.filter(l => l.pressa !== p); salva(CHIAVE, letture); aggiornaFerme();
+      eliminaLetture(letture.filter(l => l.pressa === p).map(l => l.id)); aggiornaFerme();
       if (pressaAperta === p) { pressaAperta = null; azzera(); }
       disegnaStorico(); disegnaElencoPresse(); disegnaRiepilogo(); disegnaHome();
       $('stato-esporta').textContent = 'Storico della pressa ' + p + ' svuotato.';
@@ -1466,14 +1812,16 @@ function disegnaStorico() {
     const coppia = (titolo, x) => formatoOre(x.reale) === formatoOre(x.effettiva)
       ? '<div class="st-dati"><span>' + titolo + ': <strong>' + formatoOre(x.reale) + '</strong></span></div>'
       : '<div class="st-dati"><span>' + titolo + ': reale <strong>' + formatoOre(x.reale) + '</strong></span><span>effettiva <strong>' + formatoOre(x.effettiva) + '</strong></span></div>';
-    return '<div class="card storico-card" data-cor="' + l.ora + '"><div class="st-testa"><b>Pressa ' + l.pressa + '</b><span class="piccolo">' + dataIt(d) + ' · ' + oraIt(d) + '</span></div>' +
+    const cor = mie(l) || !!l.ripartita_alle;
+    return '<div class="card' + (cor ? ' storico-card" data-cor="' + l.id : '') + '"><div class="st-testa"><b>Pressa ' + l.pressa + '</b><span class="piccolo">' + dataIt(d) + ' · ' + oraIt(d) + '</span></div>' +
       '<div class="st-dati"><span>Articolo: <strong>' + esc(l.articolo || '—') + '</strong></span><span>Commessa: <strong>' + esc(l.commessa || '—') + '</strong></span></div>' +
       '<div class="st-dati"><span>Cicli totali: <strong>' + l.cicli + '</strong></span>' +
       (delta != null ? '<span>Cicli dall\'ultima lettura: <strong>' + delta + '</strong></span>' : '') + '</div>' +
       (dur.ultima ? coppia('Durata dall\'ultima lettura', dur.ultima) : '') +
       coppia('Durata commessa', dur.commessa) +
       '<div class="st-dati"><span>Ore turno: <strong>' + formatoOre(oreDi(l)) + '</strong>' + (l.ore_manuali ? ' (a mano)' : '') + '</span></div>' +
-      (ev ? '<span class="ev">' + esc(ev) + '</span>' : '') + '</div>';
+      (ev ? '<span class="ev">' + esc(ev) + '</span>' : '') +
+      (l.nome ? '<div class="letta-da" style="margin-top:8px">Letta da ' + esc(l.nome) + '</div>' : '') + '</div>';
   }).reverse().join('');
   document.querySelectorAll('.storico-card').forEach(c => { c.onclick = () => apriCorreggi(c.dataset.cor); });
 }
@@ -1481,13 +1829,15 @@ function disegnaStorico() {
 // ---------------- Correggi una lettura ----------------
 const dialogoCorreggi = $('dialogo-correggi');
 let corLettura = null;
-function apriCorreggi(ora) {
-  const l = letture.find(x => x.ora === ora);
-  if (!l) return;
-  corLettura = l;
-  const d = new Date(l.ora);
+function apriCorreggi(id) {
+  const l = letture.find(x => x.id === id);
+  if (!l || !inTurno()) return;
+  corLettura = l.id;
+  const d = new Date(l.ora), propria = mie(l);
   $('titolo-correggi').textContent = 'Correggi pressa ' + l.pressa;
-  $('correggi-quando').textContent = 'Lettura del ' + dataIt(d) + ' alle ' + oraIt(d) + (testoEvento(l) ? ' · ' + testoEvento(l) : '');
+  $('correggi-quando').textContent = 'Lettura del ' + dataIt(d) + ' alle ' + oraIt(d) + (l.nome ? ', letta da ' + l.nome : '') + (testoEvento(l) ? ' · ' + testoEvento(l) : '') +
+    (propria ? '' : '. È di un collega: puoi solo togliere la ripartenza.');
+  ['cor-cicli', 'cor-ore', 'cor-articolo', 'cor-commessa'].forEach(c => { $(c).disabled = !propria; });   // lettura di un collega: dati bloccati
   $('cor-cicli').value = l.cicli;
   $('cor-ore').value = testoOreCampo(oreDi(l));
   $('cor-articolo').value = l.articolo || '';
@@ -1501,19 +1851,28 @@ $('cor-rip-togli').onclick = () => {
   const togli = $('cor-rip-togli').getAttribute('aria-pressed') !== 'true';
   $('cor-rip-togli').setAttribute('aria-pressed', String(togli));
   $('cor-rip-togli').textContent = togli ? 'Rimetti' : 'Togli';
-  $('cor-rip-testo').textContent = togli ? 'Ripartenza tolta' : 'Ripartita alle ' + oraIt(new Date(corLettura.ripartita_alle));
+  const l = letture.find(x => x.id === corLettura);
+  $('cor-rip-testo').textContent = togli ? 'Ripartenza tolta' : 'Ripartita alle ' + oraIt(new Date(l.ripartita_alle));
 };
 $('conferma-correggi').onclick = () => {
-  const l = corLettura, t = $('cor-cicli').value.trim(), cicli = Number(t), ore = leggiOre($('cor-ore').value);
-  if (!t || !Number.isInteger(cicli) || cicli < 0) { $('avviso-correggi').textContent = 'Scrivi il numero dei cicli totali.'; return; }
-  if (ore == null) { $('avviso-correggi').textContent = 'Scrivi le ore, es. 7:30 oppure 8.'; return; }
-  l.cicli = cicli;
-  if ($('cor-ore').value.trim() !== testoOreCampo(oreDi(l))) { l.ore = ore; l.ore_manuali = true; }
-  const articolo = $('cor-articolo').value.trim(), cifre = $('cor-commessa').value.trim().replace(/^P/i, '');
-  if (articolo) l.articolo = articolo; else delete l.articolo;
-  if (cifre) l.commessa = 'P' + cifre; else delete l.commessa;
-  if ($('cor-rip-togli').getAttribute('aria-pressed') === 'true') delete l.ripartita_alle;   // la pressa torna ferma
-  salva(CHIAVE, letture); aggiornaFerme();
+  const l = letture.find(x => x.id === corLettura);
+  if (!l) { dialogoCorreggi.close(); return; }      // eliminata nel frattempo da qualcun altro
+  const togliRip = $('cor-rip-togli').getAttribute('aria-pressed') === 'true';
+  if (!mie(l)) {                                   // lettura di un collega: si può togliere solo la ripartenza
+    if (togliRip) aggiornaLettura(l.id, { ripartita_alle: null });
+  } else {
+    const t = $('cor-cicli').value.trim(), cicli = Number(t), ore = leggiOre($('cor-ore').value);
+    if (!t || !Number.isInteger(cicli) || cicli < 0) { $('avviso-correggi').textContent = 'Scrivi il numero dei cicli totali.'; return; }
+    if (ore == null) { $('avviso-correggi').textContent = 'Scrivi le ore, es. 7:30 oppure 8.'; return; }
+    const campi = { cicli };
+    if ($('cor-ore').value.trim() !== testoOreCampo(oreDi(l))) { campi.ore = ore; campi.ore_manuali = true; }
+    const articolo = $('cor-articolo').value.trim(), cifre = $('cor-commessa').value.trim().replace(/^P/i, '');
+    campi.articolo = articolo || null;
+    campi.commessa = cifre ? 'P' + cifre : null;
+    if (togliRip) campi.ripartita_alle = null;     // la pressa torna ferma
+    aggiornaLettura(l.id, campi);
+  }
+  aggiornaFerme();
   dialogoCorreggi.close();
   disegnaElencoPresse(); disegnaRiepilogo();
   if (location.hash === '#storico') disegnaStorico();
@@ -1521,7 +1880,7 @@ $('conferma-correggi').onclick = () => {
 };
 $('annulla-correggi').onclick = () => dialogoCorreggi.close();
 dialogoCorreggi.addEventListener('click', e => { if (e.target === dialogoCorreggi) dialogoCorreggi.close(); });
-// "Svuota": al primo tocco cambia la scritta, al secondo cancella tutte le letture salvate sul telefono
+// "Svuota" (solo il responsabile): al primo tocco cambia la scritta, al secondo cancella le letture del reparto
 $('svuota').onclick = () => {
   const b = $('svuota');
   if (!b.dataset.confermare) {
@@ -1529,7 +1888,7 @@ $('svuota').onclick = () => {
     setTimeout(() => { b.textContent = 'Svuota storico'; delete b.dataset.confermare; }, 3000);
     return;
   }
-  letture = []; salva(CHIAVE, letture); aggiornaFerme();
+  eliminaLetture(letture.map(l => l.id)); aggiornaFerme();
   b.textContent = 'Svuota storico'; delete b.dataset.confermare;
   pressaAperta = null; azzera();                 // niente tendina aperta con dati che non esistono più
   disegnaStorico(); disegnaElencoPresse(); disegnaRiepilogo(); disegnaHome();
@@ -1560,8 +1919,208 @@ $('esporta').onclick = async () => {
   } catch (e) { if (e.name !== 'AbortError') $('stato-esporta').textContent = 'Esportazione non riuscita.'; }
 };
 
+// ---------------- Avvio: accesso al reparto e database ----------------
+// versione da sviluppatore: striscia arancio ben visibile; versione per i colleghi: scritta discreta con il numero della beta
+{
+  const s = document.createElement('div');
+  s.className = PROVA ? 'striscia-prova' : 'striscia-beta';
+  s.textContent = PROVA ? 'SVILUPPATORE' : 'BETA 1';
+  document.querySelector('.pagina').prepend(s);
+  if (PROVA) document.title = 'NIS Sviluppatore';
+}
+// il codice del reparto è di 4 cifre; nel database il reparto si chiama "nis-" + codice. La versione di prova usa un reparto a parte
+const normaCodice = c => c.replace(/\D/g, '');
+const repartoDi = codice => 'nis-' + codice + (PROVA ? '-prove' : '');
+// letture nuove dal database: si ridisegna quello che si vede, senza chiudere la tendina aperta
+function datiArrivati(nuove) {
+  letture = nuove;
+  aggiornaFerme();
+  if (!$('vista-leggi').hidden && !trascinato) { disegnaElencoPresse(); disegnaRiepilogo(); }
+  if (!$('vista-storico').hidden) disegnaStorico();
+  if (!$('vista-home').hidden) disegnaHome();
+}
+async function preparaDb() {
+  if (!db) db = CONFIG_PRONTA ? await dbFirebase(FIREBASE) : dbFinto();
+  return db;
+}
+async function avviaDati() {
+  try { await preparaDb(); }
+  catch (e) { $('msg').textContent = 'Database non raggiungibile: controlla la rete e riapri l\'app.'; return; }
+  db.usa(repartoDi(accesso.codice));
+  db.ascolta(datiArrivati, () => { $('msg').textContent = 'Il database non risponde: le letture si salvano sul telefono e partono appena torna la rete.'; });
+  db.ascoltaGruppo(gruppoArrivato);
+  proponiImportazione();
+}
+// persone, richieste e ospiti dal database: si chiude l'attesa se un collega ha risposto, si ridisegna
+async function gruppoArrivato(g) {
+  gruppo = g; salva(PREF + 'gruppo', g);
+  if (accesso && accesso.attesa) {
+    const r = g.richieste.find(x => x.id === accesso.richiesta);
+    if (r && r.stato === 'confermata') {
+      try {
+        if (r.tipo === 'telefono') await db.prendiNome(accesso.nome, r.id);   // il nome passa a questo telefono
+        else await db.diventaOspite(accesso.nome, accesso.sostituisce, r.id);
+        await db.togliRichiesta(r.id);
+      } catch (e) { $('attesa-testo').textContent = 'Il database non ha accettato la conferma. Riapri l\'app.'; return; }
+      delete accesso.attesa; delete accesso.richiesta; salva(PREF + 'accesso', accesso);
+      vai('home');
+      $('msg').textContent = 'Confermato da ' + r.da + '.';
+      return;
+    }
+    if (r && r.stato === 'rifiutata') {
+      db.togliRichiesta(r.id).catch(() => {});
+      $('attesa-testo').textContent = r.da + ' non ha confermato la richiesta.';
+      $('attesa-annulla').textContent = 'Torna indietro';
+      return;
+    }
+  }
+  disegnaRichieste();
+  aggiornaVista();
+  proponiImportazione();
+}
+// richieste dei colleghi da confermare, e "ti sostituisce" per il titolare
+function disegnaRichieste() {
+  const box = $('richieste');
+  if (!db || !accesso || accesso.attesa || accesso.ospite || !$('vista-entra').hidden) { box.hidden = true; return; }
+  const da = gruppo.richieste.filter(r => r.stato === 'attesa' && r.uid !== db.uid && (r.tipo === 'telefono' ? r.nome : r.sostituisce) !== accesso.nome);
+  const sost = gruppo.ospiti.find(o => o.sostituisce === accesso.nome);
+  box.innerHTML = da.map(r => '<div class="card"><p>' + esc(r.tipo === 'telefono' ? r.nome + ' dice di aver cambiato telefono. È vero?' : r.nome + ' chiede di sostituire ' + r.sostituisce + '. È vero?') +
+      '</p><div class="riga"><button class="salva" data-conf="' + r.id + '">Confermo</button><button class="annulla" data-rif="' + r.id + '">Rifiuta</button></div></div>').join('') +
+    (sost ? '<div class="card"><p>' + esc(sost.nome) + ' ti sostituisce: puoi solo guardare.</p><button class="salva" style="width:100%" id="riprendo">Riprendo il mio turno</button></div>' : '');
+  box.hidden = !box.innerHTML;
+  const rispondi = (id, stato) => db.rispondi(id, { stato, da: accesso.nome, daUid: db.uid }).catch(erroreDati);
+  box.querySelectorAll('[data-conf]').forEach(b => { b.onclick = () => rispondi(b.dataset.conf, 'confermata'); });
+  box.querySelectorAll('[data-rif]').forEach(b => { b.onclick = () => rispondi(b.dataset.rif, 'rifiutata'); });
+  if (sost) $('riprendo').onclick = () => db.fineOspite(sost.uid).catch(erroreDati);
+}
+// ridisegna la pagina che si vede: serve quando cambia il turno o arriva una sostituzione
+let eraScrivibile = null;
+function aggiornaVista() {
+  const ora = accesso && !accesso.attesa ? scrivibile() : false;
+  if (ora === eraScrivibile) return;
+  eraScrivibile = ora;
+  if (!ora && pressaAperta != null) chiudi();
+  if (!$('vista-leggi').hidden) { disegnaElencoPresse(); disegnaRiepilogo(); }
+  if (!$('vista-storico').hidden) disegnaStorico();
+  if (!$('vista-home').hidden) disegnaHome();
+}
+setInterval(aggiornaVista, 30000);                 // il turno finisce anche con l'app aperta
+$('entra-resp').onclick = () => { $('entra-chiave-blocco').hidden = false; $('entra-resp').hidden = true; $('entra-chiave').focus(); };
+// passo 1: il codice. Se esiste si passa alla scelta del nome (i nomi sono quelli della rotazione dei turni)
+let entrata = null;                                // { codice, chiave, rotazione, persone } durante l'accesso
+$('entra-ok').onclick = async () => {
+  const codice = normaCodice($('entra-codice').value), chiave = $('entra-chiave').value.trim();
+  const avviso = t => { $('avviso-entra').textContent = t; };
+  if (codice.length !== 4) { avviso('Scrivi il codice del reparto: 4 cifre.'); $('entra-codice').focus(); return; }
+  const b = $('entra-ok');
+  b.disabled = true; avviso('');
+  try {
+    await preparaDb();
+    const r = await db.entra(repartoDi(codice));
+    if (r.errore) { avviso(r.errore); return; }
+    if (!r.rotazione) { avviso('Il reparto non ha ancora la rotazione dei turni. Avvisa il responsabile.'); return; }
+    db.usa(repartoDi(codice));
+    entrata = { codice, chiave, rotazione: r.rotazione, persone: r.persone };
+    mostraNomi();
+  } catch (e) { avviso('Non riesco a raggiungere il database: serve la rete per entrare la prima volta.'); }
+  finally { b.disabled = false; }
+};
+const nomiReparto = rot => SEQ_TURNI.map(s => rot.turni[s]).filter(Boolean);
+function mostraNomi() {
+  $('entra-passo1').hidden = true; $('entra-passo2').hidden = false; $('entra-attesa').hidden = true;
+  $('entra-gia').hidden = true; $('entra-ospite-blocco').hidden = true; $('avviso-entra2').textContent = '';
+  $('entra-nomi').innerHTML = nomiReparto(entrata.rotazione).map(n => '<button class="chip" data-nome="' + esc(n) + '">' + esc(n) + '</button>').join('');
+  document.querySelectorAll('[data-nome]').forEach(b => { b.onclick = () => scegliNome(b.dataset.nome); });
+}
+// nome libero o già di questo telefono: si entra. Legato a un altro telefono: serve la conferma di un collega
+let nomeScelto = null;
+async function scegliNome(nome) {
+  nomeScelto = nome;
+  const u = entrata.persone[nome];
+  if (!u || u === db.uid) {
+    try { if (!u) await db.prendiNome(nome); }
+    catch (e) { $('avviso-entra2').textContent = 'Il database non ha accettato il nome. Riprova.'; return; }
+    finisciAccesso({ nome });
+    return;
+  }
+  $('entra-gia-testo').textContent = 'Il nome ' + nome + ' è già usato su un altro telefono.';
+  $('entra-gia').hidden = false; $('entra-ospite-blocco').hidden = true;
+}
+$('entra-cambiato').onclick = async () => {
+  const id = await db.richiedi({ tipo: 'telefono', nome: nomeScelto, ora: new Date().toISOString() });
+  finisciAccesso({ nome: nomeScelto, attesa: true, richiesta: id });
+};
+// ospite: nome vero e chi sostituisce
+let ospiteSostituisce = null;
+$('entra-ospite').onclick = () => {
+  $('entra-gia').hidden = true; $('entra-ospite-blocco').hidden = false; ospiteSostituisce = null;
+  $('ospite-chi').innerHTML = nomiReparto(entrata.rotazione).map(n => '<button class="chip" data-sost="' + esc(n) + '" aria-pressed="false">' + esc(n) + '</button>').join('');
+  document.querySelectorAll('[data-sost]').forEach(b => {
+    b.onclick = () => { ospiteSostituisce = b.dataset.sost; document.querySelectorAll('[data-sost]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); };
+  });
+  $('ospite-nome').focus();
+};
+$('ospite-invia').onclick = async () => {
+  const nome = $('ospite-nome').value.trim().replace(/\s+/g, ' ');
+  if (!nome) { $('avviso-entra2').textContent = 'Scrivi il tuo nome e cognome.'; $('ospite-nome').focus(); return; }
+  if (!ospiteSostituisce) { $('avviso-entra2').textContent = 'Scegli il collega che sostituisci.'; return; }
+  if (nomiReparto(entrata.rotazione).includes(nome)) { $('avviso-entra2').textContent = 'Questo nome è di un titolare: scrivi il tuo nome e cognome.'; return; }
+  const id = await db.richiedi({ tipo: 'ospite', nome, sostituisce: ospiteSostituisce, ora: new Date().toISOString() });
+  finisciAccesso({ nome, ospite: true, sostituisce: ospiteSostituisce, attesa: true, richiesta: id });
+};
+async function finisciAccesso(a) {
+  accesso = { codice: entrata.codice, rotazione: entrata.rotazione, admin: false, ...a };
+  if (entrata.chiave && !a.ospite) {                 // la chiave del responsabile vale solo per i titolari
+    accesso.admin = await db.diventaAdmin(entrata.chiave, a.nome);
+    if (!accesso.admin) $('msg').textContent = 'Chiave responsabile non valida: sei entrato come collega.';
+  }
+  salva(PREF + 'accesso', accesso);
+  if (accesso.attesa) mostraAttesa(); else vai('home');
+  avviaDati();
+}
+function mostraAttesa() {
+  $('entra-passo1').hidden = true; $('entra-passo2').hidden = true; $('entra-attesa').hidden = false;
+  const altri = nomiReparto(accesso.rotazione).filter(n => n !== (accesso.ospite ? accesso.sostituisce : accesso.nome));
+  $('attesa-testo').textContent = (accesso.ospite ? 'Richiesta inviata: sostituisci ' + accesso.sostituisce + '. ' : 'Richiesta inviata: hai cambiato telefono. ') +
+    'Deve confermarla ' + altri.join(' o ') + ' dal suo telefono.';
+}
+$('attesa-annulla').onclick = () => {
+  if (accesso && accesso.richiesta) db.togliRichiesta(accesso.richiesta).catch(() => {});
+  accesso = null; salva(PREF + 'accesso', null);
+  $('entra-passo1').hidden = false; $('entra-attesa').hidden = true;
+  vai('entra');
+};
+
+// importazione, una volta sola e solo per il responsabile: letture delle presse 40 e 69 salvate sul telefono prima del database
+const dialogoImporta = $('dialogo-importa');
+let daImportare = [];
+function proponiImportazione() {
+  if (PROVA || !accesso.admin || leggiLocale(PREF + 'importato', false) || !scrivibile() || dialogoImporta.open) return;
+  daImportare = leggiLocale(VECCHIA_CHIAVE, []).filter(l => l && (l.pressa === 40 || l.pressa === 69));
+  if (!daImportare.length) return;
+  const da = new Date(2026, 9, 27, 14, 0);           // preselezionate: dal pomeriggio del 27/10/2026
+  $('importa-elenco').innerHTML = daImportare.map((l, i) => {
+    const d = new Date(l.ora), ev = testoEvento(l);
+    return '<label class="opzione"><input type="checkbox" data-imp="' + i + '"' + (d >= da ? ' checked' : '') + '><span class="casella" aria-hidden="true"></span>' +
+      '<span class="testo-opz">Pressa ' + l.pressa + ' · ' + dataIt(d) + ' ' + oraIt(d) + ' · ' + l.cicli + ' cicli' + (ev ? ' · ' + esc(ev) : '') + '</span></label>';
+  }).join('');
+  if (typeof dialogoImporta.showModal === 'function') dialogoImporta.showModal(); else dialogoImporta.setAttribute('open', '');
+}
+$('importa-ok').onclick = () => {
+  const scelte = [...document.querySelectorAll('[data-imp]')].filter(c => c.checked).map(c => daImportare[Number(c.dataset.imp)]);
+  scelte.forEach(v => { const { mes, id, uid, nome, ...l } = v; nuovaLettura(l); });
+  salva(PREF + 'importato', true);
+  dialogoImporta.close();
+  aggiornaFerme(); datiArrivati(letture);
+  $('msg').textContent = scelte.length ? scelte.length + ' letture caricate nel database.' : '';
+};
+$('importa-no').onclick = () => { salva(PREF + 'importato', true); dialogoImporta.close(); };
+
 window.addEventListener('hashchange', () => vai(location.hash.slice(1)));
+gruppo = leggiLocale(PREF + 'gruppo', gruppo);     // l'ultimo stato noto, anche senza rete
 vai(location.hash.slice(1));
+if (accesso && accesso.attesa) mostraAttesa();
+if (accesso) avviaDati();
 </script>
 </body>
 </html>
