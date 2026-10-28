@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028121910">
+<meta name="versione" content="20261028122504">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -486,8 +486,8 @@ if (/prove/.test(location.pathname)) {
     <p class="piccolo" style="margin:0">Il codice te lo dà il responsabile. La prima volta serve la rete.</p>
     <!-- passo 1: codice del reparto -->
     <div id="entra-passo1">
-      <div class="blocco campo"><label for="entra-codice">Codice reparto</label><input class="testo" id="entra-codice" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
-      <div class="blocco campo" id="entra-chiave-blocco" hidden><label for="entra-chiave">Chiave responsabile</label><input class="testo" id="entra-chiave" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
+      <div class="blocco campo"><label for="entra-codice">Codice reparto</label><input class="testo" id="entra-codice" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="4 cifre"></div>
+      <div class="blocco campo" id="entra-chiave-blocco" hidden><label for="entra-chiave">Chiave responsabile</label><input class="testo" id="entra-chiave" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" placeholder="4 cifre"></div>
       <div class="avviso" id="avviso-entra" role="alert"></div>
       <button id="entra-ok" class="salva" style="width:100%;margin-top:6px">Avanti</button>
       <p style="margin:22px 0 0;text-align:center"><button class="linea" id="entra-resp">Sono il responsabile</button></p>
@@ -1925,9 +1925,9 @@ if (PROVA) {                                     // versione di prova: striscia 
   document.querySelector('.pagina').prepend(s);
   document.title = 'NIS Prove';
 }
-// il codice si scrive come si vuole: si salva in minuscolo e senza spazi. La versione di prova usa un reparto a parte
-const normaCodice = c => c.trim().toLowerCase().replace(/\s+/g, '');
-const repartoDi = codice => codice + (PROVA ? '-prove' : '');
+// il codice del reparto è di 4 cifre; nel database il reparto si chiama "nis-" + codice. La versione di prova usa un reparto a parte
+const normaCodice = c => c.replace(/\D/g, '');
+const repartoDi = codice => 'nis-' + codice + (PROVA ? '-prove' : '');
 // letture nuove dal database: si ridisegna quello che si vede, senza chiudere la tendina aperta
 function datiArrivati(nuove) {
   letture = nuove;
@@ -2008,7 +2008,7 @@ let entrata = null;                                // { codice, chiave, rotazion
 $('entra-ok').onclick = async () => {
   const codice = normaCodice($('entra-codice').value), chiave = $('entra-chiave').value.trim();
   const avviso = t => { $('avviso-entra').textContent = t; };
-  if (!codice) { avviso('Scrivi il codice del reparto.'); $('entra-codice').focus(); return; }
+  if (codice.length !== 4) { avviso('Scrivi il codice del reparto: 4 cifre.'); $('entra-codice').focus(); return; }
   const b = $('entra-ok');
   b.disabled = true; avviso('');
   try {
