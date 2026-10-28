@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028191913">
+<meta name="versione" content="20261028194318">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -166,11 +166,14 @@ if (/prove/.test(location.pathname)) {
   button.salva:active { box-shadow: 0 1px 0 #7d8100, 0 3px 6px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -3px 0 rgba(0,0,0,.12); }
   /* Lettura cicli e Produzione: in alto Home a sinistra e l'altra sezione a destra, sotto il titolo con il logo */
   #vai-altra[hidden] { display: none; }
-  header.con-nav { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "home . altra" "titolo titolo titolo"; align-items: center; row-gap: 24px; padding-top: 6px; }
-  header.con-nav #indietro { grid-area: home; justify-self: start; }
-  header.con-nav #vai-altra { grid-area: altra; justify-self: end; }
-  header.con-nav h1 { grid-area: titolo; justify-self: center; text-align: center; }   /* titolo al centro, un po' più in basso */
-  header.con-nav .sigla { grid-area: titolo; justify-self: end; }   /* il logo resta a destra, sulla riga del titolo */
+  header.con-nav { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "home altra" "titolo titolo"; align-items: stretch; gap: 14px 12px; padding-top: 6px; }
+  header.con-nav #indietro { grid-area: home; }
+  header.con-nav #vai-altra { grid-area: altra; }
+  header.con-nav .indietro { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 11px 12px 10px; width: 100%; }
+  header.con-nav h1 { grid-area: titolo; justify-self: center; text-align: center; margin: 8px 0 0; }
+  header.con-nav .sigla { display: none; }
+  .n-grande { font: 700 1.35rem/1 var(--font-titoli); letter-spacing: .08em; text-transform: uppercase; }
+  .n-piccolo { font: 600 .8rem/1 var(--font); letter-spacing: .04em; opacity: .8; }
   .indietro { padding: 11px 16px; border-radius: 20px; box-shadow: 0 5px 0 #0a2253, 0 10px 14px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.35); }
   .indietro:active { transform: translateY(4px); box-shadow: 0 1px 0 #0a2253, 0 2px 4px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.2); }
   .riga { display: flex; gap: 12px; }
@@ -1205,6 +1208,8 @@ function ultimePerPressa(chiave) {
 // ---------------- Pagine ----------------
 const VISTE = ['home', 'produzione', 'leggi', 'storico', 'entra'];
 const TITOLI = { produzione: 'Produzione', leggi: 'Lettura cicli', storico: 'Storico cicli' };
+// pulsante a due righe: sopra in grande Avanti/Indietro, sotto in piccolo dove porta
+const duePassi = (grande, piccolo) => '<span class="n-grande">' + grande + '</span><span class="n-piccolo">' + piccolo + '</span>';
 function vai(nome) {
   if (nome === 'riepilogo') nome = 'leggi';
   if (!VISTE.includes(nome)) nome = 'home';
@@ -1215,14 +1220,14 @@ function vai(nome) {
   document.body.classList.toggle('home', nome === 'home');
   
   if (nome !== 'home') $('titolo').textContent = TITOLI[nome];
-  $('indietro').innerHTML = nome === 'storico' ? '&larr; Letture' : '&larr; Home';   // dallo storico si torna alla lettura cicli
+  $('indietro').innerHTML = nome === 'storico' ? '&larr; Letture' : nome === 'leggi' || nome === 'produzione' ? duePassi('Indietro', 'Home') : '&larr; Home';   // dallo storico si torna alla lettura cicli
   if (nome === 'home') disegnaHome();
   if (nome === 'leggi') { pressaAperta = null; $('msg').textContent = ''; disegnaElencoPresse(); disegnaRiepilogo(); azzera(); }
   if (nome === 'storico') disegnaStorico();
   if (nome === 'produzione') disegnaProduzione();
-  const altra = { leggi: ['Produzione \u2192', 'produzione'], produzione: ['Lettura cicli \u2192', 'leggi'] }[nome];
+  const altra = { leggi: ['Produzione', 'produzione'], produzione: ['Lettura cicli', 'leggi'] }[nome];
   $('testata').classList.toggle('con-nav', !!altra); $('vai-altra').hidden = !altra;
-  if (altra) { $('vai-altra').textContent = altra[0]; $('vai-altra').dataset.vai = altra[1]; }
+  if (altra) { $('vai-altra').innerHTML = duePassi('Avanti', altra[0]); $('vai-altra').dataset.vai = altra[1]; }
   disegnaRichieste();
   if (location.hash !== '#' + nome) history.replaceState(null, '', '#' + nome);
   window.scrollTo(0, 0);
