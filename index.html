@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028104122">
+<meta name="versione" content="20261028104549">
 <meta name="theme-color" content="#0b2d6c">
 <title>NIS Stampaggio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -265,6 +265,9 @@
   button.togli-sw { position: absolute; z-index: 0; right: 0; top: 0; bottom: 8px; width: 104px; padding: 0; border: 0; border-radius: 26px;
     background: linear-gradient(#e0574a, #b8382d); color: #fff; box-shadow: 0 8px 0 #7a1f17; font-size: 1rem; letter-spacing: .05em; text-transform: uppercase; }
   button.togli-sw::after { display: none; }
+  /* pressa tolta: sfuma e si chiude, e la riga sotto sale piano (il -22px recupera lo spazio tra le presse) */
+  .voce.via { overflow: hidden; opacity: 0; height: 0 !important; margin-bottom: -22px; pointer-events: none;
+    transition: opacity .3s ease, height .45s cubic-bezier(.16,1,.3,1) .1s, margin-bottom .45s cubic-bezier(.16,1,.3,1) .1s; }
   .pressa-btn .st.spazio-rip { flex: none; width: 112px; }   /* spazio per "Riparte ora", che sta sopra */
   button.riparte { position: absolute; z-index: 2; right: 54px; top: 50%; transform: translateY(-50%); padding: 10px 14px; font-size: .9rem; white-space: nowrap; }
   button.riparte:active { transform: translateY(calc(-50% + 4px)); }
@@ -459,9 +462,16 @@
   <!-- aggiungi pressa: si scrive il numero e la pressa entra nell'elenco -->
   <div class="aggiungi">
     <button id="aggiungi-apri" class="annulla" aria-expanded="false">+ Aggiungi pressa</button>
-    <div id="aggiungi-blocco" class="riga-salva" hidden>
-      <input class="manuale" id="aggiungi-num" inputmode="numeric" pattern="[0-9]*" placeholder="N. pressa" aria-label="Numero della pressa">
-      <button id="aggiungi-ok" class="salva">Aggiungi</button>
+    <div id="aggiungi-blocco" hidden>
+      <label for="aggiungi-num">Numero pressa</label>
+      <input class="manuale" id="aggiungi-num" inputmode="numeric" pattern="[0-9]*" placeholder="es. 76">
+      <!-- facoltativi: si ripropongono alla prima lettura della pressa -->
+      <div class="blocco riga">
+        <div class="campo"><label for="aggiungi-articolo">Articolo</label><input class="testo" id="aggiungi-articolo" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div>
+        <div class="campo"><label for="aggiungi-commessa">Commessa</label>
+          <div class="prefisso"><span aria-hidden="true">P</span><input class="testo" id="aggiungi-commessa" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div></div>
+      </div>
+      <button id="aggiungi-ok" class="salva" style="width:100%;margin-top:22px">Aggiungi</button>
     </div>
     <div class="avviso" id="avviso-aggiungi" role="alert"></div>
   </div>
@@ -875,24 +885,43 @@ function disegnaElencoPresse() {
 }
 
 // aggiungi e togli presse: le letture restano sempre nello storico
+// articolo e commessa scritti aggiungendo la pressa: valgono fino alla prima lettura, che li salva con sé
+const CHIAVE_COMMESSE = 'cicli-commesse-nuove';
+let commesseNuove = {};
+try { commesseNuove = JSON.parse(localStorage.getItem(CHIAVE_COMMESSE) || '{}'); } catch (e) {}
 function salvaPresse() { PRESSE.sort((a, b) => a - b); salva(CHIAVE_PRESSE, PRESSE); aggiornaFerme(); }
 $('aggiungi-apri').onclick = () => {
   const aprire = $('aggiungi-blocco').hidden;
   $('aggiungi-blocco').hidden = !aprire; $('aggiungi-apri').setAttribute('aria-expanded', String(aprire));
   $('avviso-aggiungi').textContent = '';
-  if (aprire) { $('aggiungi-num').value = ''; $('aggiungi-num').focus(); }
+  if (aprire) { $('aggiungi-num').value = $('aggiungi-articolo').value = $('aggiungi-commessa').value = ''; $('aggiungi-num').focus(); }
 };
 $('aggiungi-ok').onclick = () => {
   const t = $('aggiungi-num').value.trim(), p = Number(t);
   if (!/^\d{1,4}$/.test(t) || !p) { $('avviso-aggiungi').textContent = 'Scrivi il numero della pressa.'; $('aggiungi-num').focus(); return; }
   if (PRESSE.includes(p)) { $('avviso-aggiungi').textContent = 'La pressa ' + p + ' è già nell\'elenco.'; return; }
   PRESSE.push(p); salvaPresse();
+  const articolo = $('aggiungi-articolo').value.trim(), cifre = $('aggiungi-commessa').value.trim().replace(/^P/i, '');
+  if (articolo || cifre) { commesseNuove[p] = { articolo, commessa: cifre ? 'P' + cifre : '' }; salva(CHIAVE_COMMESSE, commesseNuove); }
   $('aggiungi-blocco').hidden = true; $('aggiungi-apri').setAttribute('aria-expanded', 'false'); $('avviso-aggiungi').textContent = '';
   $('aggiungi-num').blur();
   disegnaElencoPresse();
   $('msg').textContent = 'Pressa ' + p + ' aggiunta all\'elenco.';
 };
+// la pressa sfuma e l'elenco si richiude piano; poi esce davvero dall'elenco
 function togliPressa(p) {
+  const v = document.querySelector('.voce[data-p="' + p + '"]');
+  if (v && !v.classList.contains('via') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    v.style.height = v.offsetHeight + 'px';
+    v.offsetHeight;                                // fissa l'altezza di partenza prima di farla scendere a zero
+    v.classList.add('via');
+    setTimeout(() => togliDavvero(p), 520);
+    return;
+  }
+  togliDavvero(p);
+}
+function togliDavvero(p) {
+  if (commesseNuove[p]) { delete commesseNuove[p]; salva(CHIAVE_COMMESSE, commesseNuove); }
   PRESSE = PRESSE.filter(x => x !== p); salvaPresse();
   if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
   disegnaRiepilogo();
@@ -1065,8 +1094,9 @@ const botRip = () => document.querySelectorAll('#ripartenza [data-rip]');
 function preparaCampi(p) {
   const u = ultimaLettura(p);
   const stessa = u && !eFine(u);                   // dopo "Fine commessa" articolo e commessa ripartono vuoti
-  $('articolo').value = stessa && u.articolo || '';
-  $('commessa').value = (stessa && u.commessa || '').replace(/^P/i, '');   // nella casella solo le cifre: la P è già stampata
+  const nuova = commesseNuove[p];                  // scritti con "Aggiungi pressa": hanno la precedenza
+  $('articolo').value = nuova ? nuova.articolo : stessa && u.articolo || '';
+  $('commessa').value = ((nuova ? nuova.commessa : stessa && u.commessa) || '').replace(/^P/i, '');   // nella casella solo le cifre: la P è già stampata
   // già noti: le caselle spariscono per non affollare la tendina, ma i valori si salvano lo stesso con la lettura
   mostraCampi(!($('articolo').value && $('commessa').value));   // se mancano si aprono da sole, altrimenti il pulsante le mostra
   ripScelta = null; $('rip-ora').value = '';
@@ -1260,6 +1290,7 @@ function registra() {
     if (motivo === 'altro' && notaAltro) lettura.nota = notaAltro;
   }
   letture.push(lettura);
+  if (commesseNuove[p]) { delete commesseNuove[p]; salva(CHIAVE_COMMESSE, commesseNuove); }   // ora articolo e commessa stanno nella lettura
   salva(CHIAVE, letture);
   aggiornaFerme();
   chiudi();                                  // la tendina si chiude e la pressa risulta letta
