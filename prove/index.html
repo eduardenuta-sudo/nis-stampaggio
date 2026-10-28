@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028182351">
+<meta name="versione" content="20261028184434">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -299,8 +299,6 @@ if (/prove/.test(location.pathname)) {
   .pressa-btn .st.letta { color: var(--giallo); font: 700 1.5rem/1 var(--font-titoli); letter-spacing: .05em; }
   /* Produzione: una scheda per pressa, con il disegno della pressa (corpo giallo la 68 e la 69, blu le altre; torre di luci e stampo secondo lo stato) */
   .pressa-prod { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
-  .pressa-prod .num-prod { font: 700 1.6rem/1 var(--font-titoli); letter-spacing: .06em; text-transform: uppercase; }
-  .pressa-prod .stato-prod { color: var(--muted); font-weight: 600; }
   .dis-pressa { width: 100%; height: 96px; --scuro:#0f2147; --acciaio:#8fa0c4; --metallo:#d6deee; --o-rosso:.18; --o-blu:.18; --o-verde:1; overflow: visible; }
   .dis-pressa.pr-gialla { --corpo:#c8d92f; } .dis-pressa.pr-blu { --corpo:#2f8fe0; }
   .dis-pressa.pr-ferma { --p3-nome:none; --p3-nome-ram:none; }
@@ -1263,13 +1261,12 @@ function quandoBreve(d) {
 }
 // disegno della pressa: gialla la 68 e la 69, blu le altre. In funzione: luce verde e stampo che si muove (ritmo diverso per ogni pressa).
 // Ferma: manutenzione = luce rossa, mancanza materiale = verde lampeggiante, altro motivo = luci spente; stampo fermo
+// PROVA DEL DISEGNO: sei presse di esempio, solo disegni, in stati diversi (non sono quelle vere). Si disegnano una volta sola, così il movimento non riparte.
 function disegnaProduzione() {
-  const ferma = p => ferme.includes(p);
-  $('presse-produzione').innerHTML = [...PRESSE].sort((a, b) => a - b).map(p => {
-    const u = ultimaLettura(p), ft = fermiNelTurno(p);
-    const testo = ferma(p) ? testoEvento(u, { totale: ft.min }) : 'In funzione' + (ft.min >= 1 ? ' · fermo nel turno ' + testoDurata(ft.min) : '');
-    return '<div class="card pressa-prod">' + disegnoPressa(p, ferma(p), u) + '<div class="num-prod">Pressa ' + p + '</div><div class="stato-prod">' + esc(testo) + '</div></div>';
-  }).join('');
+  const box = $('presse-produzione');
+  if (box.childElementCount) return;
+  const esempi = [[68, false], [40, false], [55, true, 'manutenzione'], [69, false], [67, true, 'mancanza_materiale'], [33, true, 'altro']];
+  box.innerHTML = esempi.map(([p, ferma, motivo]) => '<div class="card pressa-prod">' + disegnoPressa(p, ferma, { motivo }) + '</div>').join('');
 }
 function disegnoPressa(p, ferma, u) {
   const motivo = ferma && u ? u.motivo : null;
