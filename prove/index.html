@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261028155616">
+<meta name="versione" content="20261028160517">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -215,7 +215,7 @@ if (/prove/.test(location.pathname)) {
   input.testo::placeholder { color: #7f94b8; }
   input.testo:focus-visible { outline: 3px solid var(--giallo); outline-offset: 2px; }
   .avviso { min-height: 1.3em; margin-top: 18px; color: var(--warn); font-weight: 600; }
-  .titolo-p { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
+  .titolo-p { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; flex: 1 1 0; }
   .sub { font: 600 .85rem/1.2 var(--font); letter-spacing: .02em; text-transform: none; color: var(--muted); overflow-wrap: anywhere; }
   .voce.aperta .pressa-btn .sub { color: rgba(16,19,10,.8); }
   .ev { display: block; margin-top: 6px; font: 600 .8rem/1.2 var(--font); letter-spacing: 0; color: var(--muted); overflow-wrap: anywhere; }
@@ -298,7 +298,7 @@ if (/prove/.test(location.pathname)) {
   .pressa-btn .st { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .pressa-btn .st.letta { color: var(--giallo); font: 700 1.5rem/1 var(--font-titoli); letter-spacing: .05em; }
   .pressa-btn:has(.ultima) { gap: 10px; padding-inline: 18px; }
-  .pressa-btn .ultima { min-width: 0; overflow: hidden; text-overflow: ellipsis; margin-left: auto; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
+  .pressa-btn .ultima { flex: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; margin-left: auto; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
     font: 600 .8rem/1.1 var(--font); letter-spacing: 0; text-transform: none; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pressa-btn .ultima .da { font-size: .78rem; opacity: .8; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pressa-btn .ultima b { font: 700 1.25rem/1 var(--font-titoli); letter-spacing: .05em; color: #fff; }
@@ -1067,6 +1067,17 @@ const eFerma = l => eFermo(l) && !l.ripartita_alle;
 const eFine = l => !!l && (l.fine_commessa === true || l.evento === 'fine_commessa');
 function aggiornaFerme() { ferme = PRESSE.filter(p => eFerma(ultimaLettura(p))); }
 aggiornaFerme();
+// fermi già chiusi (con ripartenza) della pressa nel turno in corso: quanti e quanti minuti in tutto
+function fermiNelTurno(p) {
+  const t = turnoDi(new Date());
+  let n = 0, min = 0;
+  letture.forEach(l => {
+    if (l.pressa !== p || !eFermo(l) || !l.ripartita_alle) return;
+    const a = Math.max(new Date(l.ora), t.inizio), b = Math.min(new Date(l.ripartita_alle), t.fine);
+    if (b > a) { n++; min += (b - a) / 60000; }
+  });
+  return { n, min: Math.round(min) };
+}
 // minuti → "1 ora e 20 minuti", "2 ore", "45 minuti"
 function testoDurata(min) {
   const h = Math.floor(min / 60), m = min % 60;
@@ -1228,7 +1239,8 @@ function disegnaElencoPresse() {
     let prec = ultimaReale(p);
     if (l) { prec = null; for (let i = letture.indexOf(l) - 1; i >= 0; i--) if (letture[i].pressa === p && !eSolo(letture[i])) { prec = letture[i]; break; } }
     const ultima = !f && prec ? '<span class="ultima"><b>' + prec.cicli + '</b><span>' + quandoBreve(new Date(prec.ora)) + '</span>' + (prec.nome ? '<span class="da">' + esc(prec.nome) + '</span>' : '') + '</span>' : '';
-    const ev = testoEvento(f || (!l && eFermo(u)) ? u : l);   // anche "Ripartita alle…" finché non si legge
+    const ft = fermiNelTurno(p);
+    const ev = [testoEvento(f || (!l && eFermo(u)) ? u : l), ft.n > 1 && ft.min >= 1 ? 'Fermo in tutto ' + testoDurata(ft.min) + ' (' + ft.n + ' volte)' : ''].filter(Boolean).join(' · ');   // anche "Ripartita alle…" finché non si legge
     return '<div class="voce' + (aperta ? ' aperta' : '') + (f ? ' ferma-p' : '') + '" data-p="' + p + '"><div class="testa-p">' +
       '<button class="togli-sw" data-togli="' + p + '" tabindex="-1">Togli</button><div class="scorre">' +
       '<button class="pressa-btn" data-p="' + p + '" aria-expanded="' + aperta + '"><span class="titolo-p"><span class="num">Pressa ' + p + '</span>' +
