@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029111139">
+<meta name="versione" content="20261029111531">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1614,7 +1614,7 @@ function apri(p) {
   azzera();
   preparaCampi(p);
   disegnaElencoPresse();
-  document.querySelector('.voce.aperta').scrollIntoView({ block: 'start' });   // di colpo: su iPhone lo scorrimento morbido si ferma quando sale la tastiera
+  document.querySelector('.voce.aperta').scrollIntoView({ behavior: 'smooth', block: 'start' });
   $('cicli-input').focus({ preventScroll: true });   // il tastierino numerico si apre subito
   const u = ultimaLettura(p);
   if (eFine(u) && !u.partenza_commessa) chiediRipresa(p);   // dopo "Fine commessa": commessa nuova o la stessa di prima
@@ -1733,11 +1733,13 @@ function cicliInVista() {
   const voce = document.querySelector('.voce.aperta');
   const cima = voce ? voce.getBoundingClientRect().top - vv.offsetTop - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--alto-striscia')) || 0) - 8 : basta;
   const giu = Math.max(basta, cima);
-  if (Math.abs(giu) > 2) window.scrollTo(0, window.scrollY + giu);
+  if (Math.abs(giu) > 2) window.scrollTo({ top: window.scrollY + giu, behavior: 'smooth' });
 }
-if (window.visualViewport) visualViewport.addEventListener('resize', () => setTimeout(cicliInVista, 60));
-// mentre la tastiera sale iPhone sposta la pagina da solo: si rimette a posto più volte nel primo secondo
-$('cicli-input').addEventListener('focus', () => [150, 400, 800].forEach(t => setTimeout(cicliInVista, t)));
+// un solo aggiustamento, quando la tastiera ha finito di salire (niente salti su e giù mentre iPhone sposta la pagina)
+let attesaTastiera = null;
+const dopoTastiera = ms => { clearTimeout(attesaTastiera); attesaTastiera = setTimeout(cicliInVista, ms); };
+if (window.visualViewport) visualViewport.addEventListener('resize', () => dopoTastiera(250));
+$('cicli-input').addEventListener('focus', () => dopoTastiera(600));
 
 // opzioni da spuntare prima di salvare. Spuntando "Fermo macchina" si apre subito la finestra del motivo,
 // così al momento di salvare il motivo è già pronto.
