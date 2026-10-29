@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029104354">
+<meta name="versione" content="20261029104959">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -355,7 +355,7 @@ if (/prove/.test(location.pathname)) {
   #pannello-lettura .ore-riga { display: flex; align-items: center; gap: 12px; }
   #pannello-lettura .ore-riga label { flex: 1; margin-bottom: 0; }
   #pannello-lettura .ore-riga input.testo { flex: none; width: 96px; padding: 7px 10px; border-radius: 14px; text-align: center; }
-  #pannello-lettura #ore-conti { margin-top: 8px !important; }
+  .voce { scroll-margin-top: calc(var(--alto-striscia, 0px) + 8px); }   /* la pressa aperta si ferma sotto la striscia SVILUPPATORE */
   .msg { min-height: 1.3em; margin: -6px 0 18px; color: var(--giallo); font-weight: 600; }
   .titolo-sez { font: italic 700 1.5rem/1 var(--font-titoli); letter-spacing: .07em; text-transform: uppercase; color: #fff; margin: 0 0 18px; }
 
@@ -668,7 +668,6 @@ if (/prove/.test(location.pathname)) {
         <label for="ore-input">Ore lavorate</label>   <!-- calcolate dall'app, si possono cambiare -->
         <input class="testo" id="ore-input" inputmode="decimal" placeholder="es. 7:30">
       </div>
-      <p class="piccolo" id="ore-conti" style="margin:10px 0 0"></p>
     </div>
 
     <!-- Salva accanto al numero: il tastierino numerico di iPhone non ha Invio e coprirebbe un pulsante più in basso -->
@@ -678,6 +677,8 @@ if (/prove/.test(location.pathname)) {
         <input class="manuale" id="cicli-input" inputmode="numeric" pattern="[0-9]*" placeholder="es. 3630">
         <button id="salva" class="salva">Salva</button>
       </div>
+      <!-- informazioni in più, sotto i cicli: con la tastiera aperta possono restare coperte -->
+      <p class="piccolo" id="ore-conti" style="margin:14px 0 0"></p>
     </div>
 
     <div class="avviso" id="avviso-salva" role="alert"></div>
@@ -1700,7 +1701,9 @@ $('ore-input').oninput = () => { oreManuali = true; $('avviso-salva').textConten
 function cicliInVista() {
   const vv = window.visualViewport;
   if (!vv || document.activeElement !== $('cicli-input')) return;
-  const giu = $('cicli-input').closest('.riga-salva').getBoundingClientRect().bottom + 16 - (vv.offsetTop + vv.height);
+  let giu = $('cicli-input').closest('.riga-salva').getBoundingClientRect().bottom + 16 - (vv.offsetTop + vv.height);
+  const voce = document.querySelector('.voce.aperta');   // mai oltre la pressa: deve restare in vista
+  if (voce) giu = Math.min(giu, voce.getBoundingClientRect().top - vv.offsetTop - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--alto-striscia')) || 0) - 8);
   if (giu > 0) window.scrollBy({ top: giu, behavior: 'smooth' });
 }
 if (window.visualViewport) visualViewport.addEventListener('resize', () => setTimeout(cicliInVista, 60));
@@ -2276,6 +2279,9 @@ $('esporta').onclick = async () => {
   s.textContent = PROVA ? 'SVILUPPATORE · v' + document.querySelector('meta[name="versione"]').content.slice(8, 12) : 'BETA 4';   // ora e minuti della versione: si vede subito se il telefono è aggiornato
   document.querySelector('.pagina').prepend(s);
   if (PROVA) document.title = 'NIS Sviluppatore';
+  // la striscia arancio resta in cima: la pressa aperta deve fermarsi sotto
+  const alto = () => document.documentElement.style.setProperty('--alto-striscia', (PROVA ? s.offsetHeight : 0) + 'px');
+  alto(); addEventListener('resize', alto);
 }
 // il codice del reparto è di 4 cifre; nel database il reparto si chiama "nis-" + codice. La versione di prova usa un reparto a parte
 const normaCodice = c => c.replace(/\D/g, '');
