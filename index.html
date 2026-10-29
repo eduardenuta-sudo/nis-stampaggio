@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029103716">
+<meta name="versione" content="20261029103943">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -118,6 +118,7 @@ if (/prove/.test(location.pathname)) {
   .segmenti { display: flex; gap: 4px; margin-top: 14px; }
   .segmenti i { flex: 1; height: 7px; border-radius: 4px; background: rgba(16,19,10,.22); }
   .segmenti i.letta { background: #10130a; }
+  #esporta[hidden], #svuota[hidden] { display: none; }
   .menu:disabled { opacity: .45; pointer-events: none; }   /* Produzione nella Beta: ancora in sviluppo */
   .segnale { display: inline-block; margin-top: 12px; padding: 3px 11px 2px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,.75); color: #fff; font: 600 .8rem/1.2 var(--font); letter-spacing: .14em; text-transform: uppercase; }
   .turno { position: relative; align-self: center; background: rgba(6,22,54,.82); border-radius: 20px; padding: 7px 16px; display: flex; align-items: center; justify-content: center; gap: 10px; color: #c3d2ee; font-size: .9rem; padding-bottom: 6px; }
@@ -2063,6 +2064,7 @@ function disegnaStorico() {
   $('stato-esporta').textContent = '';
   const admin = !!(accesso && accesso.admin) && scrivibile();   // svuotare il database comune: solo il responsabile e nel suo turno
   $('svuota').hidden = !admin;
+  $('esporta').hidden = !(accesso && accesso.admin);           // esportare: solo il responsabile
   $('storico-nota').textContent = admin ? 'Tocca una lettura per correggerla.' : 'Tocca una tua lettura per correggerla.';
   // svuota una pressa sola: un pulsante con la × per ogni pressa che ha letture
   const conLetture = [...new Set(letture.map(l => l.pressa))].sort((a, b) => a - b);
@@ -2221,6 +2223,7 @@ $('svuota').onclick = () => {
   $('stato-esporta').textContent = 'Storico svuotato.';
 };
 $('esporta').onclick = async () => {
+  if (!accesso || !accesso.admin) return;
   const cella = v => /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
   const righe = [['Data', 'Ora', 'Pressa', 'Articolo', 'Commessa', 'Cicli totali', "Cicli dall'ultima lettura",
     "Durata dall'ultima lettura reale", "Durata dall'ultima lettura effettiva", 'Ore lavorate turno', 'Ore ferme turno', 'Ore a mano',
@@ -2249,7 +2252,7 @@ $('esporta').onclick = async () => {
 {
   const s = document.createElement('div');
   s.className = PROVA ? 'striscia-prova' : 'striscia-beta';
-  s.textContent = PROVA ? 'SVILUPPATORE · v' + document.querySelector('meta[name="versione"]').content.slice(8, 12) : 'BETA 3';   // ora e minuti della versione: si vede subito se il telefono è aggiornato
+  s.textContent = PROVA ? 'SVILUPPATORE · v' + document.querySelector('meta[name="versione"]').content.slice(8, 12) : 'BETA 4';   // ora e minuti della versione: si vede subito se il telefono è aggiornato
   document.querySelector('.pagina').prepend(s);
   if (PROVA) document.title = 'NIS Sviluppatore';
 }

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029103716">
+<meta name="versione" content="20261029103943">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -2252,7 +2252,7 @@ $('esporta').onclick = async () => {
 {
   const s = document.createElement('div');
   s.className = PROVA ? 'striscia-prova' : 'striscia-beta';
-  s.textContent = PROVA ? 'SVILUPPATORE · v' + document.querySelector('meta[name="versione"]').content.slice(8, 12) : 'BETA 3';   // ora e minuti della versione: si vede subito se il telefono è aggiornato
+  s.textContent = PROVA ? 'SVILUPPATORE · v' + document.querySelector('meta[name="versione"]').content.slice(8, 12) : 'BETA 4';   // ora e minuti della versione: si vede subito se il telefono è aggiornato
   document.querySelector('.pagina').prepend(s);
   if (PROVA) document.title = 'NIS Sviluppatore';
 }
