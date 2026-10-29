@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029094958">
+<meta name="versione" content="20261029100502">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1122,7 +1122,7 @@ aggiornaFerme();
 function minutiFermoNelTurno(p) {
   const adesso = new Date(), pr = produzioneDi(adesso);
   if (!pr) return 0;
-  return Math.round(oreFerme(fermiDi(p, adesso).filter(f => !f[2]), pr.inizio, adesso) * 60);
+  return Math.round(contaOre(fermiDi(p, adesso), pr.inizio, adesso).ferme * 60);
 }
 // minuti → "1 ora e 20 minuti", "2 ore", "45 minuti"
 function testoDurata(min) {
@@ -1915,10 +1915,11 @@ function oreProduzione(a, b) {
   }
   return ore;
 }
-// Fermi della pressa: [inizio, fine, cambio]. Un fermo va dalla lettura (o "Ferma la pressa") alla ripartenza; se è ancora aperto
+// Fermi della pressa: [inizio, fine, escluso]. Un fermo va dalla lettura (o "Ferma la pressa") alla ripartenza; se è ancora aperto
 // arriva fino a finoA, così chi legge a fine turno con la pressa ferma ha il fermo fino alla fine del turno e il collega dopo
-// lo ritrova dall'inizio del suo, fino a quando riparte. cambio = true: tra una Fine commessa e la partenza della commessa nuova
-// (conta nel turno, non nel contatore di nessuna commessa). chiudi: ripartenza scelta nella lettura che si sta scrivendo.
+// lo ritrova dall'inizio del suo, fino a quando riparte. escluso = true: tra una Fine commessa e la partenza della commessa nuova,
+// o la ripresa della stessa. Sono tempi di rendimento della pressa, non di produzione: non contano né come lavorate né come ferme.
+// chiudi: ripartenza scelta nella lettura che si sta scrivendo.
 function fermiDi(pressa, finoA, chiudi) {
   const lp = letture.filter(l => l.pressa === pressa), fermi = [];
   lp.forEach((l, k) => {
@@ -1934,7 +1935,7 @@ function fermiDi(pressa, finoA, chiudi) {
       : eFermo(dopo) ? new Date(dopo.ora)                                     // ancora ferma alla lettura dopo
       : turnoDi(new Date(dopo.ora)).inizio;                                   // ripartita in un turno precedente (o non detto)
     if (fine < inizio) fine = inizio;
-    fermi.push([inizio, fine, false]);
+    fermi.push([inizio, fine, !!l.ripresa_stessa]);
   });
   return fermi;
 }
@@ -1957,9 +1958,14 @@ function oreFerme(fermi, a, b) {
   });
   return cf ? ore + oreProduzione(ci, cf) : ore;
 }
+// ore lavorate e ferme tra a e b: si tolgono i tempi esclusi, poi i fermi (le parti di fermo dentro un tempo escluso non contano)
+function contaOre(fermi, a, b) {
+  const tutti = oreFerme(fermi, a, b), esclusi = oreFerme(fermi.filter(f => f[2]), a, b);
+  return { lavorate: Math.max(0, oreProduzione(a, b) - tutti), ferme: tutti - esclusi };
+}
 // fin dove arriva il conto di una lettura: nell'ultima mezz'ora della produzione, fino alla fine del turno
 function fineConto(d) { const pr = produzioneDi(d); return pr && eFineTurno(d) ? pr.fine : d; }
-// Turno: ore lavorate e ore ferme sulle ore di produzione del turno (8, o 7 il venerdì notte e il lunedì mattina); si azzera a ogni turno.
+// Turno: ore lavorate e ore ferme sulle ore di produzione del turno (8, o 7 il venerdì notte e il lunedì mattina), tolti i tempi esclusi; si azzera a ogni turno.
 // Dopo una Fine commessa nello stesso turno si conta da lì: il tratto prima è nella lettura della Fine commessa.
 function oreTurno(p, d, prima, chiudi) {
   const pr = produzioneDi(d);
@@ -1967,8 +1973,7 @@ function oreTurno(p, d, prima, chiudi) {
   const b = fineConto(d);
   let a = pr.inizio;
   if (eFine(prima) && new Date(prima.ora) > a) a = new Date(prima.ora);
-  const tot = oreProduzione(a, b), ferme = Math.min(tot, oreFerme(fermiDi(p, b, chiudi), a, b));
-  return { lavorate: tot - ferme, ferme };
+  return contaOre(fermiDi(p, b, chiudi), a, b);
 }
 // Commessa: parte dalla ripartenza dopo l'ultima Fine commessa (i = posizione della lettura, letture.length per quella in corso);
 // senza Fine commessa nei dati, dall'inizio del turno della prima lettura. Si azzera solo con la Fine commessa.
@@ -1986,8 +1991,7 @@ function inizioCommessa(p, i, d) {
 function oreCommessa(p, i, d, chiudi) {
   const a = inizioCommessa(p, i, d), b = fineConto(d);
   if (b <= a) return { lavorate: 0, ferme: 0 };
-  const tot = oreProduzione(a, b), ferme = Math.min(tot, oreFerme(fermiDi(p, b, chiudi).filter(f => !f[2]), a, b));
-  return { lavorate: tot - ferme, ferme };
+  return contaOre(fermiDi(p, b, chiudi), a, b);
 }
 // durata reale (fermi compresi) ed effettiva (fermi tolti) tra due istanti, in ore di produzione
 function durate(pressa, a, b) {
