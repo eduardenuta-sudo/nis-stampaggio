@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029175317">
-<meta name="aggiornamento" content="77">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029181046">
+<meta name="aggiornamento" content="78">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -318,7 +318,13 @@ if (/prove/.test(location.pathname)) {
   .pressa-prod .comm { font-size: .85rem; color: var(--muted); letter-spacing: .04em; }
   .pressa-prod .corpo-prod { position: relative; }
   .pressa-prod .dis-pressa { width: 76%; margin: 0 auto; display: block; position: relative; top: -14px; }
-  .pressa-prod .strisce-prod { height: 36px; }   /* spazio sotto la pressa per le due strisce */
+  .pressa-prod .strisce-prod { height: 36px; }
+  .pressa-prod .apri-dati { all: unset; position: absolute; inset: 0; z-index: 2; border-radius: 26px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .pressa-prod .apri-dati:focus-visible { outline: 3px solid var(--giallo); outline-offset: 2px; }
+  #dati-righe .riga-d { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  #dati-righe .riga-d:last-child { border-bottom: 0; }
+  #dati-righe .riga-d span { color: var(--muted); }
+  #dati-righe .riga-d b { text-align: right; }   /* spazio sotto la pressa per le due strisce */
   .pressa-prod .num-angolo { position: absolute; top: 50%; transform: translateY(-50%); left: 2px; z-index: 1; font: 700 1.7rem/1 var(--font-titoli); letter-spacing: .06em; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
   .dis-pressa { width: calc(100% + 28px); max-width: none; height: auto; aspect-ratio: 320 / 125; margin: -6px -14px -4px; --scuro:#0f2147; --acciaio:#8fa0c4; --metallo:#d6deee; --o-rosso:.18; --o-blu:.18; --o-verde:1; overflow: visible; }
   .dis-pressa.pr-gialla { --corpo:#c8d92f; } .dis-pressa.pr-blu { --corpo:#2f8fe0; }
@@ -583,6 +589,42 @@ if (/prove/.test(location.pathname)) {
   <div class="card">
     <label>In arrivo</label>
     <p style="margin:0">Qui metteremo le commesse: apertura e chiusura con ora e lettura del contatore, e la stima di quando finiscono.</p>
+  </div>
+</main>
+
+<!-- DATI COMMESSA: si apre toccando una pressa in Produzione -->
+<main id="vista-dati" hidden>
+  <div class="card">
+    <h2 class="titolo-sez" id="dati-titolo" style="margin-bottom:14px">Pressa</h2>
+    <div class="blocco riga">
+      <div class="campo"><label for="d-articolo">Articolo</label><input class="testo" id="d-articolo" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div>
+      <div class="campo"><label for="d-commessa">Commessa</label>
+        <div class="prefisso"><span aria-hidden="true">P</span><input class="testo" id="d-commessa" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div></div>
+    </div>
+    <p class="piccolo" id="dati-nota" style="margin:12px 0 0" hidden></p>
+  </div>
+  <div class="card">
+    <h2 class="titolo-sez" style="margin-bottom:14px">Dati della commessa</h2>
+    <div class="campo" style="margin-bottom:14px"><label for="d-quantita">Pezzi da produrre</label><input class="testo" id="d-quantita" inputmode="numeric" pattern="[0-9]*" maxlength="9" autocomplete="off"></div>
+    <div class="blocco riga">
+      <div class="campo"><label for="d-vani">Vani</label><input class="testo" id="d-vani" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off"></div>
+      <div class="campo"><label for="d-ciclo">Ciclo (s)</label><input class="testo" id="d-ciclo" inputmode="decimal" maxlength="6" autocomplete="off"></div>
+      <div class="campo"><label for="d-stampata">Stampata (g)</label><input class="testo" id="d-stampata" inputmode="decimal" maxlength="7" autocomplete="off"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2 class="titolo-sez" style="margin-bottom:14px">Mescola a bordo pressa</h2>
+    <div class="blocco riga">
+      <div class="campo"><label for="d-mescola">Codice mescola</label><input class="testo" id="d-mescola" maxlength="40" autocomplete="off"></div>
+      <div class="campo"><label for="d-kg">Kg a bordo adesso</label><input class="testo" id="d-kg" inputmode="decimal" maxlength="7" autocomplete="off"></div>
+    </div>
+    <p class="piccolo" style="margin:12px 0 0">Quando arriva un cassone nuovo, riscrivi i kg che hai a bordo: da lì l'app riparte a contare.</p>
+  </div>
+  <button id="dati-salva" class="salva" style="width:100%">Salva i dati</button>
+  <div class="avviso" id="avviso-dati" role="alert"></div>
+  <div class="card" id="dati-ricava" style="margin-top:18px">
+    <label>Quello che ne ricava l'app, da solo</label>
+    <div id="dati-righe"></div>
   </div>
 </main>
 
@@ -1275,13 +1317,15 @@ function ultimePerPressa(chiave) {
 }
 
 // ---------------- Pagine ----------------
-const VISTE = ['home', 'produzione', 'leggi', 'storico', 'entra'];
-const TITOLI = { produzione: 'Produzione', leggi: 'Lettura cicli', storico: 'Storico cicli' };
+const VISTE = ['home', 'produzione', 'dati', 'leggi', 'storico', 'entra'];
+const TITOLI = { produzione: 'Produzione', dati: 'Dati commessa', leggi: 'Lettura cicli', storico: 'Storico cicli' };
+let pressaDati = null;                              // la pressa di cui si vedono i dati commessa
 // pulsante a due righe: sopra in grande Avanti/Indietro, sotto in piccolo dove porta
 const duePassi = (grande, piccolo) => '<span class="n-grande">' + grande + '</span><span class="n-piccolo">' + piccolo + '</span>';
 function vai(nome) {
   if (nome === 'riepilogo') nome = 'leggi';
-  if (!VISTE.includes(nome) || (nome === 'produzione' && !PROVA)) nome = 'home';   // Produzione solo nella versione sviluppatore
+  if (!VISTE.includes(nome) || ((nome === 'produzione' || nome === 'dati') && !PROVA)) nome = 'home';   // Produzione solo nella versione sviluppatore
+  if (nome === 'dati' && (pressaDati == null || !PRESSE.includes(pressaDati))) nome = 'produzione';
   if (!accesso || accesso.attesa) nome = 'entra';  // senza codice reparto (o in attesa di conferma) si resta alla schermata di accesso
   else if (nome === 'entra') nome = 'home';
   VISTE.forEach(v => { $('vista-' + v).hidden = v !== nome; });
@@ -1290,13 +1334,14 @@ function vai(nome) {
   document.body.classList.toggle('home', nome === 'home');
   
   if (nome !== 'home') $('titolo').textContent = TITOLI[nome];
-  $('indietro').innerHTML = nome === 'storico' ? '&larr; Letture' : nome === 'leggi' || nome === 'produzione' ? duePassi('Indietro', 'Home') : '&larr; Home';   // dallo storico si torna alla lettura cicli
+  $('indietro').innerHTML = nome === 'storico' ? '&larr; Letture' : nome === 'dati' ? duePassi('Indietro', 'Produzione') : nome === 'leggi' || nome === 'produzione' ? duePassi('Indietro', 'Home') : '&larr; Home';   // dallo storico si torna alla lettura cicli
   if (nome === 'home') disegnaHome();
   if (nome === 'leggi') $('elenco-presse').after(document.querySelector('.aggiungi'));         // un solo "Aggiungi pressa", comune alle due pagine
   if (nome === 'produzione') $('presse-produzione').after(document.querySelector('.aggiungi'));
   if (nome === 'leggi') { pressaAperta = null; $('msg').textContent = ''; disegnaElencoPresse(); disegnaRiepilogo(); azzera(); }
   if (nome === 'storico') disegnaStorico();
   if (nome === 'produzione') disegnaProduzione();
+  if (nome === 'dati') apriDati();
   const altra = PROVA ? { leggi: ['Produzione', 'produzione'], produzione: ['Lettura cicli', 'leggi'] }[nome] : null;
   $('testata').classList.toggle('con-nav', !!altra); $('vai-altra').hidden = !altra;
   if (altra) { $('vai-altra').innerHTML = duePassi('Avanti', altra[0]); $('vai-altra').dataset.vai = altra[1]; }
@@ -1305,7 +1350,7 @@ function vai(nome) {
   window.scrollTo(0, 0);
 }
 $('vai-altra').onclick = () => vai($('vai-altra').dataset.vai);
-$('indietro').onclick = () => vai(location.hash === '#storico' ? 'leggi' : 'home');
+$('indietro').onclick = () => vai(location.hash === '#storico' ? 'leggi' : location.hash === '#dati' ? 'produzione' : 'home');
 // il pulsante scende e solo dopo si cambia pagina, così l'animazione si vede
 function premi(id, pagina) {
   $(id).onclick = () => {
@@ -1370,7 +1415,8 @@ function disegnaProduzione() {
     const ferma = ferme.includes(p), u = ultimaLettura(p), motivo = ferma && u ? u.motivo : null;
     if (!c) {
       box.insertAdjacentHTML('beforeend', '<div class="card pressa-prod" data-p="' + p + '"><div class="testa-prod"></div>' +
-        '<div class="corpo-prod"><span class="num-angolo">' + p + '</span>' + disegnoPressa(p, ferma, { motivo }) + '</div><div class="strisce-prod"></div></div>');
+        '<div class="corpo-prod"><span class="num-angolo">' + p + '</span>' + disegnoPressa(p, ferma, { motivo }) + '</div><div class="strisce-prod"></div>' +
+        '<button type="button" class="apri-dati" data-p="' + p + '" aria-label="Dati della pressa ' + p + '"></button></div>');
       c = box.querySelector('.pressa-prod[data-p="' + p + '"]');
     }
     const att = avvioInAttesa(p);
@@ -1379,6 +1425,7 @@ function disegnaProduzione() {
     const art = nuova ? nuova.articolo : stessa && ur.articolo, com = nuova ? nuova.commessa : stessa && ur.commessa;
     c.querySelector('.testa-prod').innerHTML = '<span class="art">' + esc(art || '—') + '</span>' + (com ? '<span class="comm">' + esc(com) + '</span>' : '') + (att ? '<span class="att">attesa ok qualità</span>' : '');
   });
+  box.querySelectorAll('.apri-dati').forEach(b => { b.onclick = () => { pressaDati = Number(b.dataset.p); vai('dati'); }; });
   const ordine = () => [...box.children].map(c => Number(c.dataset.p));
   if (JSON.stringify(ordine()) !== JSON.stringify(PRESSE)) PRESSE.forEach(p => box.appendChild(box.querySelector('.pressa-prod[data-p="' + p + '"]')));   // l'elenco è in ordine di numero
 }
@@ -1387,6 +1434,129 @@ function disegnoPressa(p, ferma, u) {
   const dur = (2.4 + (p * 7 % 10) / 10 * 1.4).toFixed(1), rit = (-(p * 13 % 30) / 10).toFixed(1);
   return '<svg class="' + classiPressa(p, ferma, motivo) + '" viewBox="0 -13 320 125" preserveAspectRatio="xMinYMid meet" style="--dur:' + dur + 's;--rit:' + rit + 's" aria-hidden="true"><use href="#pressa"/></svg>';
 }
+// ---------------- Dati commessa ----------------
+// Si apre toccando la pressa in Produzione. Articolo e commessa sono gli stessi della Lettura cicli; i dati (pezzi, vani, ciclo, stampata)
+// valgono per la commessa a cui sono stati scritti: se la commessa cambia, vanno riscritti. La mescola a bordo è della pressa.
+function commessaCorrente(p) {
+  const u = ultimaReale(p), nuova = commessaNuova(p), stessa = u && !eFine(u);   // come nella tendina di lettura
+  return { articolo: (nuova ? nuova.articolo : stessa && u.articolo) || '', commessa: (nuova ? nuova.commessa : stessa && u.commessa) || '' };
+}
+function datiPressa(p) {
+  const i = infoPresse[p];
+  return i && i.datiPer && i.datiPer === commessaCorrente(p).commessa && i.quantita > 0 && i.vani > 0 ? i : null;
+}
+// cicli fatti dalla commessa (il contatore riparte da zero a ogni commessa)
+function cicliCommessa(p) {
+  const u = ultimaReale(p);
+  return u && !eFine(u) && new Date(u.ora) >= inizioCommessa(p, letture.length, new Date()) ? u.cicli : 0;
+}
+// cicli segnati dalla commessa all'istante dato (ultima lettura fino a lì)
+function cicliA(p, quando) {
+  const inizio = inizioCommessa(p, letture.length, new Date());
+  let c = 0;
+  letture.forEach(l => { if (l.pressa === p && !eSolo(l) && !eFine(l) && new Date(l.ora) <= quando && new Date(l.ora) >= inizio) c = l.cicli; });
+  return c;
+}
+// ritmo in cicli all'ora: dal tempo ciclo del foglio; dopo un tratto di almeno un turno intero senza fermi né tempi esclusi, dai cicli veri (l'ultimo tratto così)
+function ritmoCommessa(p, ciclo) {
+  const teorico = ciclo > 0 ? 3600 / ciclo : null, inizio = inizioCommessa(p, letture.length, new Date());
+  const lp = letture.filter(l => l.pressa === p && !eSolo(l));
+  let veri = null;
+  for (let k = 1; k < lp.length; k++) {
+    const a = lp[k - 1], b = lp[k], da = new Date(a.ora), fino = new Date(b.ora);
+    if (da < inizio || eFine(a) || b.cicli <= a.cicli || b.contatore_ripartito) continue;
+    const pr = produzioneDi(fino);
+    if (!pr || !eFineTurno(fino)) continue;                       // la lettura chiude un turno
+    const pieno = (pr.fine - pr.inizio) / ORA, h = oreProduzione(da, fino);
+    if (h < pieno - 0.6 || oreFerme(fermiDi(p, fino), da, fino) >= 1 / 60) continue;   // turno intero, senza fermi
+    veri = (b.cicli - a.cicli) / h;
+  }
+  return { cicliOra: veri || teorico, veri: !!veri };
+}
+// quando finiscono `cicli` cicli al ritmo dato: si contano solo le ore di produzione (niente sabato e domenica)
+function fineStimata(cicli, cicliOra, da) {
+  if (!(cicliOra > 0)) return null;
+  let ore = cicli / cicliOra, t = new Date(da);
+  for (let i = 0; i < 600; i++) {
+    const pr = produzioneDi(t);
+    if (!pr) { t = turnoDi(t).fine; continue; }
+    const inizio = t > pr.inizio ? t : pr.inizio, disp = Math.max(0, (pr.fine - inizio) / ORA);
+    if (disp >= ore) return new Date(inizio.getTime() + ore * ORA);
+    ore -= disp; t = turnoDi(inizio).fine;
+  }
+  return null;
+}
+function testoFine(d) {
+  if (!d) return '—';
+  const oggi = new Date().toDateString() === d.toDateString();
+  return (oggi ? 'oggi' : d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'numeric' })) + ', ~' + oraIt(d);
+}
+const nIt = (x, dec = 0) => Number(x).toLocaleString('it-IT', { maximumFractionDigits: dec }).replace(/^(-?\d+)/, m => m.replace(/\B(?=(\d{3})+(?!\d))/g, '.'));   // anche le migliaia a 4 cifre: 2.200
+function disegnaDatiRighe() {
+  const p = pressaDati, d = datiPressa(p), i = infoPresse[p] || {}, righe = [], adesso = new Date();
+  let ritmo = null, cicliMancano = null;
+  if (!d) righe.push(['', 'Scrivi pezzi da produrre e vani (con articolo e commessa) per vedere i conti.']);
+  else {
+    const cicli = cicliCommessa(p), pezzi = cicli * d.vani;
+    cicliMancano = Math.max(0, Math.ceil((d.quantita - pezzi) / d.vani));
+    ritmo = ritmoCommessa(p, d.ciclo);
+    righe.push(['Cicli della commessa', nIt(cicli)], ['Pezzi stampati', nIt(pezzi) + ' su ' + nIt(d.quantita) + ' (' + nIt(Math.min(100, pezzi / d.quantita * 100)) + '%)'], ['Cicli che mancano', nIt(cicliMancano)]);
+    righe.push(['Ritmo usato', ritmo.cicliOra ? nIt(ritmo.cicliOra, 1) + ' cicli/h · ' + (ritmo.veri ? "ultimo turno intero" : 'tempo ciclo ' + nIt(d.ciclo, 1) + ' s') : '—']);
+    righe.push(['Fine commessa', cicliMancano ? testoFine(fineStimata(cicliMancano, ritmo.cicliOra, adesso)) : 'finita']);
+    if (d.stampata) righe.push(['Mescola ancora necessaria', '~' + nIt(cicliMancano * d.stampata / 1000, 1) + ' kg']);
+  }
+  if (i.kg != null && i.kgOra && d && d.stampata) {
+    const usati = Math.max(0, cicliCommessa(p) - cicliA(p, new Date(i.kgOra))) * d.stampata / 1000, rim = Math.max(0, i.kg - usati);
+    righe.push(['Mescola a bordo adesso', '~' + nIt(rim, 1) + ' kg' + (i.mescola ? ' (' + esc(i.mescola) + ')' : '')]);
+    righe.push(['La mescola finisce', ritmo && ritmo.cicliOra ? testoFine(fineStimata(rim * 1000 / d.stampata, ritmo.cicliOra, adesso)) : '—']);
+  }
+  $('dati-righe').innerHTML = righe.map(([a, b]) => '<div class="riga-d">' + (a ? '<span>' + a + '</span><b>' + b + '</b>' : '<span>' + b + '</span>') + '</div>').join('');
+}
+function apriDati() {
+  const p = pressaDati, c = commessaCorrente(p), i = infoPresse[p] || {}, d = datiPressa(p);
+  $('dati-titolo').textContent = 'Pressa ' + p + (avvioInAttesa(p) ? ' · attesa ok qualità' : '');
+  $('d-articolo').value = c.articolo; $('d-commessa').value = c.commessa.replace(/^P/i, '');
+  $('d-quantita').value = d ? d.quantita : ''; $('d-vani').value = d ? d.vani : ''; $('d-ciclo').value = d && d.ciclo ? d.ciclo : ''; $('d-stampata').value = d && d.stampata ? d.stampata : '';
+  $('d-mescola').value = i.mescola || ''; $('d-kg').value = i.kg == null ? '' : i.kg;
+  const vecchi = i.datiPer && !d;
+  $('dati-nota').hidden = !vecchi;
+  if (vecchi) $('dati-nota').textContent = 'I dati di prima erano della commessa ' + i.datiPer + ': scrivi quelli della commessa nuova.';
+  $('avviso-dati').textContent = '';
+  disegnaDatiRighe();
+}
+// numero scritto in una casella: vuoto = null; sbagliato = si ferma con un messaggio
+function numeroDa(id, nome, min, max, intero) {
+  const t = $(id).value.trim().replace(',', '.');
+  if (!t) return null;
+  const n = Number(t);
+  if (!isFinite(n) || n < min || n > max || (intero && !Number.isInteger(n))) { $('avviso-dati').textContent = nome + ': scrivi un numero' + (intero ? ' intero' : '') + ' tra ' + min + ' e ' + max + '.'; $(id).focus(); throw new Error('numero'); }
+  return n;
+}
+$('dati-salva').onclick = () => {
+  const p = pressaDati;
+  if (p == null || !inTurno()) return;
+  let q, v, c, g, kg;
+  try {
+    q = numeroDa('d-quantita', 'Pezzi da produrre', 1, 9999999, true); v = numeroDa('d-vani', 'Vani', 1, 99, true);
+    c = numeroDa('d-ciclo', 'Ciclo', 1, 9999, false); g = numeroDa('d-stampata', 'Stampata', 0.1, 99999, false); kg = numeroDa('d-kg', 'Kg a bordo', 0, 99999, false);
+  } catch (e) { return; }
+  const articolo = $('d-articolo').value.trim(), cifre = $('d-commessa').value.trim().replace(/^P/i, ''), commessa = cifre ? 'P' + cifre : '';
+  if ((q || v || c || g) && !commessa) { $('avviso-dati').textContent = 'Scrivi anche la commessa: i dati valgono per quella.'; $('d-commessa').focus(); return; }
+  const mescola = $('d-mescola').value.trim(), i = infoPresse[p] || {}, corr = commessaCorrente(p), adesso = new Date().toISOString();
+  const campi = { nome: accesso.nome, dati_commessa: (q || v || c || g) ? commessa : null, quantita: q, vani: v, ciclo_s: c, stampata_g: g, mescola: mescola || null };
+  if (articolo !== corr.articolo || commessa !== corr.commessa) { campi.articolo = articolo || null; campi.commessa = commessa || null; campi.ora = adesso; }   // come "Salva articolo e commessa" nella lettura
+  let kgOra = i.kgOra || '';
+  if (kg !== null && kg !== i.kg) { campi.mescola_kg = kg; campi.mescola_ora = kgOra = adesso; }          // cassone nuovo o kg corretti: da qui si riparte a contare
+  else if (kg === null && i.kg != null) { campi.mescola_kg = null; campi.mescola_ora = null; kgOra = ''; }
+  infoPresse[p] = { ...i, articolo: campi.articolo === undefined ? i.articolo : articolo, commessa: campi.commessa === undefined ? i.commessa : commessa, ora: campi.ora || i.ora,
+    quantita: q || 0, vani: v || 0, ciclo: c || 0, stampata: g || 0, mescola, kg, kgOra, datiPer: campi.dati_commessa || '' };
+  salva(PREF + 'info-presse', infoPresse);
+  db.aggiornaPressa(p, campi).catch(erroreDati);
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  $('avviso-dati').textContent = 'Dati salvati.';
+  disegnaDatiRighe();
+};
+
 // presse in funzione in cima, ferme in fondo; ognuna è un pulsante che apre la sua tendina
 function disegnaElencoPresse() {
   document.body.classList.toggle('lettura-aperta', pressaAperta != null && !$('vista-leggi').hidden);
@@ -1469,13 +1639,15 @@ function presseArrivate(elenco, dalServer) {
   }
   if (dalServer) salva(CHIAVE_FATTO, true);
   const nuove = elenco.map(x => Number(x.pressa)).sort((a, b) => a - b), info = {};
-  elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '', attesa: x.attesa_qualita === true, avvio: x.avvio || '' }; });
+  elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '', attesa: x.attesa_qualita === true, avvio: x.avvio || '',
+    quantita: x.quantita || 0, vani: x.vani || 0, ciclo: x.ciclo_s || 0, stampata: x.stampata_g || 0, mescola: x.mescola || '', kg: x.mescola_kg == null ? null : x.mescola_kg, kgOra: x.mescola_ora || '', datiPer: x.dati_commessa || '' }; });
   if (JSON.stringify(nuove) === JSON.stringify([...PRESSE].sort((a, b) => a - b)) && JSON.stringify(info) === JSON.stringify(infoPresse)) return;   // niente di nuovo (es. solo la sincronizzazione)
   PRESSE = nuove; infoPresse = info;
   salvaPresse(); salva(PREF + 'info-presse', infoPresse);
   if (pressaAperta != null && !PRESSE.includes(pressaAperta)) chiudi();
   if (!$('vista-leggi').hidden && !trascinato && pressaAperta == null) { disegnaElencoPresse(); disegnaRiepilogo(); }
   if (!$('vista-produzione').hidden) disegnaProduzione();
+  if (!$('vista-dati').hidden) { if (PRESSE.includes(pressaDati)) disegnaDatiRighe(); else vai('produzione'); }
 }
 $('aggiungi-apri').onclick = () => {
   if (!inTurno()) { $('avviso-aggiungi').textContent = $('msg').textContent; return; }   // in Produzione il messaggio in alto non c'è
@@ -2461,6 +2633,7 @@ function datiArrivati(nuove) {
   if (!$('vista-storico').hidden) disegnaStorico();
   if (!$('vista-home').hidden) disegnaHome();
   if (!$('vista-produzione').hidden) disegnaProduzione();
+  if (!$('vista-dati').hidden) disegnaDatiRighe();
 }
 async function preparaDb() {
   if (!db) db = CONFIG_PRONTA ? await dbFirebase(FIREBASE) : dbFinto();
