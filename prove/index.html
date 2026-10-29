@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029112531">
+<meta name="versione" content="20261029113101">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -355,7 +355,9 @@ if (/prove/.test(location.pathname)) {
   #pannello-lettura .ore-riga { display: flex; align-items: center; gap: 12px; }
   #pannello-lettura .ore-riga label { flex: 1; margin-bottom: 0; }
   #pannello-lettura .ore-riga input.testo { flex: none; width: 96px; padding: 7px 10px; border-radius: 14px; text-align: center; }
-  #vista-leggi.con-aperta { padding-bottom: 85vh; }   /* spazio in fondo: anche l'ultima pressa dell'elenco può salire in cima */
+  /* pressa aperta: resta solo lei col suo pannello, in cima; il resto torna quando si chiude (niente scorrimento da rincorrere con la tastiera) */
+  body.lettura-aperta #testata, body.lettura-aperta #vista-leggi .avanz, body.lettura-aperta #vista-leggi .aggiungi,
+  body.lettura-aperta #vista-leggi .riepilogo, body.lettura-aperta #elenco-presse .sep, body.lettura-aperta #elenco-presse .voce:not(.aperta) { display: none !important; }
   .voce { scroll-margin-top: calc(var(--alto-striscia, 0px) + 8px); }   /* la pressa aperta si ferma sotto la striscia SVILUPPATORE */
   .msg { min-height: 1.3em; margin: -6px 0 18px; color: var(--giallo); font-weight: 600; }
   .titolo-sez { font: italic 700 1.5rem/1 var(--font-titoli); letter-spacing: .07em; text-transform: uppercase; color: #fff; margin: 0 0 18px; }
@@ -1258,6 +1260,7 @@ function vai(nome) {
   if (!accesso || accesso.attesa) nome = 'entra';  // senza codice reparto (o in attesa di conferma) si resta alla schermata di accesso
   else if (nome === 'entra') nome = 'home';
   VISTE.forEach(v => { $('vista-' + v).hidden = v !== nome; });
+  if (nome !== 'leggi') document.body.classList.remove('lettura-aperta');
   $('testata').hidden = nome === 'home' || nome === 'entra';
   document.body.classList.toggle('home', nome === 'home');
   
@@ -1341,7 +1344,7 @@ function disegnoPressa(p, ferma, u) {
 }
 // presse in funzione in cima, ferme in fondo; ognuna è un pulsante che apre la sua tendina
 function disegnaElencoPresse() {
-  $('vista-leggi').classList.toggle('con-aperta', pressaAperta != null);
+  document.body.classList.toggle('lettura-aperta', pressaAperta != null && !$('vista-leggi').hidden);
   casaPannello.appendChild(pannello);       // lo metto al sicuro prima di ricostruire l'elenco
   const lette = ultimePerPressa(chiaveTurno(turnoDi(new Date())));
   const scr = scrivibile();
@@ -1615,7 +1618,7 @@ function apri(p) {
   azzera();
   preparaCampi(p);
   disegnaElencoPresse();
-  scorriAllaPressa();
+  window.scrollTo(0, 0);                           // le altre presse sono nascoste: la pressa aperta è già in cima
   // il tastierino numerico si apre subito: sull'articolo se la tendina si è aperta da sola (manca), altrimenti sui cicli
   ($('tendina-campi').classList.contains('aperta') ? $('articolo') : $('cicli-input')).focus({ preventScroll: true });
   const u = ultimaLettura(p);
@@ -1742,11 +1745,6 @@ function scorriA(y, ms = 320) {
 }
 addEventListener('touchstart', () => cancelAnimationFrame(animScorri), { passive: true });
 const altoStriscia = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--alto-striscia')) || 0;
-// la pressa aperta sotto la striscia in cima (o sotto il bordo dello schermo nella Beta)
-function scorriAllaPressa() {
-  const voce = document.querySelector('.voce.aperta');
-  if (voce) scorriA(window.scrollY + voce.getBoundingClientRect().top - altoStriscia() - 8);
-}
 // Con la tastiera aperta: la pressa resta in cima e la casella che si sta compilando sopra la tastiera
 // (se non entrano tutte e due, vince la casella)
 function casellaInVista() {
