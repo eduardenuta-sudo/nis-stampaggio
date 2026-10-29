@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029183400">
-<meta name="aggiornamento" content="81">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029184427">
+<meta name="aggiornamento" content="82">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -326,10 +326,12 @@ if (/prove/.test(location.pathname)) {
   .pressa-prod .str-mes { display: flex; gap: 10px; align-items: center; }
   .pressa-prod .str-mes .str-corpo { flex: 1; min-width: 0; }
   .pressa-prod .str-mes .barra i { background: linear-gradient(#5fe3ae, #1fb581 55%, #128a60); }
-  .pressa-prod .str-mes.poca .barra i { background: linear-gradient(#ffb09f, #ff6f5a 55%, #d44a36); }
+  .pressa-prod .str-mes.rosso .barra i { background: linear-gradient(#ffb09f, #ff6f5a 55%, #d44a36); }
+  .pressa-prod .str-mes.arancio .barra i { background: linear-gradient(#ffd89a, #ff9f2e 55%, #cc6f0a); }
   .pressa-prod .str-nota { margin-top: 5px; font-size: 1rem; line-height: 1.3; color: #c9d6f2; }
   .pressa-prod .str-nota b { color: #fff; }
-  .pressa-prod .str-mes.poca .str-nota { color: #ffb3a6; }
+  .pressa-prod .str-mes.rosso .str-nota { color: #ffb3a6; }
+  .pressa-prod .str-mes.arancio .str-nota { color: #ffd08a; }
   .pressa-prod .str-vuota .barra i { width: 0 !important; }
   .ico-cassone { width: 54px; height: auto; flex: none; --cassone: #8d949e; --pedana: #262a31; --gomma: #15181d; --carta: #f4f6fa; --scuro: #0f2147; --giallo: #e3c928; overflow: visible; }
   .pressa-prod .apri-dati { all: unset; position: absolute; inset: 0; z-index: 2; border-radius: 26px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -1436,21 +1438,28 @@ function disegnaStrisce(c, p) {
   // commessa
   if (att) metti(com, '', 0, 'Attesa ok qualità: la commessa parte con l\'ok.', true);
   else if (!k.d) metti(com, '', 0, 'Tocca la pressa e scrivi i dati della commessa.', true);
-  else metti(com, '<b>' + nIt(k.pezzi) + '</b> / ' + nIt(k.d.quantita) + ' pezzi', k.pezzi / k.d.quantita * 100,
+  else metti(com, '<b>' + (k.stimati ? '~' : '') + nIt(k.pezzi) + '</b> / ' + nIt(k.d.quantita) + ' pezzi', k.pezzi / k.d.quantita * 100,
     k.cicliMancano ? 'Mancano <b>' + nIt(Math.max(0, k.d.quantita - k.pezzi)) + '</b> pezzi · fine stimata <b>' + testoFine(k.fine) + '</b>' : '<b>Commessa finita</b>');
   // mescola
   const i = k.i, codice = i.mescola || '';
   c.querySelector('.cas-cod').textContent = codice;
   c.querySelector('.cas-cod').setAttribute('font-size', codice ? Math.min(13, 80 / codice.length).toFixed(1) : 13);
-  mes.classList.remove('poca');
+  mes.classList.remove('rosso', 'arancio');
   c.querySelector('.str-mes-et').textContent = 'Mescola' + (codice ? ' ' + codice : '');
   if (i.kg == null) metti(mes, '', 0, 'Tocca la pressa e scrivi i kg di mescola a bordo.', true);
   else if (k.rim == null) metti(mes, '<b>' + nIt(i.kg, 1) + '</b> kg a bordo', 100, 'Scrivi anche il peso della stampata per contare quanta ne resta.');
   else {
-    const prima = k.d && k.cicliMancano && k.fineMescola && k.fine && k.fineMescola < k.fine;
-    mes.classList.toggle('poca', !!prima || k.rim <= 0);
-    metti(mes, '<b>' + nIt(k.rim, 1) + '</b> kg a bordo', i.kg > 0 ? k.rim / i.kg * 100 : 0,
+    // quando finisce la mescola: nel turno in corso = rosso, nel turno dopo = arancione, più avanti = verde (se non basta fino a fine commessa lo dice la scritta)
+    const adesso = new Date(), t = turnoDi(adesso), dopo = turnoDi(t.fine);
+    const prima = !!(k.d && k.cicliMancano && k.fineMescola && k.fine && k.fineMescola < k.fine);   // finisce prima della commessa
+    const nelTurno = k.fineMescola && k.fineMescola < t.fine, nelDopo = k.fineMescola && !nelTurno && k.fineMescola < dopo.fine;
+    const serve = k.rim <= 0 || prima || (!k.d || !k.cicliMancano);
+    mes.classList.toggle('rosso', serve && (k.rim <= 0 || !!nelTurno));
+    mes.classList.toggle('arancio', serve && k.rim > 0 && !!nelDopo);
+    metti(mes, '<b>' + (k.rim > 0 && k.rim < i.kg ? '~' : '') + nIt(k.rim, 1) + '</b> kg a bordo', i.kg > 0 ? k.rim / i.kg * 100 : 0,
       k.rim <= 0 ? '<b>Mescola finita.</b> Serve un cassone.'
+      : serve && nelTurno ? '<b>Finisce in questo turno</b>, ~' + oraIt(k.fineMescola) + '. Serve un cassone.'
+      : serve && nelDopo ? '<b>Finisce nel turno dopo</b>, ' + testoFine(k.fineMescola) + '. Serve un cassone.'
       : prima ? '<b>Finisce prima della commessa:</b> ' + testoFine(k.fineMescola) + '. Serve un cassone.'
       : k.cicliMancano ? 'Basta fino a fine commessa · finisce <b>' + testoFine(k.fineMescola) + '</b>' : 'Finisce <b>' + testoFine(k.fineMescola) + '</b>');
   }
@@ -1494,17 +1503,27 @@ function datiPressa(p) {
   const i = infoPresse[p];
   return i && i.datiPer && i.datiPer === commessaCorrente(p).commessa && i.quantita > 0 && i.vani > 0 ? i : null;
 }
-// cicli fatti dalla commessa (il contatore riparte da zero a ogni commessa)
-function cicliCommessa(p) {
-  const u = ultimaReale(p);
-  return u && !eFine(u) && new Date(u.ora) >= inizioCommessa(p, letture.length, new Date()) ? u.cicli : 0;
-}
-// cicli segnati dalla commessa all'istante dato (ultima lettura fino a lì)
-function cicliA(p, quando) {
+// cicli della commessa all'istante dato (il contatore riparte da zero a ogni commessa), anche tra una lettura e l'altra:
+// - dopo l'ultima lettura: ultima lettura + ritmo × ore di produzione effettive (senza fermi né attese) da allora, cioè una stima in tempo reale
+// - tra due letture: in proporzione alle ore effettive
+// - prima della prima lettura: da zero, dalla partenza della commessa (solo se la pressa ha una lettura dopo, oppure un ok qualità)
+function cicliStimati(p, quando, ritmo) {
   const inizio = inizioCommessa(p, letture.length, new Date());
-  let c = 0;
-  letture.forEach(l => { if (l.pressa === p && !eSolo(l) && !eFine(l) && new Date(l.ora) <= quando && new Date(l.ora) >= inizio) c = l.cicli; });
-  return c;
+  let prima = null, dopo = null;
+  letture.forEach(l => {
+    if (l.pressa !== p || eSolo(l) || eFine(l) || new Date(l.ora) < inizio) return;
+    if (new Date(l.ora) <= quando) prima = l; else if (!dopo) dopo = l;
+  });
+  const conOk = letture.some(l => l.pressa === p && l.ok_qualita && new Date(l.ora).getTime() === inizio.getTime());
+  if (!prima && !dopo && !conOk) return { cicli: 0, stimati: false };
+  const base = prima ? prima.cicli : 0, da = prima ? new Date(prima.ora) : inizio;
+  if (quando <= da) return { cicli: base, stimati: false };
+  if (dopo) {
+    const tot = durate(p, da, new Date(dopo.ora)).effettiva, h = durate(p, da, quando).effettiva;
+    return { cicli: base + (tot > 0 ? Math.max(0, dopo.cicli - base) * Math.min(1, h / tot) : 0), stimati: false };
+  }
+  const ore = ritmo > 0 ? durate(p, da, quando).effettiva : 0;
+  return { cicli: base + (ritmo > 0 ? ritmo * ore : 0), stimati: ore > 0.005 };
 }
 // ritmo in cicli all'ora: dal tempo ciclo del foglio; dopo un tratto di almeno un turno intero senza fermi né tempi esclusi, dai cicli veri (l'ultimo tratto così)
 function ritmoCommessa(p, ciclo) {
@@ -1544,14 +1563,16 @@ const nIt = (x, dec = 0) => Number(x).toLocaleString('it-IT', { maximumFractionD
 // conti di una pressa: pezzi, cicli che mancano, ritmo, fine commessa, mescola rimasta e quando finisce (pagina dati e strisce di Produzione)
 function contiPressa(p) {
   const d = datiPressa(p), i = infoPresse[p] || {}, adesso = new Date(), k = { d, i };
+  let est = null;
   if (d) {
-    k.cicli = cicliCommessa(p); k.pezzi = k.cicli * d.vani;
-    k.cicliMancano = Math.max(0, Math.ceil((d.quantita - k.pezzi) / d.vani));
     k.ritmo = ritmoCommessa(p, d.ciclo);
+    est = avvioInAttesa(p) ? { cicli: 0, stimati: false } : cicliStimati(p, adesso, k.ritmo.cicliOra);
+    k.cicli = Math.floor(est.cicli); k.stimati = est.stimati; k.pezzi = k.cicli * d.vani;
+    k.cicliMancano = Math.max(0, Math.ceil((d.quantita - k.pezzi) / d.vani));
     k.fine = k.cicliMancano ? fineStimata(k.cicliMancano, k.ritmo.cicliOra, adesso) : adesso;
     if (d.stampata) k.kgServono = k.cicliMancano * d.stampata / 1000;
     if (i.kg != null && i.kgOra && d.stampata) {
-      const usati = Math.max(0, k.cicli - cicliA(p, new Date(i.kgOra))) * d.stampata / 1000;
+      const usati = Math.max(0, est.cicli - cicliStimati(p, new Date(i.kgOra), k.ritmo.cicliOra).cicli) * d.stampata / 1000;
       k.rim = Math.max(0, i.kg - usati);
       k.fineMescola = k.rim > 0 ? fineStimata(k.rim * 1000 / d.stampata, k.ritmo.cicliOra, adesso) : adesso;
     }
@@ -1562,7 +1583,7 @@ function disegnaDatiRighe() {
   const p = pressaDati, k = contiPressa(p), d = k.d, i = k.i, righe = [];
   if (!d) righe.push(['', 'Scrivi pezzi da produrre e vani (con articolo e commessa) per vedere i conti.']);
   else {
-    righe.push(['Cicli della commessa', nIt(k.cicli)], ['Pezzi stampati', nIt(k.pezzi) + ' su ' + nIt(d.quantita) + ' (' + nIt(Math.min(100, k.pezzi / d.quantita * 100)) + '%)'], ['Cicli che mancano', nIt(k.cicliMancano)]);
+    righe.push(['Cicli della commessa', (k.stimati ? '~' : '') + nIt(k.cicli)], ['Pezzi stampati', (k.stimati ? '~' : '') + nIt(k.pezzi) + ' su ' + nIt(d.quantita) + ' (' + nIt(Math.min(100, k.pezzi / d.quantita * 100)) + '%)'], ['Cicli che mancano', nIt(k.cicliMancano)]);
     righe.push(['Ritmo usato', k.ritmo.cicliOra ? nIt(k.ritmo.cicliOra, 1) + ' cicli/h · ' + (k.ritmo.veri ? "ultimo turno intero" : 'tempo ciclo ' + nIt(d.ciclo, 1) + ' s') : '—']);
     righe.push(['Fine commessa', k.cicliMancano ? testoFine(k.fine) : 'finita']);
     if (d.stampata) righe.push(['Mescola ancora necessaria', '~' + nIt(k.kgServono, 1) + ' kg']);
@@ -2766,6 +2787,8 @@ function aggiornaVista() {
   if (!$('vista-produzione').hidden) disegnaProduzione();
 }
 setInterval(aggiornaVista, 30000);                 // il turno finisce anche con l'app aperta
+// pezzi e mescola avanzano anche tra una lettura e l'altra: le strisce si aggiornano da sole
+setInterval(() => { if (document.hidden) return; if (!$('vista-produzione').hidden) disegnaProduzione(); if (!$('vista-dati').hidden) disegnaDatiRighe(); }, 15000);
 // passo 1: il codice. Se esiste si passa alla scelta del nome (i nomi sono quelli della rotazione dei turni)
 let entrata = null;                                // { codice, chiave, rotazione, persone } durante l'accesso
 const safariIphone = /iPhone|iPod/.test(navigator.userAgent) && navigator.standalone === false;
