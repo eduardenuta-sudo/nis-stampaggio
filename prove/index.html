@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029190151">
-<meta name="aggiornamento" content="85">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029190640">
+<meta name="aggiornamento" content="86">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -330,6 +330,8 @@ if (/prove/.test(location.pathname)) {
   .pressa-prod .str-mes.arancio .barra i { background: linear-gradient(#ffd89a, #ff9f2e 55%, #cc6f0a); }
   .pressa-prod .str-nota { margin-top: 5px; font-size: 1rem; line-height: 1.3; color: #c9d6f2; }
   .pressa-prod .str-nota b { color: #fff; }
+  .pressa-prod .oltr { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin-right: 8px; border-radius: 50%; border: 2px solid #e6ee5a; color: transparent; font-size: .8rem; font-weight: 700; vertical-align: -3px; }
+  .pressa-prod .oltr.pieno { background: #e6ee5a; color: #17210a; }
   .pressa-prod .str-mes.rosso .str-nota { color: #ffb3a6; }
   .pressa-prod .str-mes.arancio .str-nota { color: #ffd08a; }
   .pressa-prod .str-vuota .barra i { width: 0 !important; }
@@ -626,6 +628,8 @@ if (/prove/.test(location.pathname)) {
       <div class="campo"><label for="d-ciclo">Ciclo (s)</label><input class="testo" id="d-ciclo" inputmode="decimal" maxlength="6" autocomplete="off"></div>
       <div class="campo"><label for="d-stampata">Stampata (g)</label><input class="testo" id="d-stampata" inputmode="decimal" maxlength="7" autocomplete="off"></div>
     </div>
+    <label class="opzione" style="margin:16px 0 0"><input type="checkbox" id="d-oltranza"><span class="casella" aria-hidden="true"></span><span class="testo-opz">Stampa ad oltranza</span></label>
+    <p class="piccolo" style="margin:10px 0 0">Per quando arriva l'ordine di continuare oltre i pezzi da produrre: la percentuale prosegue oltre il 100% finché non togli la spunta.</p>
   </div>
   <div class="card">
     <h2 class="titolo-sez" style="margin-bottom:14px">Mescola a bordo pressa</h2>
@@ -1438,8 +1442,13 @@ function disegnaStrisce(c, p) {
   // commessa
   if (att) metti(com, '', 0, 'Attesa ok qualità: la commessa parte con l\'ok.', true);
   else if (!k.d) metti(com, '', 0, 'Tocca la pressa e scrivi i dati della commessa.', true);
-  else metti(com, '<b>' + (k.stimati ? '~' : '') + nIt(k.pezzi) + '</b> / ' + nIt(k.d.quantita) + ' pezzi', k.pezzi / k.d.quantita * 100,
-    k.cicliMancano ? 'Mancano <b>' + nIt(Math.max(0, k.d.quantita - k.pezzi)) + '</b> pezzi · fine stimata <b>' + testoFine(k.fine) + '</b>' : '<b>Commessa finita</b>');
+  else {
+    const ol = k.oltranza, piena = k.pezzi >= k.d.quantita;
+    const pillola = ol ? '<span class="oltr' + (piena ? ' pieno' : '') + '" aria-hidden="true">✓</span><b>Stampa ad oltranza attivata</b><br>' : '';
+    metti(com, '<b>' + (k.stimati ? '~' : '') + nIt(k.pezzi) + '</b> / ' + nIt(k.d.quantita) + ' pezzi' + (ol ? ' · <b>' + nIt(Math.floor(k.pct)) + '%</b>' : ''), Math.min(100, k.pct),
+      pillola + (k.cicliMancano ? 'Mancano <b>' + nIt(Math.max(0, k.d.quantita - k.pezzi)) + '</b> pezzi · ' + (ol ? 'poi si prosegue a oltranza' : 'fine stimata <b>' + testoFine(k.fine) + '</b>')
+        : ol ? 'Oltre la quantità: <b>+' + nIt(k.pezzi - k.d.quantita) + '</b> pezzi' : '<b>Commessa finita</b>'));
+  }
   // mescola
   const i = k.i, codice = i.mescola || '';
   c.querySelector('.cas-cod').textContent = codice;
@@ -1453,7 +1462,7 @@ function disegnaStrisce(c, p) {
     const adesso = new Date(), t = turnoDi(adesso), dopo = turnoDi(t.fine);
     const prima = !!(k.d && k.cicliMancano && k.fineMescola && k.fine && k.fineMescola < k.fine);   // finisce prima della commessa
     const nelTurno = k.fineMescola && k.fineMescola < t.fine, nelDopo = k.fineMescola && !nelTurno && k.fineMescola < dopo.fine;
-    const serve = !!k.cicliMancano && (k.rim <= 0 || prima);   // se la commessa finisce prima della mescola, nessun allarme: resta verde anche se la mescola finisce nel turno
+    const serve = k.oltranza || (!!k.cicliMancano && (k.rim <= 0 || prima));   // ad oltranza la commessa non finisce: il cassone serve sempre   // se la commessa finisce prima della mescola, nessun allarme: resta verde anche se la mescola finisce nel turno
     mes.classList.toggle('rosso', serve && (k.rim <= 0 || !!nelTurno));
     mes.classList.toggle('arancio', serve && k.rim > 0 && !!nelDopo);
     metti(mes, '<b>' + (k.rim > 0 && k.rim < i.kg ? '~' : '') + nIt(k.rim, 1) + '</b> kg a bordo', i.kg > 0 ? (1 - k.rim / i.kg) * 100 : 100,   // la barra si riempie col consumo: piena = cassone vuoto
@@ -1462,6 +1471,7 @@ function disegnaStrisce(c, p) {
       : serve && nelTurno ? '<b>Finisce in questo turno</b>, ~' + oraIt(k.fineMescola) + '. Serve un cassone.'
       : serve && nelDopo ? '<b>Finisce nel turno dopo</b>, ' + testoFine(k.fineMescola) + '. Serve un cassone.'
       : prima ? '<b>Finisce prima della commessa:</b> ' + testoFine(k.fineMescola) + '. Serve un cassone.'
+      : k.oltranza ? 'Ad oltranza: la mescola finisce <b>' + testoFine(k.fineMescola) + '</b>'
       : k.cicliMancano ? 'Basta fino a fine commessa · finisce <b>' + testoFine(k.fineMescola) + '</b>' : 'Finisce <b>' + testoFine(k.fineMescola) + '</b>');
   }
 }
@@ -1569,6 +1579,7 @@ function contiPressa(p) {
     k.ritmo = ritmoCommessa(p, d.ciclo);
     est = avvioInAttesa(p) ? { cicli: 0, stimati: false } : cicliStimati(p, adesso, k.ritmo.cicliOra);
     k.cicli = Math.floor(est.cicli); k.stimati = est.stimati; k.pezzi = k.cicli * d.vani;
+    k.oltranza = !!d.oltranza; k.pct = k.pezzi / d.quantita * 100;
     k.cicliMancano = Math.max(0, Math.ceil((d.quantita - k.pezzi) / d.vani));
     k.fine = k.cicliMancano ? fineStimata(k.cicliMancano, k.ritmo.cicliOra, adesso) : adesso;
     if (d.stampata) k.kgServono = k.cicliMancano * d.stampata / 1000;
@@ -1586,7 +1597,8 @@ function disegnaDatiRighe() {
   else {
     righe.push(['Cicli della commessa', (k.stimati ? '~' : '') + nIt(k.cicli)], ['Pezzi stampati', (k.stimati ? '~' : '') + nIt(k.pezzi) + ' su ' + nIt(d.quantita) + ' (' + nIt(Math.min(100, k.pezzi / d.quantita * 100)) + '%)'], ['Cicli che mancano', nIt(k.cicliMancano)]);
     righe.push(['Ritmo usato', k.ritmo.cicliOra ? nIt(k.ritmo.cicliOra, 1) + ' cicli/h · ' + (k.ritmo.veri ? "ultimo turno intero" : 'tempo ciclo ' + nIt(d.ciclo, 1) + ' s') : '—']);
-    righe.push(['Fine commessa', k.cicliMancano ? testoFine(k.fine) : 'finita']);
+    righe.push(['Fine commessa', k.cicliMancano ? testoFine(k.fine) : k.oltranza ? 'raggiunta: si prosegue a oltranza' : 'finita']);
+    if (k.oltranza) righe.push(['Stampa ad oltranza', k.pezzi > d.quantita ? 'attiva · +' + nIt(k.pezzi - d.quantita) + ' pezzi (' + nIt(Math.floor(k.pct)) + '%)' : 'attivata (' + nIt(Math.floor(k.pct)) + '%)']);
     if (d.stampata) righe.push(['Mescola ancora necessaria', '~' + nIt(k.kgServono, 1) + ' kg']);
   }
   if (k.rim != null) {
@@ -1599,7 +1611,7 @@ function apriDati() {
   const p = pressaDati, c = commessaCorrente(p), i = infoPresse[p] || {}, d = datiPressa(p);
   $('dati-titolo').textContent = 'Pressa ' + p + (avvioInAttesa(p) ? ' · attesa ok qualità' : '');
   $('d-articolo').value = c.articolo; $('d-commessa').value = c.commessa.replace(/^P/i, '');
-  $('d-quantita').value = d ? d.quantita : ''; $('d-vani').value = d ? d.vani : ''; $('d-ciclo').value = d && d.ciclo ? d.ciclo : ''; $('d-stampata').value = d && d.stampata ? d.stampata : '';
+  $('d-oltranza').checked = !!(d && d.oltranza); $('d-quantita').value = d ? d.quantita : ''; $('d-vani').value = d ? d.vani : ''; $('d-ciclo').value = d && d.ciclo ? d.ciclo : ''; $('d-stampata').value = d && d.stampata ? d.stampata : '';
   $('d-mescola').value = i.mescola || ''; $('d-kg').value = i.kg == null ? '' : i.kg;
   const vecchi = i.datiPer && !d;
   $('dati-nota').hidden = !vecchi;
@@ -1626,13 +1638,14 @@ $('dati-salva').onclick = () => {
   const articolo = $('d-articolo').value.trim(), cifre = $('d-commessa').value.trim().replace(/^P/i, ''), commessa = cifre ? 'P' + cifre : '';
   if ((q || v || c || g) && !commessa) { $('avviso-dati').textContent = 'Scrivi anche la commessa: i dati valgono per quella.'; $('d-commessa').focus(); return; }
   const mescola = $('d-mescola').value.trim(), i = infoPresse[p] || {}, corr = commessaCorrente(p), adesso = new Date().toISOString();
-  const campi = { nome: accesso.nome, dati_commessa: (q || v || c || g) ? commessa : null, quantita: q, vani: v, ciclo_s: c, stampata_g: g, mescola: mescola || null };
+  const oltranza = $('d-oltranza').checked && !!(q || v || c || g);   // vale per la commessa dei dati
+  const campi = { nome: accesso.nome, dati_commessa: (q || v || c || g) ? commessa : null, quantita: q, vani: v, ciclo_s: c, stampata_g: g, oltranza: oltranza ? true : null, mescola: mescola || null };
   if (articolo !== corr.articolo || commessa !== corr.commessa) { campi.articolo = articolo || null; campi.commessa = commessa || null; campi.ora = adesso; }   // come "Salva articolo e commessa" nella lettura
   let kgOra = i.kgOra || '';
   if (kg !== null && kg !== i.kg) { campi.mescola_kg = kg; campi.mescola_ora = kgOra = adesso; }          // cassone nuovo o kg corretti: da qui si riparte a contare
   else if (kg === null && i.kg != null) { campi.mescola_kg = null; campi.mescola_ora = null; kgOra = ''; }
   infoPresse[p] = { ...i, articolo: campi.articolo === undefined ? i.articolo : articolo, commessa: campi.commessa === undefined ? i.commessa : commessa, ora: campi.ora || i.ora,
-    quantita: q || 0, vani: v || 0, ciclo: c || 0, stampata: g || 0, mescola, kg, kgOra, datiPer: campi.dati_commessa || '' };
+    quantita: q || 0, vani: v || 0, ciclo: c || 0, stampata: g || 0, oltranza, mescola, kg, kgOra, datiPer: campi.dati_commessa || '' };
   salva(PREF + 'info-presse', infoPresse);
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   $('avviso-dati').textContent = 'Salvo…';
@@ -1725,7 +1738,7 @@ function presseArrivate(elenco, dalServer) {
   if (dalServer) salva(CHIAVE_FATTO, true);
   const nuove = elenco.map(x => Number(x.pressa)).sort((a, b) => a - b), info = {};
   elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '', attesa: x.attesa_qualita === true, avvio: x.avvio || '',
-    quantita: x.quantita || 0, vani: x.vani || 0, ciclo: x.ciclo_s || 0, stampata: x.stampata_g || 0, mescola: x.mescola || '', kg: x.mescola_kg == null ? null : x.mescola_kg, kgOra: x.mescola_ora || '', datiPer: x.dati_commessa || '' }; });
+    quantita: x.quantita || 0, vani: x.vani || 0, ciclo: x.ciclo_s || 0, stampata: x.stampata_g || 0, oltranza: x.oltranza === true, mescola: x.mescola || '', kg: x.mescola_kg == null ? null : x.mescola_kg, kgOra: x.mescola_ora || '', datiPer: x.dati_commessa || '' }; });
   if (JSON.stringify(nuove) === JSON.stringify([...PRESSE].sort((a, b) => a - b)) && JSON.stringify(info) === JSON.stringify(infoPresse)) return;   // niente di nuovo (es. solo la sincronizzazione)
   PRESSE = nuove; infoPresse = info;
   salvaPresse(); salva(PREF + 'info-presse', infoPresse);
