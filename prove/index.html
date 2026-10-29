@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029201910">
-<meta name="aggiornamento" content="90">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029202515">
+<meta name="aggiornamento" content="91">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1507,6 +1507,39 @@ function disegnoPressa(p, ferma, u) {
   const dur = (2.4 + (p * 7 % 10) / 10 * 1.4).toFixed(1), rit = (-(p * 13 % 30) / 10).toFixed(1);
   return '<svg class="' + classiPressa(p, ferma, motivo) + '" viewBox="0 -13 320 125" preserveAspectRatio="xMinYMid meet" style="--dur:' + dur + 's;--rit:' + rit + 's" aria-hidden="true"><use href="#pressa"/></svg>';
 }
+// ---------------- Regole della commessa ----------------
+// P + anno (2 cifre) + mese (2 cifre) + numero d'ordine (3 cifre): P2610032 = 2026, ottobre, ordine 032.
+// Non blocca: se non torna con la data di oggi avvisa e chiede "Confermo". L'anno scorso vale fino a febbraio, il mese scorso vale sempre.
+const MESI_IT = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+function avvisoCommessa(cifre, oggi = new Date()) {
+  const c = String(cifre || '').replace(/^P/i, '');
+  if (!c) return '';
+  if (!/^\d{7}$/.test(c)) return 'La commessa ha 7 cifre: anno (2), mese (2) e numero d\'ordine (3).';
+  const mm = Number(c.slice(2, 4)), anno = 2000 + Number(c.slice(0, 2)), aOggi = oggi.getFullYear(), mOggi = oggi.getMonth() + 1;
+  if (mm < 1 || mm > 12) return 'Nella commessa le cifre 3 e 4 sono il mese: «' + c.slice(2, 4) + '» non esiste.';
+  if (!(anno === aOggi || (anno === aOggi - 1 && mOggi <= 2))) return 'L\'anno della commessa («' + c.slice(0, 2) + '», cioè ' + anno + ') non è giusto: siamo nel ' + aOggi + '.';
+  const fa = (aOggi * 12 + mOggi) - (anno * 12 + mm);
+  if (fa < 0) return 'La commessa è di ' + MESI_IT[mm - 1] + ' ' + anno + ', un mese che non è ancora iniziato.';
+  if (fa >= 2) return 'La commessa è di ' + MESI_IT[mm - 1] + ' ' + anno + ', di due mesi fa o più.';
+  return '';
+}
+// Se la commessa scritta (cambiata rispetto a prima) non torna, il primo tocco avvisa e il pulsante diventa "Confermo"; il secondo salva.
+let confermaCommessa = null;                          // { cifre, pulsante, testo }
+function annullaConfermaCommessa() {
+  if (confermaCommessa) { confermaCommessa.pulsante.textContent = confermaCommessa.testo; confermaCommessa = null; }
+}
+function commessaSospetta(cifre, cambiata, pulsante, mostra) {
+  if (confermaCommessa && confermaCommessa.cifre === cifre && confermaCommessa.pulsante === pulsante) { annullaConfermaCommessa(); return false; }   // già avvisata: confermata
+  const a = cifre && cambiata ? avvisoCommessa(cifre) : '';
+  if (!a) return false;
+  annullaConfermaCommessa();
+  confermaCommessa = { cifre, pulsante, testo: pulsante.textContent };
+  pulsante.textContent = 'Confermo';
+  mostra(a + ' Controlla il numero, oppure tocca Confermo se è giusto.');
+  return true;
+}
+['commessa', 'aggiungi-commessa', 'd-commessa'].forEach(id => { $(id).addEventListener('input', annullaConfermaCommessa); });
+
 // ---------------- Dati commessa ----------------
 // Si apre toccando la pressa in Produzione. Articolo e commessa sono gli stessi della Lettura cicli; i dati (pezzi, vani, ciclo, stampata)
 // valgono per la commessa a cui sono stati scritti: se la commessa cambia, vanno riscritti. La mescola a bordo è della pressa.
@@ -1654,6 +1687,7 @@ $('dati-salva').onclick = () => {
   } catch (e) { return; }
   const articolo = $('d-articolo').value.trim(), cifre = $('d-commessa').value.trim().replace(/^P/i, ''), commessa = cifre ? 'P' + cifre : '';
   if ((q || v || c || g) && !commessa) { $('avviso-dati').textContent = 'Scrivi anche la commessa: i dati valgono per quella.'; $('d-commessa').focus(); return; }
+  if (commessaSospetta(cifre, commessa !== commessaCorrente(p).commessa, $('dati-salva'), t => { $('avviso-dati').textContent = t; })) return;
   const codice = $('d-mescola').value.trim();
   if (codice && !CODICE_MESCOLA.test(codice)) { $('avviso-dati').textContent = 'Mescola: scrivi solo numeri e «/», e al massimo B dopo una «/» (es. 316/193 oppure 316/B).'; $('d-mescola').focus(); return; }
   const mescola = codice ? 'M-' + codice : '', i = infoPresse[p] || {}, corr = commessaCorrente(p), adesso = new Date().toISOString();
@@ -1784,6 +1818,7 @@ $('aggiungi-ok').onclick = () => {
   if (!/^\d{1,4}$/.test(t) || !p) { $('avviso-aggiungi').textContent = 'Scrivi il numero della pressa.'; $('aggiungi-num').focus(); return; }
   if (PRESSE.includes(p)) { $('avviso-aggiungi').textContent = 'La pressa ' + p + ' è già nell\'elenco.'; return; }
   const articolo = $('aggiungi-articolo').value.trim(), cifre = $('aggiungi-commessa').value.trim().replace(/^P/i, '');
+  if (commessaSospetta(cifre, true, $('aggiungi-ok'), t => { $('avviso-aggiungi').textContent = t; })) return;
   const nuova = { pressa: p, ora: new Date().toISOString(), nome: accesso.nome };
   const avvio = !$('vista-produzione').hidden;           // da Produzione: avvio macchina, la pressa aspetta l'ok della qualità
   if (avvio) { const a = new Date(); a.setSeconds(0, 0); nuova.attesa_qualita = true; nuova.avvio = a.toISOString(); }
@@ -2106,6 +2141,7 @@ $('salva-campi').onclick = () => {
   if (p == null || !inTurno()) return;
   const articolo = $('articolo').value.trim(), cifre = $('commessa').value.trim().replace(/^P/i, '');
   if (!articolo && !cifre) { $('avviso-salva').textContent = 'Scrivi articolo o commessa.'; $('articolo').focus(); return; }
+  if (commessaSospetta(cifre, ('P' + cifre) !== commessaCorrente(p).commessa, $('salva-campi'), t => { $('avviso-salva').textContent = t; })) return;
   const campi = { articolo: articolo || null, commessa: cifre ? 'P' + cifre : null, ora: new Date().toISOString(), nome: accesso.nome };
   infoPresse[p] = { ...infoPresse[p], articolo, commessa: campi.commessa || '', ora: campi.ora };   // attesa e avvio restano
   db.aggiornaPressa(p, campi).catch(erroreDati);
@@ -2271,6 +2307,7 @@ $('cicli-input').oninput = () => {
 };
 
 function azzera() {
+  annullaConfermaCommessa();
   controllo = false;
   cicliConfermati = null; $('salva').textContent = 'Salva';
   $('cicli-input').value = '';
@@ -2284,6 +2321,8 @@ function registra() {
   const cicli = Number(testo);
   if (!testo || !Number.isInteger(cicli) || cicli < 0) { $('avviso-salva').textContent = 'Scrivi il numero dei cicli totali.'; $('cicli-input').focus(); return; }
   if (optFermo.checked && !motivo) { apriMotivi(); return; }      // per sicurezza: senza motivo non si salva il fermo
+  const cifreC = $('commessa').value.trim().replace(/^P/i, '');   // commessa cambiata nella lettura: se non torna con la data, si chiede conferma
+  if (commessaSospetta(cifreC, ('P' + cifreC) !== commessaCorrente(pressaAperta).commessa, $('salva'), t => { $('avviso-salva').textContent = t; })) return;
   const adesso = oraFine || oraDiScrittura();
   const avviso = t => { $('avviso-salva').textContent = t; };
   if (!$('ripartenza').hidden && !ripScelta) { avviso('Indica quando è ripartita la pressa, o se è ancora ferma.'); $('ripartenza').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
