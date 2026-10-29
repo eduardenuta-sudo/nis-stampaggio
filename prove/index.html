@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029111531">
+<meta name="versione" content="20261029112010">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1410,12 +1410,13 @@ function presseArrivate(elenco, dalServer) {
     return;
   }
   if (dalServer) salva(CHIAVE_FATTO, true);
-  PRESSE = elenco.map(x => Number(x.pressa));
-  infoPresse = {};
-  elenco.forEach(x => { infoPresse[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '' }; });
+  const nuove = elenco.map(x => Number(x.pressa)).sort((a, b) => a - b), info = {};
+  elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '' }; });
+  if (JSON.stringify(nuove) === JSON.stringify([...PRESSE].sort((a, b) => a - b)) && JSON.stringify(info) === JSON.stringify(infoPresse)) return;   // niente di nuovo (es. solo la sincronizzazione)
+  PRESSE = nuove; infoPresse = info;
   salvaPresse(); salva(PREF + 'info-presse', infoPresse);
   if (pressaAperta != null && !PRESSE.includes(pressaAperta)) chiudi();
-  if (!$('vista-leggi').hidden && !trascinato) { disegnaElencoPresse(); disegnaRiepilogo(); }
+  if (!$('vista-leggi').hidden && !trascinato && pressaAperta == null) { disegnaElencoPresse(); disegnaRiepilogo(); }
 }
 $('aggiungi-apri').onclick = () => {
   if (!inTurno()) return;
@@ -2324,7 +2325,8 @@ function datiArrivati(nuove) {
   letture = nuove.filter(l => l && Number.isFinite(Number(l.pressa)) && Number.isFinite(Number(l.cicli)) && /^[\w-]+$/.test(String(l.id)))
     .map(l => ({ ...l, pressa: Number(l.pressa), cicli: Number(l.cicli) }));
   aggiornaFerme();
-  if (!$('vista-leggi').hidden && !trascinato) { disegnaElencoPresse(); disegnaRiepilogo(); }
+  // con una pressa aperta l'elenco non si ricostruisce: sposterebbe il pannello e fermerebbe lo scorrimento (si ridisegna alla chiusura)
+  if (!$('vista-leggi').hidden && !trascinato) { if (pressaAperta == null) disegnaElencoPresse(); disegnaRiepilogo(); }
   if (!$('vista-storico').hidden) disegnaStorico();
   if (!$('vista-home').hidden) disegnaHome();
   if (!$('vista-produzione').hidden) disegnaProduzione();
