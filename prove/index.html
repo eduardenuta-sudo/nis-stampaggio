@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029152923">
-<meta name="aggiornamento" content="71">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029153705">
+<meta name="aggiornamento" content="72">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1173,6 +1173,13 @@ function ultimaLettura(p) { for (let i = letture.length - 1; i >= 0; i--) if (le
 const eFermo = l => !!l && (l.fermo === true || l.evento === 'fermo');
 const eFerma = l => eFermo(l) && !l.ripartita_alle;
 const eFine = l => !!l && (l.fine_commessa === true || l.evento === 'fine_commessa');
+// un fermo senza cicli resta "in attesa" finché nel suo turno non si legge la pressa: la lettura lo assorbe (non si vedono due righe),
+// il fermo resta nel database e nei conti. Se la lettura viene eliminata, il fermo torna in attesa.
+function lettureAssorbente(s) {
+  const t = chiaveTurno(turnoDi(new Date(s.ora)));
+  return letture.find(x => x.pressa === s.pressa && !eSolo(x) && x.ora > s.ora && chiaveTurno(turnoDi(new Date(x.ora))) === t) || null;
+}
+const eAssorbito = l => eSolo(l) && !!lettureAssorbente(l);
 function aggiornaFerme() { ferme = PRESSE.filter(p => eFerma(ultimaLettura(p))); }
 aggiornaFerme();
 // minuti di fermo della pressa nel turno in corso, fino ad adesso (anche il fermo ancora aperto)
@@ -1204,7 +1211,8 @@ function testoEvento(l, opz) {
   }
   if (eFermo(l)) {
     const m = TESTO_MOTIVO[l.motivo] || '';
-    parti.push((eSolo(l) ? 'Fermo dalle ' + new Date(l.ora).toTimeString().slice(0, 5) : 'Fermo') + (m ? ' · ' + m : '') + (l.motivo === 'altro' && l.nota ? ': ' + l.nota : ''));
+    const inizio = eSolo(l) ? l : letture.find(x => eSolo(x) && lettureAssorbente(x) === l);   // il fermo assorbito dà l'ora d'inizio
+    parti.push((inizio ? 'Fermo dalle ' + new Date(inizio.ora).toTimeString().slice(0, 5) : 'Fermo') + (m ? ' · ' + m : '') + (l.motivo === 'altro' && l.nota ? ': ' + l.nota : ''));
     if (l.ripartita_alle) {
       const min = Math.round((new Date(l.ripartita_alle) - new Date(l.ora)) / 60000);   // quanto è stata ferma: dalla lettura con Fermo alla ripartenza
       if (min >= 1) parti.push(testoDurata(min));
@@ -2025,7 +2033,7 @@ function disegnaRighe() {
     const lp = delTurno.filter(l => l.pressa === p && !eSolo(l)), rp = [];
     lp.forEach((l, k) => { if (eFine(l) || k === lp.length - 1) rp.push(l); });
     rp.forEach(l => righe.push({ pressa: p, lettura: l, piu: rp.length > 1 }));   // le presse non lette non compaiono
-    delTurno.filter(l => l.pressa === p && eSolo(l)).forEach(l => righe.push({ pressa: p, lettura: l, piu: false }));   // i fermi senza cicli
+    delTurno.filter(l => l.pressa === p && eSolo(l) && !eAssorbito(l)).forEach(l => righe.push({ pressa: p, lettura: l, piu: false }));   // i fermi senza cicli ancora in attesa di lettura
   });
   const segnate = righe.filter(r => eSegnata(r.lettura)).length;
   // correzione ed eliminazione: solo sulle proprie letture (il responsabile su tutte); sulle altrui si può solo togliere un "Riparte ora"
@@ -2202,6 +2210,7 @@ function disegnaStorico() {
     };
   });
   $('storico-elenco').innerHTML = letture.map((l, i) => {
+    if (eAssorbito(l)) return '';                    // già dentro la lettura che lo segue
     const d = new Date(l.ora), delta = cicliDaUltima(i), ev = testoEvento(l), dur = durateLettura(i);
     if (eSolo(l)) return '<div class="card' + (mie(l) || l.ripartita_alle ? ' storico-card" data-cor="' + l.id : '') + '"><div class="st-testa"><b>Pressa ' + l.pressa + '</b><span class="piccolo">' + dataIt(d) + ' · ' + oraIt(d) + '</span></div>' +
       '<span class="ev">' + esc(ev) + '</span>' + (l.nome ? '<div class="letta-da" style="margin-top:8px">Registrato da ' + esc(l.nome) + '</div>' : '') + '</div>';
