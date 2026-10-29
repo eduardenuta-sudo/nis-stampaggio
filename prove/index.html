@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029154730">
-<meta name="aggiornamento" content="74">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029155242">
+<meta name="aggiornamento" content="75">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -313,11 +313,12 @@ if (/prove/.test(location.pathname)) {
   .pressa-btn .st.letta { color: var(--giallo); font: 700 1.5rem/1 var(--font-titoli); letter-spacing: .05em; }
   /* Produzione: una scheda per pressa, con il disegno della pressa (corpo giallo la 68 e la 69, blu le altre; torre di luci e stampo secondo lo stato) */
   .pressa-prod { position: relative; display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
-  .pressa-prod .testa-prod { display: flex; align-items: baseline; gap: 14px; }
+  .pressa-prod .testa-prod { display: flex; align-items: baseline; gap: 14px; position: relative; top: -8px; }   /* spostamenti solo visivi: il numero della pressa resta dov'è */
   .pressa-prod .art { font: 700 1.7rem/1 var(--font-titoli); letter-spacing: .06em; color: #fff; }
   .pressa-prod .comm { font-size: .85rem; color: var(--muted); letter-spacing: .04em; }
   .pressa-prod .corpo-prod { position: relative; }
-  .pressa-prod .dis-pressa { width: 76%; margin: 0 auto; display: block; }
+  .pressa-prod .dis-pressa { width: 76%; margin: 0 auto; display: block; position: relative; top: -14px; }
+  .pressa-prod .strisce-prod { height: 36px; }   /* spazio sotto la pressa per le due strisce */
   .pressa-prod .num-angolo { position: absolute; top: 50%; transform: translateY(-50%); left: 2px; z-index: 1; font: 700 1.7rem/1 var(--font-titoli); letter-spacing: .06em; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
   .dis-pressa { width: calc(100% + 28px); max-width: none; height: auto; aspect-ratio: 320 / 125; margin: -6px -14px -4px; --scuro:#0f2147; --acciaio:#8fa0c4; --metallo:#d6deee; --o-rosso:.18; --o-blu:.18; --o-verde:1; overflow: visible; }
   .dis-pressa.pr-gialla { --corpo:#c8d92f; } .dis-pressa.pr-blu { --corpo:#2f8fe0; }
@@ -1355,7 +1356,7 @@ function disegnaProduzione() {
   if (!box.childElementCount) {
     const esempi = [[68, false], [40, false], [55, true, 'manutenzione'], [69, false], [67, true, 'mancanza_materiale'], [33, true, 'mancanza_operatore']];
     box.innerHTML = esempi.map(([p, ferma, motivo]) => '<div class="card pressa-prod" data-p="' + p + '"><div class="testa-prod"></div>' +
-      '<div class="corpo-prod"><span class="num-angolo">' + p + '</span>' + disegnoPressa(p, ferma, { motivo }) + '</div></div>').join('');
+      '<div class="corpo-prod"><span class="num-angolo">' + p + '</span>' + disegnoPressa(p, ferma, { motivo }) + '</div><div class="strisce-prod"></div></div>').join('');
   }
   // articolo e commessa si aggiornano a ogni arrivo di dati, senza ridisegnare le presse (il movimento non deve ripartire)
   box.querySelectorAll('.pressa-prod').forEach(c => {
