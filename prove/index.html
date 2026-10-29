@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029114230">
+<meta name="versione" content="20261029114842">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1762,17 +1762,21 @@ function scorriA(y, ms = 450) {
   animScorri = requestAnimationFrame(passo);
 }
 addEventListener('touchstart', () => cancelAnimationFrame(animScorri), { passive: true });
-const altoStriscia = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--alto-striscia')) || 0;
-// Con la tastiera aperta: la pressa resta in cima e la casella che si sta compilando sopra la tastiera
-// (se non entrano tutte e due, vince la casella)
+// Con la tastiera aperta la pagina resta ferma; sale solo se la casella che si sta compilando è coperta dalla tastiera
 function casellaInVista() {
-  const vv = window.visualViewport, el = document.activeElement, voce = document.querySelector('.voce.aperta');
-  if (!vv || !voce || !el || !$('pannello-lettura').contains(el)) return;
+  const vv = window.visualViewport, el = document.activeElement;
+  if (!vv || !el || !$('pannello-lettura').contains(el)) return;
   const riga = el === $('cicli-input') ? el.closest('.riga-salva') : el.closest('.campo') || el;
   const basta = riga.getBoundingClientRect().bottom + 16 - (vv.offsetTop + vv.height);
-  const cima = voce.getBoundingClientRect().top - vv.offsetTop - altoStriscia() - 8;
-  scorriA(window.scrollY + Math.max(basta, cima));
+  if (basta > 0) scorriA(window.scrollY + basta);
 }
+// iPhone non chiude la tastiera toccando lo sfondo: lo fa l'app (tocco fuori da caselle e pulsanti)
+document.addEventListener('touchend', e => {
+  const el = document.activeElement;
+  if (!el || !/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+  if (e.target.closest('input, textarea, select, button, label, a, dialog')) return;
+  el.blur();
+}, { passive: true });
 // un solo aggiustamento, quando la tastiera ha finito di salire (niente salti su e giù mentre iPhone sposta la pagina)
 let attesaTastiera = null;
 const dopoTastiera = ms => { clearTimeout(attesaTastiera); attesaTastiera = setTimeout(casellaInVista, ms); };
