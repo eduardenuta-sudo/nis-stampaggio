@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029113553">
+<meta name="versione" content="20261029113923">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1610,15 +1610,30 @@ $('conferma-riparte').onclick = () => {
   $('msg').textContent = 'Pressa ' + p + ' ripartita alle ' + ripData.toTimeString().slice(0, 5) + '.';
 };
 
+// la pressa scivola morbida da dov'era sullo schermo a dove arriva (aprendo: in cima; chiudendo: al suo posto nell'elenco)
+const topDi = p => { const v = document.querySelector('.voce[data-p="' + p + '"]'); return v ? v.getBoundingClientRect().top : null; };
+function scivola(p, da) {
+  const v = document.querySelector('.voce[data-p="' + p + '"]');
+  if (da == null || !v || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const dy = da - v.getBoundingClientRect().top;
+  if (Math.abs(dy) < 2) return;
+  v.style.transition = 'none'; v.style.transform = 'translateY(' + dy + 'px)';
+  v.offsetHeight;                                  // parte da dov'era, poi va al suo posto
+  v.style.transition = 'transform .5s cubic-bezier(.22,1,.36,1)'; v.style.transform = '';
+  setTimeout(() => { v.style.transition = ''; }, 550);
+}
+let scrollPrima = 0;                               // dove si era nell'elenco prima di aprire: chiudendo si torna lì
 function apri(p) {
   if (pressaAperta === p) { chiudi(); return; }
   if (!inTurno()) return;                          // fuori turno la tendina non si apre
+  const da = topDi(p); scrollPrima = window.scrollY;
   pressaAperta = p; pressaScelta = p; ricordaPressa();
   $('msg').textContent = '';
   azzera();
   preparaCampi(p);
   disegnaElencoPresse();
   window.scrollTo(0, 0);                           // le altre presse sono nascoste: la pressa aperta è già in cima
+  scivola(p, da);
   // il tastierino numerico si apre subito: sull'articolo se la tendina si è aperta da sola (manca), altrimenti sui cicli
   ($('tendina-campi').classList.contains('aperta') ? $('articolo') : $('cicli-input')).focus({ preventScroll: true });
   const u = ultimaLettura(p);
@@ -1640,9 +1655,11 @@ $('annulla-riprendi').onclick = () => dialogoRiprendi.close();
 dialogoRiprendi.addEventListener('click', e => { if (e.target === dialogoRiprendi) dialogoRiprendi.close(); });
 function chiudi() {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // su iPhone la tastiera resta aperta se il cursore è nella casella che sparisce
+  const p = pressaAperta, da = p != null ? topDi(p) : null;
   pressaAperta = null;
   azzera();
   disegnaElencoPresse();
+  if (p != null) { window.scrollTo(0, scrollPrima); scivola(p, da); }
 }
 
 // articolo, commessa, ore e ripartenza: si preparano a ogni apertura della tendina
@@ -1732,12 +1749,12 @@ $('ore-input').oninput = () => { oreManuali = true; $('avviso-salva').textConten
 // Scorrimento animato fatto dall'app, un fotogramma alla volta: quello del browser su iPhone si ferma quando sale la tastiera.
 // Si interrompe solo se si tocca lo schermo.
 let animScorri = null;
-function scorriA(y, ms = 320) {
+function scorriA(y, ms = 450) {
   cancelAnimationFrame(animScorri);
   const da = window.scrollY, t0 = performance.now();
   if (Math.abs(y - da) < 2) return;
   const passo = t => {
-    const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+    const k = Math.min(1, (t - t0) / ms), e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;   // parte e arriva piano
     window.scrollTo(0, da + (y - da) * e);
     if (k < 1) animScorri = requestAnimationFrame(passo);
   };
