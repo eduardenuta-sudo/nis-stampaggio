@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029103943">
+<meta name="versione" content="20261029104354">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -346,6 +346,16 @@ if (/prove/.test(location.pathname)) {
   .pannello[hidden] { display: none; }
   @keyframes apri { from { opacity: 0; transform: translateY(-10px); } }
   .blocco { margin-top: 22px; }
+  /* pannello di lettura più stretto in altezza: con la tastiera aperta casella dei cicli e Salva restano in vista */
+  #pannello-lettura { margin-top: 14px; padding: 14px 18px 18px; }
+  #pannello-lettura .blocco { margin-top: 14px; }
+  #pannello-lettura #azioni-fermo { margin-top: 0; }
+  #pannello-lettura #azioni-fermo button.salva { padding: 14px 22px; }
+  #pannello-lettura button#cambia-campi { margin-top: 12px; }
+  #pannello-lettura .ore-riga { display: flex; align-items: center; gap: 12px; }
+  #pannello-lettura .ore-riga label { flex: 1; margin-bottom: 0; }
+  #pannello-lettura .ore-riga input.testo { flex: none; width: 96px; padding: 7px 10px; border-radius: 14px; text-align: center; }
+  #pannello-lettura #ore-conti { margin-top: 8px !important; }
   .msg { min-height: 1.3em; margin: -6px 0 18px; color: var(--giallo); font-weight: 600; }
   .titolo-sez { font: italic 700 1.5rem/1 var(--font-titoli); letter-spacing: .07em; text-transform: uppercase; color: #fff; margin: 0 0 18px; }
 
@@ -654,8 +664,10 @@ if (/prove/.test(location.pathname)) {
     </div>
     </div></div>
     <div class="blocco campo">
-      <label for="ore-input">Ore lavorate (calcolate, puoi cambiarle)</label>
-      <input class="testo" id="ore-input" inputmode="decimal" placeholder="es. 7:30">
+      <div class="ore-riga">
+        <label for="ore-input">Ore lavorate</label>   <!-- calcolate dall'app, si possono cambiare -->
+        <input class="testo" id="ore-input" inputmode="decimal" placeholder="es. 7:30">
+      </div>
       <p class="piccolo" id="ore-conti" style="margin:10px 0 0"></p>
     </div>
 
@@ -1684,6 +1696,15 @@ $('cambia-campi').onclick = () => {
 };
 $('rip-ora').onchange = () => { oreManuali = false; aggiornaOre(); };
 $('ore-input').oninput = () => { oreManuali = true; $('avviso-salva').textContent = ''; };
+// iPhone: quando si apre la tastiera, se copre la casella dei cicli e Salva, la pagina sale quanto basta
+function cicliInVista() {
+  const vv = window.visualViewport;
+  if (!vv || document.activeElement !== $('cicli-input')) return;
+  const giu = $('cicli-input').closest('.riga-salva').getBoundingClientRect().bottom + 16 - (vv.offsetTop + vv.height);
+  if (giu > 0) window.scrollBy({ top: giu, behavior: 'smooth' });
+}
+if (window.visualViewport) visualViewport.addEventListener('resize', () => setTimeout(cicliInVista, 60));
+$('cicli-input').addEventListener('focus', () => setTimeout(cicliInVista, 400));
 
 // opzioni da spuntare prima di salvare. Spuntando "Fermo macchina" si apre subito la finestra del motivo,
 // così al momento di salvare il motivo è già pronto.
