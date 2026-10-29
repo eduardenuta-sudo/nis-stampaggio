@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029114842">
+<meta name="versione" content="20261029115705">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -247,12 +247,13 @@ if (/prove/.test(location.pathname)) {
   #ripartenza[hidden], #rip-ora-blocco[hidden] { display: none; }
   #rip-ora-blocco { margin-top: 18px; }
   /* "Cambia articolo o commessa": pulsante sottile; le caselle escono verso il basso e rientrano verso l'alto */
-  button#cambia-campi { width: auto; display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; padding: 7px 12px 7px 14px; border-radius: 16px; font-size: .82rem; }
+  button#cambia-campi { width: auto; display: flex; align-items: center; gap: 6px; margin-top: 16px; margin-left: auto; margin-right: auto;   /* al centro */
+    padding: 7px 12px 7px 14px; border-radius: 16px; font-size: .82rem; }
   button#cambia-campi .chev { width: 16px; height: 16px; stroke-width: 3; }
   button#cambia-campi[aria-expanded="true"] .chev { transform: rotate(180deg); }
   .tendina { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s cubic-bezier(.16,1,.3,1); }
   .tendina.aperta { grid-template-rows: 1fr; }
-  .tendina > div { overflow: hidden; min-height: 0; transition: visibility .3s; }
+  .tendina > div { overflow: hidden; min-height: 0; transition: visibility .3s; padding: 0 6px; margin: 0 -6px; }   /* spazio ai lati: il bordo giallo della casella attiva non resta tagliato */
   .tendina:not(.aperta) > div { visibility: hidden; }   /* chiusa: le caselle non si raggiungono con la tastiera */
 
   /* orologio di "Riparte ora": ora grande, quattro pulsanti per spostarla */
@@ -346,6 +347,19 @@ if (/prove/.test(location.pathname)) {
   .pannello[hidden] { display: none; }
   @keyframes apri { from { opacity: 0; transform: translateY(-10px); } }
   .blocco { margin-top: 22px; }
+  /* pannello di lettura più stretto in altezza: con la tastiera aperta casella dei cicli e Salva restano in vista */
+  #pannello-lettura { margin-top: 14px; padding: 14px 18px 18px; }
+  #pannello-lettura .blocco { margin-top: 14px; }
+  #pannello-lettura #azioni-fermo { margin-top: 0; }
+  #pannello-lettura #azioni-fermo button.salva { padding: 14px 22px; }
+  #pannello-lettura button#cambia-campi { margin-top: 12px; }
+  #pannello-lettura .ore-riga { display: flex; align-items: center; gap: 12px; }
+  #pannello-lettura .ore-riga label { flex: 1; margin-bottom: 0; }
+  #pannello-lettura .ore-riga input.testo { flex: none; width: 96px; padding: 7px 10px; border-radius: 14px; text-align: center; }
+  /* pressa aperta: resta solo lei col suo pannello, in cima; il resto torna quando si chiude (niente scorrimento da rincorrere con la tastiera) */
+  body.lettura-aperta #testata, body.lettura-aperta #vista-leggi .avanz, body.lettura-aperta #vista-leggi .aggiungi,
+  body.lettura-aperta #vista-leggi .riepilogo, body.lettura-aperta #elenco-presse .sep, body.lettura-aperta #elenco-presse .voce:not(.aperta) { display: none !important; }
+  .voce { scroll-margin-top: calc(var(--alto-striscia, 0px) + 8px); }   /* la pressa aperta si ferma sotto la striscia SVILUPPATORE */
   .msg { min-height: 1.3em; margin: -6px 0 18px; color: var(--giallo); font-weight: 600; }
   .titolo-sez { font: italic 700 1.5rem/1 var(--font-titoli); letter-spacing: .07em; text-transform: uppercase; color: #fff; margin: 0 0 18px; }
 
@@ -652,11 +666,14 @@ if (/prove/.test(location.pathname)) {
       <div class="campo"><label for="commessa">Commessa</label>
         <div class="prefisso"><span aria-hidden="true">P</span><input class="testo" id="commessa" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div></div>
     </div>
+    <!-- anche senza i cicli: restano per tutti fino alla prima lettura -->
+    <button id="salva-campi" class="annulla" style="margin-top:12px">Salva articolo e commessa</button>
     </div></div>
     <div class="blocco campo">
-      <label for="ore-input">Ore lavorate (calcolate, puoi cambiarle)</label>
-      <input class="testo" id="ore-input" inputmode="decimal" placeholder="es. 7:30">
-      <p class="piccolo" id="ore-conti" style="margin:10px 0 0"></p>
+      <div class="ore-riga">
+        <label for="ore-input">Ore lavorate</label>   <!-- calcolate dall'app, si possono cambiare -->
+        <input class="testo" id="ore-input" inputmode="decimal" placeholder="es. 7:30">
+      </div>
     </div>
 
     <!-- Salva accanto al numero: il tastierino numerico di iPhone non ha Invio e coprirebbe un pulsante più in basso -->
@@ -666,6 +683,8 @@ if (/prove/.test(location.pathname)) {
         <input class="manuale" id="cicli-input" inputmode="numeric" pattern="[0-9]*" placeholder="es. 3630">
         <button id="salva" class="salva">Salva</button>
       </div>
+      <!-- informazioni in più, sotto i cicli: con la tastiera aperta possono restare coperte -->
+      <p class="piccolo" id="ore-conti" style="margin:14px 0 0"></p>
     </div>
 
     <div class="avviso" id="avviso-salva" role="alert"></div>
@@ -893,6 +912,11 @@ async function dbFirebase(cfg) {
     },
     aggiungiPressa(d) { return F.setDoc(F.doc(fs, 'reparti', rep, 'presse', String(d.pressa)), { ...d, uid }); },
     togliPressa(p) { return F.deleteDoc(F.doc(fs, 'reparti', rep, 'presse', String(p))); },
+    aggiornaPressa(p, campi) {
+      const c = { uid };
+      for (const k in campi) c[k] = campi[k] == null ? F.deleteField() : campi[k];
+      return F.updateDoc(F.doc(fs, 'reparti', rep, 'presse', String(p)), c);
+    },
     ascolta(cb, errore) {
       const da = new Date(Date.now() - GIORNI_LETTURE * 864e5).toISOString();
       return F.onSnapshot(F.query(coll(), F.where('ora', '>=', da), F.orderBy('ora')), s => cb(s.docs.map(d => ({ ...d.data(), id: d.id }))), errore);
@@ -969,6 +993,11 @@ function dbFinto() {
       cambiaRep(r => { r.presse = { ...(r.presse || {}), [d.pressa]: { ...d, uid } }; }); return Promise.resolve();
     },
     togliPressa(p) { cambiaRep(r => { const x = { ...(r.presse || {}) }; delete x[p]; r.presse = x; }); return Promise.resolve(); },
+    aggiornaPressa(p, campi) {
+      if (!((reparti()[rep] || {}).presse || {})[p]) return vietato();
+      cambiaRep(r => { const n = { ...r.presse[p], uid }; for (const k in campi) { if (campi[k] == null) delete n[k]; else n[k] = campi[k]; } r.presse = { ...r.presse, [p]: n }; });
+      return Promise.resolve();
+    },
     ascolta(cb) { ascoltatore = cb; avvisa(); },
     nuovoId() { return 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); },
     scrivi(l) {
@@ -1232,6 +1261,7 @@ function vai(nome) {
   if (!accesso || accesso.attesa) nome = 'entra';  // senza codice reparto (o in attesa di conferma) si resta alla schermata di accesso
   else if (nome === 'entra') nome = 'home';
   VISTE.forEach(v => { $('vista-' + v).hidden = v !== nome; });
+  if (nome !== 'leggi') document.body.classList.remove('lettura-aperta');
   $('testata').hidden = nome === 'home' || nome === 'entra';
   document.body.classList.toggle('home', nome === 'home');
   
@@ -1315,6 +1345,7 @@ function disegnoPressa(p, ferma, u) {
 }
 // presse in funzione in cima, ferme in fondo; ognuna è un pulsante che apre la sua tendina
 function disegnaElencoPresse() {
+  document.body.classList.toggle('lettura-aperta', pressaAperta != null && !$('vista-leggi').hidden);
   casaPannello.appendChild(pannello);       // lo metto al sicuro prima di ricostruire l'elenco
   const lette = ultimePerPressa(chiaveTurno(turnoDi(new Date())));
   const scr = scrivibile();
@@ -1383,12 +1414,13 @@ function presseArrivate(elenco, dalServer) {
     return;
   }
   if (dalServer) salva(CHIAVE_FATTO, true);
-  PRESSE = elenco.map(x => Number(x.pressa));
-  infoPresse = {};
-  elenco.forEach(x => { infoPresse[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '' }; });
+  const nuove = elenco.map(x => Number(x.pressa)).sort((a, b) => a - b), info = {};
+  elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '' }; });
+  if (JSON.stringify(nuove) === JSON.stringify([...PRESSE].sort((a, b) => a - b)) && JSON.stringify(info) === JSON.stringify(infoPresse)) return;   // niente di nuovo (es. solo la sincronizzazione)
+  PRESSE = nuove; infoPresse = info;
   salvaPresse(); salva(PREF + 'info-presse', infoPresse);
   if (pressaAperta != null && !PRESSE.includes(pressaAperta)) chiudi();
-  if (!$('vista-leggi').hidden && !trascinato) { disegnaElencoPresse(); disegnaRiepilogo(); }
+  if (!$('vista-leggi').hidden && !trascinato && pressaAperta == null) { disegnaElencoPresse(); disegnaRiepilogo(); }
 }
 $('aggiungi-apri').onclick = () => {
   if (!inTurno()) return;
@@ -1579,16 +1611,32 @@ $('conferma-riparte').onclick = () => {
   $('msg').textContent = 'Pressa ' + p + ' ripartita alle ' + ripData.toTimeString().slice(0, 5) + '.';
 };
 
+// la pressa scivola morbida da dov'era sullo schermo a dove arriva (aprendo: in cima; chiudendo: al suo posto nell'elenco)
+const topDi = p => { const v = document.querySelector('.voce[data-p="' + p + '"]'); return v ? v.getBoundingClientRect().top : null; };
+function scivola(p, da) {
+  const v = document.querySelector('.voce[data-p="' + p + '"]');
+  if (da == null || !v || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const dy = da - v.getBoundingClientRect().top;
+  if (Math.abs(dy) < 2) return;
+  v.style.transition = 'none'; v.style.transform = 'translateY(' + dy + 'px)';
+  v.offsetHeight;                                  // parte da dov'era, poi va al suo posto
+  v.style.transition = 'transform .5s cubic-bezier(.22,1,.36,1)'; v.style.transform = '';
+  setTimeout(() => { v.style.transition = ''; }, 550);
+}
+let scrollPrima = 0;                               // dove si era nell'elenco prima di aprire: chiudendo si torna lì
 function apri(p) {
   if (pressaAperta === p) { chiudi(); return; }
   if (!inTurno()) return;                          // fuori turno la tendina non si apre
+  const da = topDi(p); scrollPrima = window.scrollY;
   pressaAperta = p; pressaScelta = p; ricordaPressa();
   $('msg').textContent = '';
   azzera();
   preparaCampi(p);
   disegnaElencoPresse();
-  document.querySelector('.voce.aperta').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  $('cicli-input').focus({ preventScroll: true });   // il tastierino numerico si apre subito
+  window.scrollTo(0, 0);                           // le altre presse sono nascoste: la pressa aperta è già in cima
+  scivola(p, da);
+  // il tastierino numerico si apre subito: sull'articolo se la tendina si è aperta da sola (manca), altrimenti sui cicli
+  ($('tendina-campi').classList.contains('aperta') ? $('articolo') : $('cicli-input')).focus({ preventScroll: true });
   const u = ultimaLettura(p);
   if (eFine(u) && !u.partenza_commessa) chiediRipresa(p);   // dopo "Fine commessa": commessa nuova o la stessa di prima
 }
@@ -1608,9 +1656,11 @@ $('annulla-riprendi').onclick = () => dialogoRiprendi.close();
 dialogoRiprendi.addEventListener('click', e => { if (e.target === dialogoRiprendi) dialogoRiprendi.close(); });
 function chiudi() {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // su iPhone la tastiera resta aperta se il cursore è nella casella che sparisce
+  const p = pressaAperta, da = p != null ? topDi(p) : null;
   pressaAperta = null;
   azzera();
   disegnaElencoPresse();
+  if (p != null) { window.scrollTo(0, scrollPrima); scivola(p, da); }
 }
 
 // articolo, commessa, ore e ripartenza: si preparano a ogni apertura della tendina
@@ -1677,6 +1727,19 @@ function mostraCampi(aperti) {
   $('tendina-campi').classList.toggle('aperta', aperti);
   $('cambia-campi').setAttribute('aria-expanded', String(aperti));
 }
+$('salva-campi').onclick = () => {
+  const p = pressaAperta;
+  if (p == null || !inTurno()) return;
+  const articolo = $('articolo').value.trim(), cifre = $('commessa').value.trim().replace(/^P/i, '');
+  if (!articolo && !cifre) { $('avviso-salva').textContent = 'Scrivi articolo o commessa.'; $('articolo').focus(); return; }
+  const campi = { articolo: articolo || null, commessa: cifre ? 'P' + cifre : null, ora: new Date().toISOString(), nome: accesso.nome };
+  infoPresse[p] = { articolo, commessa: campi.commessa || '', ora: campi.ora };
+  db.aggiornaPressa(p, campi).catch(erroreDati);
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  mostraCampi(false);
+  $('avviso-salva').textContent = '';
+  $('msg').textContent = 'Pressa ' + p + ': ' + [articolo && 'articolo ' + articolo, campi.commessa && 'commessa ' + campi.commessa].filter(Boolean).join(', ') + ' salvati.';
+};
 $('cambia-campi').onclick = () => {
   const aprire = !$('tendina-campi').classList.contains('aperta');
   mostraCampi(aprire);
@@ -1684,6 +1747,41 @@ $('cambia-campi').onclick = () => {
 };
 $('rip-ora').onchange = () => { oreManuali = false; aggiornaOre(); };
 $('ore-input').oninput = () => { oreManuali = true; $('avviso-salva').textContent = ''; };
+// Scorrimento animato fatto dall'app, un fotogramma alla volta: quello del browser su iPhone si ferma quando sale la tastiera.
+// Si interrompe solo se si tocca lo schermo.
+let animScorri = null;
+function scorriA(y, ms = 450) {
+  cancelAnimationFrame(animScorri);
+  const da = window.scrollY, t0 = performance.now();
+  if (Math.abs(y - da) < 2) return;
+  const passo = t => {
+    const k = Math.min(1, (t - t0) / ms), e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;   // parte e arriva piano
+    window.scrollTo(0, da + (y - da) * e);
+    if (k < 1) animScorri = requestAnimationFrame(passo);
+  };
+  animScorri = requestAnimationFrame(passo);
+}
+addEventListener('touchstart', () => cancelAnimationFrame(animScorri), { passive: true });
+// Con la tastiera aperta la pagina resta ferma; sale solo se la casella che si sta compilando è coperta dalla tastiera
+function casellaInVista() {
+  const vv = window.visualViewport, el = document.activeElement;
+  if (!vv || !el || !$('pannello-lettura').contains(el)) return;
+  const riga = el === $('cicli-input') ? el.closest('.riga-salva') : el.closest('.campo') || el;
+  const basta = riga.getBoundingClientRect().bottom + 16 - (vv.offsetTop + vv.height);
+  if (basta > 0) scorriA(window.scrollY + basta);
+}
+// iPhone non chiude la tastiera toccando lo sfondo: lo fa l'app (tocco fuori da caselle e pulsanti)
+document.addEventListener('touchend', e => {
+  const el = document.activeElement;
+  if (!el || !/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+  if (e.target.closest('input, textarea, select, button, label, a, dialog')) return;
+  el.blur();
+}, { passive: true });
+// un solo aggiustamento, quando la tastiera ha finito di salire (niente salti su e giù mentre iPhone sposta la pagina)
+let attesaTastiera = null;
+const dopoTastiera = ms => { clearTimeout(attesaTastiera); attesaTastiera = setTimeout(casellaInVista, ms); };
+if (window.visualViewport) visualViewport.addEventListener('resize', () => dopoTastiera(250));
+$('pannello-lettura').addEventListener('focusin', () => dopoTastiera(600));
 
 // opzioni da spuntare prima di salvare. Spuntando "Fermo macchina" si apre subito la finestra del motivo,
 // così al momento di salvare il motivo è già pronto.
@@ -2252,9 +2350,12 @@ $('esporta').onclick = async () => {
 {
   const s = document.createElement('div');
   s.className = PROVA ? 'striscia-prova' : 'striscia-beta';
-  s.textContent = PROVA ? 'SVILUPPATORE · v' + document.querySelector('meta[name="versione"]').content.slice(8, 12) : 'BETA 4';   // ora e minuti della versione: si vede subito se il telefono è aggiornato
+  s.textContent = PROVA ? 'SVILUPPATORE · v' + document.querySelector('meta[name="versione"]').content.slice(8, 12) : 'BETA 5';   // ora e minuti della versione: si vede subito se il telefono è aggiornato
   document.querySelector('.pagina').prepend(s);
   if (PROVA) document.title = 'NIS Sviluppatore';
+  // la striscia arancio resta in cima: la pressa aperta deve fermarsi sotto
+  const alto = () => document.documentElement.style.setProperty('--alto-striscia', (PROVA ? s.offsetHeight : 0) + 'px');
+  alto(); addEventListener('resize', alto);
 }
 // il codice del reparto è di 4 cifre; nel database il reparto si chiama "nis-" + codice. La versione di prova usa un reparto a parte
 const normaCodice = c => c.replace(/\D/g, '');
@@ -2265,7 +2366,8 @@ function datiArrivati(nuove) {
   letture = nuove.filter(l => l && Number.isFinite(Number(l.pressa)) && Number.isFinite(Number(l.cicli)) && /^[\w-]+$/.test(String(l.id)))
     .map(l => ({ ...l, pressa: Number(l.pressa), cicli: Number(l.cicli) }));
   aggiornaFerme();
-  if (!$('vista-leggi').hidden && !trascinato) { disegnaElencoPresse(); disegnaRiepilogo(); }
+  // con una pressa aperta l'elenco non si ricostruisce: sposterebbe il pannello e fermerebbe lo scorrimento (si ridisegna alla chiusura)
+  if (!$('vista-leggi').hidden && !trascinato) { if (pressaAperta == null) disegnaElencoPresse(); disegnaRiepilogo(); }
   if (!$('vista-storico').hidden) disegnaStorico();
   if (!$('vista-home').hidden) disegnaHome();
   if (!$('vista-produzione').hidden) disegnaProduzione();
