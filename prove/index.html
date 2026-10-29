@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029100502">
+<meta name="versione" content="20261029101058">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1918,7 +1918,8 @@ function oreProduzione(a, b) {
 // Fermi della pressa: [inizio, fine, escluso]. Un fermo va dalla lettura (o "Ferma la pressa") alla ripartenza; se è ancora aperto
 // arriva fino a finoA, così chi legge a fine turno con la pressa ferma ha il fermo fino alla fine del turno e il collega dopo
 // lo ritrova dall'inizio del suo, fino a quando riparte. escluso = true: tra una Fine commessa e la partenza della commessa nuova,
-// o la ripresa della stessa. Sono tempi di rendimento della pressa, non di produzione: non contano né come lavorate né come ferme.
+// o la ripresa della stessa in un turno dopo. Sono tempi di rendimento della pressa, non di produzione: non contano né come lavorate
+// né come ferme. Se la stessa commessa riprende nello stesso turno, la pausa è un fermo come gli altri.
 // chiudi: ripartenza scelta nella lettura che si sta scrivendo.
 function fermiDi(pressa, finoA, chiudi) {
   const lp = letture.filter(l => l.pressa === pressa), fermi = [];
@@ -1935,7 +1936,7 @@ function fermiDi(pressa, finoA, chiudi) {
       : eFermo(dopo) ? new Date(dopo.ora)                                     // ancora ferma alla lettura dopo
       : turnoDi(new Date(dopo.ora)).inizio;                                   // ripartita in un turno precedente (o non detto)
     if (fine < inizio) fine = inizio;
-    fermi.push([inizio, fine, !!l.ripresa_stessa]);
+    fermi.push([inizio, fine, !!l.ripresa_stessa && chiaveTurno(turnoDi(inizio)) !== chiaveTurno(turnoDi(fine))]);
   });
   return fermi;
 }
