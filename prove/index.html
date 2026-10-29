@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029181046">
-<meta name="aggiornamento" content="78">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029181652">
+<meta name="aggiornamento" content="79">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1551,10 +1551,12 @@ $('dati-salva').onclick = () => {
   infoPresse[p] = { ...i, articolo: campi.articolo === undefined ? i.articolo : articolo, commessa: campi.commessa === undefined ? i.commessa : commessa, ora: campi.ora || i.ora,
     quantita: q || 0, vani: v || 0, ciclo: c || 0, stampata: g || 0, mescola, kg, kgOra, datiPer: campi.dati_commessa || '' };
   salva(PREF + 'info-presse', infoPresse);
-  db.aggiornaPressa(p, campi).catch(erroreDati);
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-  $('avviso-dati').textContent = 'Dati salvati.';
+  $('avviso-dati').textContent = 'Salvo…';
   disegnaDatiRighe();
+  // "salvati" solo quando il database risponde di sì; se rifiuta, lo si dice qui (il messaggio in alto è di un'altra pagina)
+  db.aggiornaPressa(p, campi).then(() => { if (pressaDati === p && !$('vista-dati').hidden) $('avviso-dati').textContent = 'Dati salvati.'; })
+    .catch(e => { if (!$('vista-dati').hidden) $('avviso-dati').textContent = e && e.code === 'permission-denied' ? 'Il database non ha accettato i dati: non ha il permesso (le regole nuove sono state incollate in Console?).' : 'Il database non ha accettato i dati. Riprova.'; });
 };
 
 // presse in funzione in cima, ferme in fondo; ognuna è un pulsante che apre la sua tendina
