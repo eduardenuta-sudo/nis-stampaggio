@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029143329">
+<meta name="versione" content="20261029145535">
+<meta name="aggiornamento" content="67">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1142,6 +1143,12 @@ function testoFuoriTurno() {
     p.inizio.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'numeric' }) + ' alle ' + p.inizio.toTimeString().slice(0, 5) + '.' : '');
 }
 const scrivibile = () => !!mioTurno(new Date());
+// l'ora a cui si scrive: nei 15 minuti dopo la fine si scrive ancora nel turno che finisce, quindi un minuto prima della fine
+// (con l'ora vera, es. 14:05, la lettura finirebbe nel turno del collega con 0 ore)
+function oraDiScrittura() {
+  const adesso = new Date(), t = mioTurno(adesso);
+  return t && adesso >= t.fine ? new Date(t.fine.getTime() - 60000) : adesso;
+}
 // prima di ogni modifica: fuori turno si avvisa e non si fa niente
 function inTurno() {
   if (scrivibile()) return true;
@@ -1523,7 +1530,7 @@ function ferma(p) {
   ripPressa = p; ripModo = 'ferma';
   const u = ultimaLettura(p);
   ripMin = u ? alMinuto(u.ora) : turnoDi(new Date(Date.now() - 8 * 3600e3)).inizio;
-  ripData = alMinuto(new Date());
+  ripData = alMinuto(oraDiScrittura());
   if (ripData < ripMin) ripData = ripMin;
   $('riparte-pressa').textContent = p;
   $('titolo-riparte').firstChild.textContent = 'Pressa '; $('titolo-riparte').lastChild.textContent = ' ferma dalle';
@@ -1538,7 +1545,7 @@ function riparte(p, modo) {
     const t = turnoDi(new Date()).inizio;
     if (t > ripMin) ripMin = t;
   }
-  ripData = (ripModo === 'lettura' && dataRipartenza(new Date())) || alMinuto(new Date());   // se l'ora era già scelta si riparte da quella
+  ripData = (ripModo === 'lettura' && dataRipartenza(oraDiScrittura())) || alMinuto(oraDiScrittura());   // se l'ora era già scelta si riparte da quella
   if (ripData < ripMin) ripData = ripMin;
   $('riparte-pressa').textContent = p;
   $('titolo-riparte').firstChild.textContent = ripModo === 'nuova' ? 'Commessa nuova, pressa ' : ripModo === 'vecchia' ? 'Stessa commessa, pressa ' : 'Pressa ';
@@ -1548,7 +1555,7 @@ function riparte(p, modo) {
 }
 document.querySelectorAll('#dialogo-riparte [data-passo]').forEach(b => {
   b.onclick = () => {
-    const max = alMinuto(new Date());
+    const max = alMinuto(oraDiScrittura());
     let n = new Date(ripData.getTime() + Number(b.dataset.passo) * 60000), avviso = '';
     if (n > max) { n = max; avviso = 'Più avanti di adesso non si può.'; }
     if (n < ripMin) { n = ripMin; avviso = testoPrima(); }
@@ -1559,7 +1566,7 @@ document.querySelectorAll('#dialogo-riparte [data-passo]').forEach(b => {
 $('rip-orologio').onchange = () => {
   const v = $('rip-orologio').value;
   if (!v) { mostraRiparte(); return; }
-  const adesso = new Date(), n = new Date(adesso);
+  const adesso = oraDiScrittura(), n = new Date(adesso);
   n.setHours(Number(v.slice(0, 2)), Number(v.slice(3, 5)), 0, 0);
   if (n > adesso) {
     n.setDate(n.getDate() - 1);
@@ -1707,7 +1714,7 @@ function contiInCorso(adesso) {
 }
 function aggiornaOre() {
   if (pressaAperta == null) return;
-  const c = contiInCorso(oraFine || new Date());
+  const c = contiInCorso(oraFine || oraDiScrittura());
   if (!oreManuali) $('ore-input').value = testoOreCampo(c.turno.lavorate);
   $('ore-conti').textContent = 'Ferma nel turno: ' + formatoOre(c.turno.ferme) + ' · Commessa finora: lavorata ' + formatoOre(c.commessa.lavorate) + ', ferma ' + formatoOre(c.commessa.ferme);
 }
@@ -1910,7 +1917,7 @@ function registra() {
   const cicli = Number(testo);
   if (!testo || !Number.isInteger(cicli) || cicli < 0) { $('avviso-salva').textContent = 'Scrivi il numero dei cicli totali.'; $('cicli-input').focus(); return; }
   if (optFermo.checked && !motivo) { apriMotivi(); return; }      // per sicurezza: senza motivo non si salva il fermo
-  const adesso = oraFine || new Date();
+  const adesso = oraFine || oraDiScrittura();
   const avviso = t => { $('avviso-salva').textContent = t; };
   if (!$('ripartenza').hidden && !ripScelta) { avviso('Indica quando è ripartita la pressa, o se è ancora ferma.'); $('ripartenza').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
   const ripartenza = dataRipartenza(adesso);
@@ -2350,7 +2357,9 @@ $('esporta').onclick = async () => {
 {
   const s = document.createElement('div');
   s.className = PROVA ? 'striscia-prova' : 'striscia-beta';
-  s.textContent = PROVA ? 'SVILUPPATORE · v' + document.querySelector('meta[name="versione"]').content.slice(8, 12) : 'BETA 5';   // ora e minuti della versione: si vede subito se il telefono è aggiornato
+  const ver = document.querySelector('meta[name="versione"]').content, agg = document.querySelector('meta[name="aggiornamento"]');
+  // numero dell'aggiornamento e ora della pubblicazione: si vede quante volte è cambiata l'app e se il telefono ha l'ultima
+  s.textContent = PROVA ? 'SVILUPPATORE · n. ' + (agg ? agg.content : '?') + ' · ' + ver.slice(8, 10) + ':' + ver.slice(10, 12) : 'BETA 6';
   document.querySelector('.pagina').prepend(s);
   if (PROVA) document.title = 'NIS Sviluppatore';
   // la striscia arancio resta in cima: la pressa aperta deve fermarsi sotto
