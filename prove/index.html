@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029110145">
+<meta name="versione" content="20261029111139">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -355,6 +355,7 @@ if (/prove/.test(location.pathname)) {
   #pannello-lettura .ore-riga { display: flex; align-items: center; gap: 12px; }
   #pannello-lettura .ore-riga label { flex: 1; margin-bottom: 0; }
   #pannello-lettura .ore-riga input.testo { flex: none; width: 96px; padding: 7px 10px; border-radius: 14px; text-align: center; }
+  #vista-leggi.con-aperta { padding-bottom: 85vh; }   /* spazio in fondo: anche l'ultima pressa dell'elenco può salire in cima */
   .voce { scroll-margin-top: calc(var(--alto-striscia, 0px) + 8px); }   /* la pressa aperta si ferma sotto la striscia SVILUPPATORE */
   .msg { min-height: 1.3em; margin: -6px 0 18px; color: var(--giallo); font-weight: 600; }
   .titolo-sez { font: italic 700 1.5rem/1 var(--font-titoli); letter-spacing: .07em; text-transform: uppercase; color: #fff; margin: 0 0 18px; }
@@ -1340,6 +1341,7 @@ function disegnoPressa(p, ferma, u) {
 }
 // presse in funzione in cima, ferme in fondo; ognuna è un pulsante che apre la sua tendina
 function disegnaElencoPresse() {
+  $('vista-leggi').classList.toggle('con-aperta', pressaAperta != null);
   casaPannello.appendChild(pannello);       // lo metto al sicuro prima di ricostruire l'elenco
   const lette = ultimePerPressa(chiaveTurno(turnoDi(new Date())));
   const scr = scrivibile();
@@ -1612,7 +1614,7 @@ function apri(p) {
   azzera();
   preparaCampi(p);
   disegnaElencoPresse();
-  document.querySelector('.voce.aperta').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.querySelector('.voce.aperta').scrollIntoView({ block: 'start' });   // di colpo: su iPhone lo scorrimento morbido si ferma quando sale la tastiera
   $('cicli-input').focus({ preventScroll: true });   // il tastierino numerico si apre subito
   const u = ultimaLettura(p);
   if (eFine(u) && !u.partenza_commessa) chiediRipresa(p);   // dopo "Fine commessa": commessa nuova o la stessa di prima
@@ -1731,10 +1733,11 @@ function cicliInVista() {
   const voce = document.querySelector('.voce.aperta');
   const cima = voce ? voce.getBoundingClientRect().top - vv.offsetTop - (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--alto-striscia')) || 0) - 8 : basta;
   const giu = Math.max(basta, cima);
-  if (Math.abs(giu) > 2) window.scrollBy({ top: giu, behavior: 'smooth' });
+  if (Math.abs(giu) > 2) window.scrollTo(0, window.scrollY + giu);
 }
 if (window.visualViewport) visualViewport.addEventListener('resize', () => setTimeout(cicliInVista, 60));
-$('cicli-input').addEventListener('focus', () => setTimeout(cicliInVista, 400));
+// mentre la tastiera sale iPhone sposta la pagina da solo: si rimette a posto più volte nel primo secondo
+$('cicli-input').addEventListener('focus', () => [150, 400, 800].forEach(t => setTimeout(cicliInVista, t)));
 
 // opzioni da spuntare prima di salvare. Spuntando "Fermo macchina" si apre subito la finestra del motivo,
 // così al momento di salvare il motivo è già pronto.
