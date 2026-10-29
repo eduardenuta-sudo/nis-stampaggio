@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029150730">
-<meta name="aggiornamento" content="68">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029152032">
+<meta name="aggiornamento" content="69">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1176,10 +1176,10 @@ function minutiFermoNelTurno(p) {
   if (!pr) return 0;
   return Math.round(contaOre(fermiDi(p, adesso), pr.inizio, adesso).ferme * 60);
 }
-// minuti → "1h 20min", "2h", "45min"
+// minuti → "1h 20min", "2h", "45min" (spazio che non va a capo: ore e minuti restano insieme sulla stessa riga)
 function testoDurata(min) {
   const h = Math.floor(min / 60), m = min % 60;
-  return [h ? h + 'h' : '', m ? m + 'min' : ''].filter(Boolean).join(' ');
+  return [h ? h + 'h' : '', m ? m + 'min' : ''].filter(Boolean).join('\u00a0');
 }
 const TESTO_MOTIVO = { manutenzione: 'manutenzione', mancanza_materiale: 'mancanza materiale', mancanza_operatore: 'mancanza operatore', altro: 'altro' };   // altro: solo fermi vecchi
 // opz.totale (elenco presse): per un fermo solo "Fermo per manutenzione · minuti totali di fermo nel turno"
