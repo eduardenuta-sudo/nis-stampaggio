@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029204043">
-<meta name="aggiornamento" content="93">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029204417">
+<meta name="aggiornamento" content="94">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -2778,7 +2778,7 @@ $('esporta').onclick = async () => {
   s.className = PROVA ? 'striscia-prova' : 'striscia-beta';
   const ver = document.querySelector('meta[name="versione"]').content, agg = document.querySelector('meta[name="aggiornamento"]');
   // numero dell'aggiornamento e ora della pubblicazione: si vede quante volte è cambiata l'app e se il telefono ha l'ultima
-  s.textContent = PROVA ? 'SVILUPPATORE · n. ' + (agg ? agg.content : '?') + ' · ' + ver.slice(8, 10) + ':' + ver.slice(10, 12) : 'BETA 8';
+  s.textContent = PROVA ? 'SVILUPPATORE · n. ' + (agg ? agg.content : '?') + ' · ' + ver.slice(8, 10) + ':' + ver.slice(10, 12) : 'BETA 9';
   document.querySelector('.pagina').prepend(s);
   if (PROVA) document.title = 'NIS Sviluppatore';
   // la striscia arancio resta in cima: la pressa aperta deve fermarsi sotto

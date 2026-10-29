@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029204043">
-<meta name="aggiornamento" content="93">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029204417">
+<meta name="aggiornamento" content="94">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -313,18 +313,44 @@ if (/prove/.test(location.pathname)) {
   .pressa-btn .st.letta { color: var(--giallo); font: 700 1.5rem/1 var(--font-titoli); letter-spacing: .05em; }
   /* Produzione: una scheda per pressa, con il disegno della pressa (corpo giallo la 68 e la 69, blu le altre; torre di luci e stampo secondo lo stato) */
   .pressa-prod { position: relative; display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
-  .pressa-prod .testa-prod { display: flex; align-items: baseline; gap: 14px; }
+  .pressa-prod .testa-prod { display: flex; align-items: baseline; gap: 14px; position: relative; top: -8px; }   /* spostamenti solo visivi: il numero della pressa resta dov'è */
   .pressa-prod .art { font: 700 1.7rem/1 var(--font-titoli); letter-spacing: .06em; color: #fff; }
   .pressa-prod .comm { font-size: .85rem; color: var(--muted); letter-spacing: .04em; }
   .pressa-prod .corpo-prod { position: relative; }
-  .pressa-prod .dis-pressa { width: 76%; margin: 0 auto; display: block; }
-  .pressa-prod .num-angolo { position: absolute; top: 4px; left: 2px; z-index: 1; font: 700 1.7rem/1 var(--font-titoli); letter-spacing: .06em; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
+  .pressa-prod .dis-pressa { width: 76%; margin: 0 auto; display: block; position: relative; top: -14px; }
+  .pressa-prod .strisce-prod { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+  .pressa-prod .str-testa { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .pressa-prod .str-val { color: #fff; font-size: 1rem; letter-spacing: .02em; text-transform: none; text-align: right; }
+  .pressa-prod .barra { height: 16px; margin-top: 5px; border-radius: 9px; background: rgba(255,255,255,.12); overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,.45); }
+  .pressa-prod .barra i { display: block; height: 100%; border-radius: 9px; background: linear-gradient(#e6ee5a, #b4c20a 55%, #8da006); transition: width .6s ease; }
+  .pressa-prod .str-mes { display: flex; gap: 10px; align-items: center; }
+  .pressa-prod .str-mes .str-corpo { flex: 1; min-width: 0; }
+  .pressa-prod .str-mes .barra i { background: linear-gradient(#5fe3ae, #1fb581 55%, #128a60); }
+  .pressa-prod .str-mes.rosso .barra i { background: linear-gradient(#ffb09f, #ff6f5a 55%, #d44a36); }
+  .pressa-prod .str-mes.arancio .barra i { background: linear-gradient(#ffd89a, #ff9f2e 55%, #cc6f0a); }
+  .pressa-prod .str-nota { margin-top: 5px; font-size: 1rem; line-height: 1.3; color: #c9d6f2; }
+  .pressa-prod .str-nota b { color: #fff; }
+  .pressa-prod .oltr { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin-right: 8px; border-radius: 50%; border: 2px solid #e6ee5a; color: transparent; font-size: .8rem; font-weight: 700; vertical-align: -3px; }
+  .pressa-prod .oltr.pieno { background: #e6ee5a; color: #17210a; }
+  .pressa-prod .str-mes.rosso .str-nota { color: #ffb3a6; }
+  .pressa-prod .str-mes.arancio .str-nota { color: #ffd08a; }
+  .pressa-prod .str-vuota .barra i { width: 0 !important; }
+  .ico-cassone { width: 54px; height: auto; flex: none; --cassone: #8d949e; --pedana: #262a31; --gomma: #15181d; --carta: #f4f6fa; --scuro: #0f2147; --giallo: #e3c928; overflow: visible; }
+  .pressa-prod .apri-dati { all: unset; position: absolute; inset: 0; z-index: 2; border-radius: 26px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .pressa-prod .apri-dati:focus-visible { outline: 3px solid var(--giallo); outline-offset: 2px; }
+  #dati-righe .riga-d { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  #dati-righe .riga-d:last-child { border-bottom: 0; }
+  #dati-righe .riga-d span { color: var(--muted); }
+  #dati-righe .riga-d b { text-align: right; }   /* spazio sotto la pressa per le due strisce */
+  .pressa-prod .num-angolo { position: absolute; top: 50%; transform: translateY(-50%); left: 2px; z-index: 1; font: 700 1.7rem/1 var(--font-titoli); letter-spacing: .06em; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
   .dis-pressa { width: calc(100% + 28px); max-width: none; height: auto; aspect-ratio: 320 / 125; margin: -6px -14px -4px; --scuro:#0f2147; --acciaio:#8fa0c4; --metallo:#d6deee; --o-rosso:.18; --o-blu:.18; --o-verde:1; overflow: visible; }
   .dis-pressa.pr-gialla { --corpo:#c8d92f; } .dis-pressa.pr-blu { --corpo:#2f8fe0; }
   .dis-pressa.pr-ferma { --p3-nome:none; --p3-nome-ram:none; }
   .dis-pressa.pr-man { --o-rosso:1; --o-verde:.18; }
   .dis-pressa.pr-mat { --o-rosso:.18; --o-verde:1; --p3-lamp: p3-lamp 1s linear infinite; }
   .dis-pressa.pr-alt { --o-rosso:.18; --o-verde:.18; }
+  .dis-pressa.pr-att { --o-rosso:.18; --o-verde:.18; --o-blu:1; }   /* attesa ok qualità: luce blu accesa, stampo fermo */
+  .pressa-prod .att { margin-left: auto; font-size: .8rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #8fc4ff; }
   @keyframes p3-muovi { 0%,15% { transform: translateX(-18px) } 45%,65% { transform: translateX(0) } 95%,100% { transform: translateX(-18px) } }
   @keyframes p3-ram { 0%,15% { transform: scaleX(.38) } 45%,65% { transform: scaleX(1) } 95%,100% { transform: scaleX(.38) } }
   @keyframes p3-lamp { 0%,49% { opacity: 1 } 50%,100% { opacity: .12 } }
@@ -583,6 +609,46 @@ if (/prove/.test(location.pathname)) {
   </div>
 </main>
 
+<!-- DATI COMMESSA: si apre toccando una pressa in Produzione -->
+<main id="vista-dati" hidden>
+  <div class="card">
+    <h2 class="titolo-sez" id="dati-titolo" style="margin-bottom:14px">Pressa</h2>
+    <div class="blocco riga">
+      <div class="campo"><label for="d-articolo">Articolo</label><input class="testo" id="d-articolo" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div>
+      <div class="campo"><label for="d-commessa">Commessa</label>
+        <div class="prefisso"><span aria-hidden="true">P</span><input class="testo" id="d-commessa" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div></div>
+    </div>
+    <p class="piccolo" id="dati-nota" style="margin:12px 0 0" hidden></p>
+  </div>
+  <div class="card">
+    <h2 class="titolo-sez" style="margin-bottom:14px">Dati della commessa</h2>
+    <div class="campo" style="margin-bottom:14px"><label for="d-quantita">Pezzi da produrre</label><input class="testo" id="d-quantita" inputmode="numeric" pattern="[0-9]*" maxlength="9" autocomplete="off"></div>
+    <div class="blocco riga">
+      <div class="campo"><label for="d-vani">Vani</label><input class="testo" id="d-vani" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off"></div>
+      <div class="campo"><label for="d-ciclo">Ciclo (s)</label><input class="testo" id="d-ciclo" inputmode="decimal" maxlength="6" autocomplete="off"></div>
+      <div class="campo"><label for="d-stampata">Stampata (g)</label><input class="testo" id="d-stampata" inputmode="decimal" maxlength="7" autocomplete="off"></div>
+    </div>
+    <label class="opzione" style="margin:16px 0 0"><input type="checkbox" id="d-oltranza"><span class="casella" aria-hidden="true"></span><span class="testo-opz">Stampa ad oltranza</span></label>
+    <p class="piccolo" style="margin:10px 0 0">Per quando arriva l'ordine di continuare oltre i pezzi da produrre: la percentuale prosegue oltre il 100% finché non togli la spunta.</p>
+    <label class="opzione" style="margin:16px 0 0"><input type="checkbox" id="d-chiudi-mescola"><span class="casella" aria-hidden="true"></span><span class="testo-opz">Chiudo la commessa a fine mescola</span></label>
+    <p class="piccolo" style="margin:10px 0 0">La fine della commessa diventa la fine della mescola a bordo pressa. Serve che ci siano i kg a bordo e il peso della stampata.</p>
+  </div>
+  <div class="card">
+    <h2 class="titolo-sez" style="margin-bottom:14px">Mescola a bordo pressa</h2>
+    <div class="blocco riga">
+      <div class="campo"><label for="d-mescola">Codice mescola</label><div class="prefisso"><span aria-hidden="true">M-</span><input class="testo" id="d-mescola" style="padding-left:46px" placeholder="316/193" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false"></div></div>
+      <div class="campo"><label for="d-kg">Kg a bordo adesso</label><input class="testo" id="d-kg" inputmode="decimal" maxlength="7" autocomplete="off"></div>
+    </div>
+    <p class="piccolo" style="margin:12px 0 0">Quando arriva un cassone nuovo, riscrivi i kg che hai a bordo: da lì l'app riparte a contare.</p>
+  </div>
+  <button id="dati-salva" class="salva" style="width:100%">Salva i dati</button>
+  <div class="avviso" id="avviso-dati" role="alert"></div>
+  <div class="card" id="dati-ricava" style="margin-top:18px">
+    <label>Quello che ne ricava l'app, da solo</label>
+    <div id="dati-righe"></div>
+  </div>
+</main>
+
 <!-- LETTURA CICLI: elenco presse (tendine) + riepilogo -->
 <!-- simbolo della pressa, usato nell'elenco presse -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="p3-v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset=".2" stop-color="#fff" stop-opacity=".14"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset=".8" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity=".62"/></linearGradient>
@@ -598,7 +664,7 @@ if (/prove/.test(location.pathname)) {
 <radialGradient id="p3-rv" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#3dff85" stop-opacity=".95"/><stop offset=".4" stop-color="#2dff7a" stop-opacity=".5"/><stop offset="1" stop-color="#2dff7a" stop-opacity="0"/></radialGradient>
 <radialGradient id="p3-rr" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff5a4d" stop-opacity=".95"/><stop offset=".4" stop-color="#ff3b30" stop-opacity=".5"/><stop offset="1" stop-color="#ff3b30" stop-opacity="0"/></radialGradient>
 <clipPath id="p3-clip"><rect x="10" y="30" width="148" height="56" rx="10"/><rect x="152" y="46" width="152" height="38" rx="9"/></clipPath>
-<filter id="p3-om" x="-8%" y="-15%" width="116%" height="140%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.2" flood-color="#000" flood-opacity=".6"/></filter><symbol id="pressa" viewBox="0 -13 320 125"><ellipse cx="160" cy="105" rx="158" ry="7" fill="url(#p3-ombra)"/><g filter="url(#p3-om)"><rect x="6" y="87" width="308" height="12" rx="4" fill="var(--scuro)"/><rect x="6" y="87" width="308" height="12" rx="4" fill="#000" opacity=".55"/><rect x="6" y="84" width="308" height="12" rx="4" fill="var(--scuro)"/><rect x="6" y="84" width="308" height="12" rx="4" fill="url(#p3-c)"/><rect x="6.5" y="84.5" width="307" height="11" rx="3.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="22" y="99" width="24" height="6" rx="2" fill="var(--scuro)"/><rect x="22" y="99" width="24" height="6" rx="2" fill="url(#p3-c)"/><rect x="22.5" y="99.5" width="23" height="5" rx="1.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="150" y="99" width="24" height="6" rx="2" fill="var(--scuro)"/><rect x="150" y="99" width="24" height="6" rx="2" fill="url(#p3-c)"/><rect x="150.5" y="99.5" width="23" height="5" rx="1.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="274" y="99" width="24" height="6" rx="2" fill="var(--scuro)"/><rect x="274" y="99" width="24" height="6" rx="2" fill="url(#p3-c)"/><rect x="274.5" y="99.5" width="23" height="5" rx="1.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="10" y="34" width="148" height="56" rx="10" fill="var(--corpo)"/><rect x="10" y="34" width="148" height="56" rx="10" fill="#000" opacity=".55"/><rect x="10" y="30" width="148" height="56" rx="10" fill="var(--corpo)"/><rect x="10" y="30" width="148" height="56" rx="10" fill="url(#p3-v)"/><rect x="10.5" y="30.5" width="147" height="55" rx="9.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="152" y="49" width="152" height="38" rx="9" fill="var(--corpo)"/><rect x="152" y="49" width="152" height="38" rx="9" fill="#000" opacity=".55"/><rect x="152" y="46" width="152" height="38" rx="9" fill="var(--corpo)"/><rect x="152" y="46" width="152" height="38" rx="9" fill="url(#p3-v)"/><rect x="152.5" y="46.5" width="151" height="37" rx="8.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/></g><rect x="15" y="33" width="138" height="4" rx="2" fill="#fff" opacity=".45"/><rect x="160" y="49" width="90" height="3" rx="1.5" fill="#fff" opacity=".4"/><rect x="14" y="79" width="140" height="5" rx="2.5" fill="#000" opacity=".25"/><circle cx="17" cy="40" r="1.5" fill="#000" opacity=".45"/><circle cx="16.7" cy="39.6" r="1.1" fill="#fff" opacity=".7"/><circle cx="151" cy="40" r="1.5" fill="#000" opacity=".45"/><circle cx="150.7" cy="39.6" r="1.1" fill="#fff" opacity=".7"/><circle cx="17" cy="77" r="1.5" fill="#000" opacity=".45"/><circle cx="16.7" cy="76.6" r="1.1" fill="#fff" opacity=".7"/><circle cx="151" cy="77" r="1.5" fill="#000" opacity=".45"/><circle cx="150.7" cy="76.6" r="1.1" fill="#fff" opacity=".7"/><rect x="22" y="38" width="92" height="38" rx="7" fill="#000" opacity=".4"/><rect x="24" y="40" width="88" height="34" rx="6" fill="var(--scuro)"/><rect x="24" y="40" width="88" height="34" rx="6" fill="none" stroke="#000" stroke-opacity=".6" stroke-width="1.2"/><rect x="32" y="45" width="72" height="4.2" rx="2.1" fill="var(--acciaio)"/><rect x="32" y="45" width="72" height="4.2" rx="2.1" fill="url(#p3-c)"/><rect x="32" y="64" width="72" height="4.2" rx="2.1" fill="var(--acciaio)"/><rect x="32" y="64" width="72" height="4.2" rx="2.1" fill="url(#p3-c)"/><rect x="29" y="43" width="8" height="28" rx="2.5" fill="var(--metallo)"/><rect x="29" y="43" width="8" height="28" rx="2.5" fill="url(#p3-c)"/><rect x="29.5" y="43.5" width="7" height="27" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="98" y="43" width="8" height="28" rx="2.5" fill="var(--metallo)"/><rect x="98" y="43" width="8" height="28" rx="2.5" fill="url(#p3-c)"/><rect x="98.5" y="43.5" width="7" height="27" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect class="p3-ram" x="37" y="55" width="29" height="5" rx="2" fill="var(--acciaio)"/><rect x="84" y="46" width="10" height="22" rx="2.5" fill="var(--metallo)"/><rect x="84" y="46" width="10" height="22" rx="2.5" fill="url(#p3-c)"/><rect x="84.5" y="46.5" width="9" height="21" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="88" y="52" width="4" height="10" rx="1.5" fill="#0f2147" opacity=".45"/><g class="p3-mobile"><rect x="66" y="43" width="8" height="28" rx="2.5" fill="var(--metallo)"/><rect x="66" y="43" width="8" height="28" rx="2.5" fill="url(#p3-c)"/><rect x="66.5" y="43.5" width="7" height="27" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="74" y="46" width="10" height="22" rx="2.5" fill="var(--metallo)"/><rect x="74" y="46" width="10" height="22" rx="2.5" fill="url(#p3-c)"/><rect x="74.5" y="46.5" width="9" height="21" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="76" y="52" width="4" height="10" rx="1.5" fill="#0f2147" opacity=".45"/></g><path d="M24 40 H66 L50 74 H24 Z" fill="url(#p3-vetro)" opacity=".5"/><rect x="122" y="41" width="30" height="34" rx="6" fill="var(--scuro)"/><rect x="122" y="41" width="30" height="34" rx="6" fill="#000" opacity=".55"/><rect x="122" y="40" width="30" height="34" rx="6" fill="var(--scuro)"/><rect x="122" y="40" width="30" height="34" rx="6" fill="url(#p3-c)"/><rect x="122.5" y="40.5" width="29" height="33" rx="5.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="126" y="44" width="22" height="12" rx="2.5" fill="#7fd0ff"/><rect x="126" y="44" width="22" height="12" rx="2.5" fill="url(#p3-c)"/><rect x="127" y="45" width="12" height="4" rx="2" fill="#fff" opacity=".6"/><circle cx="130" cy="65" r="3.8" fill="#58e07b"/><circle cx="130" cy="65" r="3.8" fill="url(#p3-s)"/><circle cx="139" cy="65" r="3.8" fill="#ff6b5e"/><circle cx="139" cy="65" r="3.8" fill="url(#p3-s)"/><circle cx="148" cy="65" r="3.8" fill="#ffffff"/><circle cx="148" cy="65" r="3.8" fill="url(#p3-s)"/><rect x="146" y="56" width="12" height="6" rx="2.5" fill="var(--acciaio)"/><rect x="146" y="56" width="12" height="6" rx="2.5" fill="url(#p3-c)"/><rect x="146.5" y="56.5" width="11" height="5" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="157" y="52" width="98" height="16" rx="4" fill="var(--metallo)"/><rect x="157" y="52" width="98" height="16" rx="4" fill="#000" opacity=".55"/><rect x="157" y="51" width="98" height="16" rx="4" fill="var(--metallo)"/><rect x="157" y="51" width="98" height="16" rx="4" fill="url(#p3-c)"/><rect x="157.5" y="51.5" width="97" height="15" rx="3.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="168" y="49" width="8" height="20" rx="2.5" fill="var(--scuro)"/><rect x="168" y="49" width="8" height="20" rx="2.5" fill="url(#p3-c)"/><rect x="168.5" y="49.5" width="7" height="19" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="188" y="49" width="8" height="20" rx="2.5" fill="var(--scuro)"/><rect x="188" y="49" width="8" height="20" rx="2.5" fill="url(#p3-c)"/><rect x="188.5" y="49.5" width="7" height="19" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="208" y="49" width="8" height="20" rx="2.5" fill="var(--scuro)"/><rect x="208" y="49" width="8" height="20" rx="2.5" fill="url(#p3-c)"/><rect x="208.5" y="49.5" width="7" height="19" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="228" y="49" width="8" height="20" rx="2.5" fill="var(--scuro)"/><rect x="228" y="49" width="8" height="20" rx="2.5" fill="url(#p3-c)"/><rect x="228.5" y="49.5" width="7" height="19" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="254" y="49" width="50" height="36" rx="9" fill="var(--scuro)"/><rect x="254" y="49" width="50" height="36" rx="9" fill="#000" opacity=".55"/><rect x="254" y="47" width="50" height="36" rx="9" fill="var(--scuro)"/><rect x="254" y="47" width="50" height="36" rx="9" fill="url(#p3-v)"/><rect x="254.5" y="47.5" width="49" height="35" rx="8.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="260" y="52" width="2" height="26" rx="1" fill="#fff" opacity=".12"/><rect x="265" y="52" width="2" height="26" rx="1" fill="#fff" opacity=".12"/><rect x="270" y="52" width="2" height="26" rx="1" fill="#fff" opacity=".12"/><circle cx="282" cy="65" r="13" fill="var(--acciaio)"/><circle cx="282" cy="65" r="13" fill="url(#p3-s)"/><circle cx="282" cy="65" r="6.5" fill="var(--scuro)"/><circle cx="282" cy="65" r="6.5" fill="url(#p3-s)"/><rect x="204" y="44" width="12" height="8" rx="1" fill="var(--acciaio)"/><rect x="204" y="44" width="12" height="8" rx="1" fill="url(#p3-c)"/><rect x="204.5" y="44.5" width="11" height="7" rx="0.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><path d="M194 22 H226 L218 45 H202 Z" fill="var(--metallo)"/><path d="M194 22 H226 L218 45 H202 Z" fill="url(#p3-h)" opacity=".5"/><path d="M194 22 H226 L218 45 H202 Z" fill="url(#p3-c)"/><rect x="190" y="18" width="40" height="8" rx="4" fill="var(--acciaio)"/><rect x="190" y="18" width="40" height="8" rx="4" fill="#000" opacity=".55"/><rect x="190" y="17" width="40" height="8" rx="4" fill="var(--acciaio)"/><rect x="190" y="17" width="40" height="8" rx="4" fill="url(#p3-c)"/><rect x="190.5" y="17.5" width="39" height="7" rx="3.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><g clip-path="url(#p3-clip)"><g class="p3-verde" style="opacity:calc((var(--o-verde) - .18) * 1.22)"><ellipse cx="83" cy="34" rx="92" ry="46" fill="url(#p3-rv)"/><ellipse cx="190" cy="52" rx="62" ry="22" fill="url(#p3-rv)" opacity=".5"/></g><g style="opacity:calc((var(--o-rosso) - .18) * 1.22)"><ellipse cx="83" cy="34" rx="92" ry="46" fill="url(#p3-rr)"/><ellipse cx="190" cy="52" rx="62" ry="22" fill="url(#p3-rr)" opacity=".5"/></g></g><g><rect x="71.5" y="-10.5" width="23" height="3.2" rx="1.2" fill="#0b1626"/><rect x="71.5" y="-10.5" width="23" height="3.2" rx="1.2" fill="url(#p3-h)"/><rect x="73" y="-7.3" width="20" height="9" rx="2" fill="#06101f"/><g style="opacity:var(--o-rosso)"><ellipse cx="83" cy="-2.8" rx="30" ry="14.5" fill="url(#p3-gr)"/><rect x="73" y="-7.3" width="20" height="9" rx="2" fill="#ff3b30"/><rect x="73" y="-7.3" width="20" height="9" rx="2" fill="url(#p3-h)" opacity=".75"/><rect x="77" y="-5.699999999999999" width="12" height="5.8" rx="2.5" fill="#fff" opacity=".4"/></g><rect x="71.5" y="1.7" width="23" height="2.4" rx="1.2" fill="#0b1626"/><rect x="71.5" y="1.7" width="23" height="2.4" rx="1.2" fill="url(#p3-h)"/><rect x="73" y="4.1" width="20" height="9" rx="2" fill="#06101f"/><g style="opacity:var(--o-blu)"><ellipse cx="83" cy="8.6" rx="30" ry="14.5" fill="url(#p3-gb)"/><rect x="73" y="4.1" width="20" height="9" rx="2" fill="#3d7bff"/><rect x="73" y="4.1" width="20" height="9" rx="2" fill="url(#p3-h)" opacity=".75"/><rect x="77" y="5.699999999999999" width="12" height="5.8" rx="2.5" fill="#fff" opacity=".4"/></g><rect x="71.5" y="13.1" width="23" height="2.4" rx="1.2" fill="#0b1626"/><rect x="71.5" y="13.1" width="23" height="2.4" rx="1.2" fill="url(#p3-h)"/><rect x="73" y="15.5" width="20" height="9" rx="2" fill="#06101f"/><g class="p3-verde" style="opacity:var(--o-verde)"><ellipse cx="83" cy="20.0" rx="30" ry="14.5" fill="url(#p3-gv)"/><rect x="73" y="15.5" width="20" height="9" rx="2" fill="#2dff7a"/><rect x="73" y="15.5" width="20" height="9" rx="2" fill="url(#p3-h)" opacity=".75"/><rect x="77" y="17.1" width="12" height="5.8" rx="2.5" fill="#fff" opacity=".4"/></g><rect x="73" y="24.5" width="20" height="6" rx="2" fill="#0b1626"/><rect x="73" y="24.5" width="20" height="6" rx="2" fill="url(#p3-h)"/></g></symbol></defs></svg>
+<filter id="p3-om" x="-8%" y="-15%" width="116%" height="140%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.2" flood-color="#000" flood-opacity=".6"/></filter><symbol id="pressa" viewBox="0 -13 320 125"><ellipse cx="160" cy="105" rx="158" ry="7" fill="url(#p3-ombra)"/><g filter="url(#p3-om)"><rect x="6" y="87" width="308" height="12" rx="4" fill="var(--scuro)"/><rect x="6" y="87" width="308" height="12" rx="4" fill="#000" opacity=".55"/><rect x="6" y="84" width="308" height="12" rx="4" fill="var(--scuro)"/><rect x="6" y="84" width="308" height="12" rx="4" fill="url(#p3-c)"/><rect x="6.5" y="84.5" width="307" height="11" rx="3.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="22" y="99" width="24" height="6" rx="2" fill="var(--scuro)"/><rect x="22" y="99" width="24" height="6" rx="2" fill="url(#p3-c)"/><rect x="22.5" y="99.5" width="23" height="5" rx="1.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="150" y="99" width="24" height="6" rx="2" fill="var(--scuro)"/><rect x="150" y="99" width="24" height="6" rx="2" fill="url(#p3-c)"/><rect x="150.5" y="99.5" width="23" height="5" rx="1.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="274" y="99" width="24" height="6" rx="2" fill="var(--scuro)"/><rect x="274" y="99" width="24" height="6" rx="2" fill="url(#p3-c)"/><rect x="274.5" y="99.5" width="23" height="5" rx="1.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="10" y="34" width="148" height="56" rx="10" fill="var(--corpo)"/><rect x="10" y="34" width="148" height="56" rx="10" fill="#000" opacity=".55"/><rect x="10" y="30" width="148" height="56" rx="10" fill="var(--corpo)"/><rect x="10" y="30" width="148" height="56" rx="10" fill="url(#p3-v)"/><rect x="10.5" y="30.5" width="147" height="55" rx="9.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="152" y="49" width="152" height="38" rx="9" fill="var(--corpo)"/><rect x="152" y="49" width="152" height="38" rx="9" fill="#000" opacity=".55"/><rect x="152" y="46" width="152" height="38" rx="9" fill="var(--corpo)"/><rect x="152" y="46" width="152" height="38" rx="9" fill="url(#p3-v)"/><rect x="152.5" y="46.5" width="151" height="37" rx="8.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/></g><rect x="15" y="33" width="138" height="4" rx="2" fill="#fff" opacity=".45"/><rect x="160" y="49" width="90" height="3" rx="1.5" fill="#fff" opacity=".4"/><rect x="14" y="79" width="140" height="5" rx="2.5" fill="#000" opacity=".25"/><circle cx="17" cy="40" r="1.5" fill="#000" opacity=".45"/><circle cx="16.7" cy="39.6" r="1.1" fill="#fff" opacity=".7"/><circle cx="151" cy="40" r="1.5" fill="#000" opacity=".45"/><circle cx="150.7" cy="39.6" r="1.1" fill="#fff" opacity=".7"/><circle cx="17" cy="77" r="1.5" fill="#000" opacity=".45"/><circle cx="16.7" cy="76.6" r="1.1" fill="#fff" opacity=".7"/><circle cx="151" cy="77" r="1.5" fill="#000" opacity=".45"/><circle cx="150.7" cy="76.6" r="1.1" fill="#fff" opacity=".7"/><rect x="22" y="38" width="92" height="38" rx="7" fill="#000" opacity=".4"/><rect x="24" y="40" width="88" height="34" rx="6" fill="var(--scuro)"/><rect x="24" y="40" width="88" height="34" rx="6" fill="none" stroke="#000" stroke-opacity=".6" stroke-width="1.2"/><rect x="32" y="45" width="72" height="4.2" rx="2.1" fill="var(--acciaio)"/><rect x="32" y="45" width="72" height="4.2" rx="2.1" fill="url(#p3-c)"/><rect x="32" y="64" width="72" height="4.2" rx="2.1" fill="var(--acciaio)"/><rect x="32" y="64" width="72" height="4.2" rx="2.1" fill="url(#p3-c)"/><rect x="29" y="43" width="8" height="28" rx="2.5" fill="var(--metallo)"/><rect x="29" y="43" width="8" height="28" rx="2.5" fill="url(#p3-c)"/><rect x="29.5" y="43.5" width="7" height="27" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="98" y="43" width="8" height="28" rx="2.5" fill="var(--metallo)"/><rect x="98" y="43" width="8" height="28" rx="2.5" fill="url(#p3-c)"/><rect x="98.5" y="43.5" width="7" height="27" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect class="p3-ram" x="37" y="55" width="29" height="5" rx="2" fill="var(--acciaio)"/><rect x="84" y="46" width="10" height="22" rx="2.5" fill="var(--metallo)"/><rect x="84" y="46" width="10" height="22" rx="2.5" fill="url(#p3-c)"/><rect x="84.5" y="46.5" width="9" height="21" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="88" y="52" width="4" height="10" rx="1.5" fill="#0f2147" opacity=".45"/><g class="p3-mobile"><rect x="66" y="43" width="8" height="28" rx="2.5" fill="var(--metallo)"/><rect x="66" y="43" width="8" height="28" rx="2.5" fill="url(#p3-c)"/><rect x="66.5" y="43.5" width="7" height="27" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="74" y="46" width="10" height="22" rx="2.5" fill="var(--metallo)"/><rect x="74" y="46" width="10" height="22" rx="2.5" fill="url(#p3-c)"/><rect x="74.5" y="46.5" width="9" height="21" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="76" y="52" width="4" height="10" rx="1.5" fill="#0f2147" opacity=".45"/></g><path d="M24 40 H66 L50 74 H24 Z" fill="url(#p3-vetro)" opacity=".5"/><rect x="122" y="41" width="30" height="34" rx="6" fill="var(--scuro)"/><rect x="122" y="41" width="30" height="34" rx="6" fill="#000" opacity=".55"/><rect x="122" y="40" width="30" height="34" rx="6" fill="var(--scuro)"/><rect x="122" y="40" width="30" height="34" rx="6" fill="url(#p3-c)"/><rect x="122.5" y="40.5" width="29" height="33" rx="5.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="126" y="44" width="22" height="12" rx="2.5" fill="#7fd0ff"/><rect x="126" y="44" width="22" height="12" rx="2.5" fill="url(#p3-c)"/><rect x="127" y="45" width="12" height="4" rx="2" fill="#fff" opacity=".6"/><circle cx="130" cy="65" r="3.8" fill="#58e07b"/><circle cx="130" cy="65" r="3.8" fill="url(#p3-s)"/><circle cx="139" cy="65" r="3.8" fill="#ff6b5e"/><circle cx="139" cy="65" r="3.8" fill="url(#p3-s)"/><circle cx="148" cy="65" r="3.8" fill="#ffffff"/><circle cx="148" cy="65" r="3.8" fill="url(#p3-s)"/><rect x="146" y="56" width="12" height="6" rx="2.5" fill="var(--acciaio)"/><rect x="146" y="56" width="12" height="6" rx="2.5" fill="url(#p3-c)"/><rect x="146.5" y="56.5" width="11" height="5" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="157" y="52" width="98" height="16" rx="4" fill="var(--metallo)"/><rect x="157" y="52" width="98" height="16" rx="4" fill="#000" opacity=".55"/><rect x="157" y="51" width="98" height="16" rx="4" fill="var(--metallo)"/><rect x="157" y="51" width="98" height="16" rx="4" fill="url(#p3-c)"/><rect x="157.5" y="51.5" width="97" height="15" rx="3.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="168" y="49" width="8" height="20" rx="2.5" fill="var(--scuro)"/><rect x="168" y="49" width="8" height="20" rx="2.5" fill="url(#p3-c)"/><rect x="168.5" y="49.5" width="7" height="19" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="188" y="49" width="8" height="20" rx="2.5" fill="var(--scuro)"/><rect x="188" y="49" width="8" height="20" rx="2.5" fill="url(#p3-c)"/><rect x="188.5" y="49.5" width="7" height="19" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="208" y="49" width="8" height="20" rx="2.5" fill="var(--scuro)"/><rect x="208" y="49" width="8" height="20" rx="2.5" fill="url(#p3-c)"/><rect x="208.5" y="49.5" width="7" height="19" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="228" y="49" width="8" height="20" rx="2.5" fill="var(--scuro)"/><rect x="228" y="49" width="8" height="20" rx="2.5" fill="url(#p3-c)"/><rect x="228.5" y="49.5" width="7" height="19" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="254" y="49" width="50" height="36" rx="9" fill="var(--scuro)"/><rect x="254" y="49" width="50" height="36" rx="9" fill="#000" opacity=".55"/><rect x="254" y="47" width="50" height="36" rx="9" fill="var(--scuro)"/><rect x="254" y="47" width="50" height="36" rx="9" fill="url(#p3-v)"/><rect x="254.5" y="47.5" width="49" height="35" rx="8.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="260" y="52" width="2" height="26" rx="1" fill="#fff" opacity=".12"/><rect x="265" y="52" width="2" height="26" rx="1" fill="#fff" opacity=".12"/><rect x="270" y="52" width="2" height="26" rx="1" fill="#fff" opacity=".12"/><circle cx="282" cy="65" r="13" fill="var(--acciaio)"/><circle cx="282" cy="65" r="13" fill="url(#p3-s)"/><circle cx="282" cy="65" r="6.5" fill="var(--scuro)"/><circle cx="282" cy="65" r="6.5" fill="url(#p3-s)"/><rect x="204" y="44" width="12" height="8" rx="1" fill="var(--acciaio)"/><rect x="204" y="44" width="12" height="8" rx="1" fill="url(#p3-c)"/><rect x="204.5" y="44.5" width="11" height="7" rx="0.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><path d="M194 22 H226 L218 45 H202 Z" fill="var(--metallo)"/><path d="M194 22 H226 L218 45 H202 Z" fill="url(#p3-h)" opacity=".5"/><path d="M194 22 H226 L218 45 H202 Z" fill="url(#p3-c)"/><rect x="190" y="18" width="40" height="8" rx="4" fill="var(--acciaio)"/><rect x="190" y="18" width="40" height="8" rx="4" fill="#000" opacity=".55"/><rect x="190" y="17" width="40" height="8" rx="4" fill="var(--acciaio)"/><rect x="190" y="17" width="40" height="8" rx="4" fill="url(#p3-c)"/><rect x="190.5" y="17.5" width="39" height="7" rx="3.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><g clip-path="url(#p3-clip)"><g class="p3-verde" style="opacity:calc((var(--o-verde) - .18) * 1.22)"><ellipse cx="83" cy="34" rx="92" ry="46" fill="url(#p3-rv)"/><ellipse cx="190" cy="52" rx="62" ry="22" fill="url(#p3-rv)" opacity=".5"/></g><g style="opacity:calc((var(--o-rosso) - .18) * 1.22)"><ellipse cx="83" cy="34" rx="92" ry="46" fill="url(#p3-rr)"/><ellipse cx="190" cy="52" rx="62" ry="22" fill="url(#p3-rr)" opacity=".5"/></g></g><g><rect x="71.5" y="-10.5" width="23" height="3.2" rx="1.2" fill="#0b1626"/><rect x="71.5" y="-10.5" width="23" height="3.2" rx="1.2" fill="url(#p3-h)"/><rect x="73" y="-7.3" width="20" height="9" rx="2" fill="#06101f"/><g style="opacity:var(--o-rosso)"><ellipse cx="83" cy="-2.8" rx="30" ry="14.5" fill="url(#p3-gr)"/><rect x="73" y="-7.3" width="20" height="9" rx="2" fill="#ff3b30"/><rect x="73" y="-7.3" width="20" height="9" rx="2" fill="url(#p3-h)" opacity=".75"/><rect x="77" y="-5.699999999999999" width="12" height="5.8" rx="2.5" fill="#fff" opacity=".4"/></g><rect x="71.5" y="1.7" width="23" height="2.4" rx="1.2" fill="#0b1626"/><rect x="71.5" y="1.7" width="23" height="2.4" rx="1.2" fill="url(#p3-h)"/><rect x="73" y="4.1" width="20" height="9" rx="2" fill="#06101f"/><g style="opacity:var(--o-blu)"><ellipse cx="83" cy="8.6" rx="30" ry="14.5" fill="url(#p3-gb)"/><rect x="73" y="4.1" width="20" height="9" rx="2" fill="#3d7bff"/><rect x="73" y="4.1" width="20" height="9" rx="2" fill="url(#p3-h)" opacity=".75"/><rect x="77" y="5.699999999999999" width="12" height="5.8" rx="2.5" fill="#fff" opacity=".4"/></g><rect x="71.5" y="13.1" width="23" height="2.4" rx="1.2" fill="#0b1626"/><rect x="71.5" y="13.1" width="23" height="2.4" rx="1.2" fill="url(#p3-h)"/><rect x="73" y="15.5" width="20" height="9" rx="2" fill="#06101f"/><g class="p3-verde" style="opacity:var(--o-verde)"><ellipse cx="83" cy="20.0" rx="30" ry="14.5" fill="url(#p3-gv)"/><rect x="73" y="15.5" width="20" height="9" rx="2" fill="#2dff7a"/><rect x="73" y="15.5" width="20" height="9" rx="2" fill="url(#p3-h)" opacity=".75"/><rect x="77" y="17.1" width="12" height="5.8" rx="2.5" fill="#fff" opacity=".4"/></g><rect x="73" y="24.5" width="20" height="6" rx="2" fill="#0b1626"/><rect x="73" y="24.5" width="20" height="6" rx="2" fill="url(#p3-h)"/></g></symbol></defs><linearGradient id="cm-v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".25" stop-color="#fff" stop-opacity=".08"/><stop offset=".7" stop-color="#000" stop-opacity=".12"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></linearGradient><linearGradient id="cm-h" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset=".3" stop-color="#fff" stop-opacity=".25"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></linearGradient><linearGradient id="cm-lato" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".30"/><stop offset="1" stop-color="#000" stop-opacity=".62"/></linearGradient><linearGradient id="cm-gomma" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".5"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></linearGradient><radialGradient id="cm-ombra" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient><symbol id="cassone" viewBox="0 0 160 130"><!-- ombra a terra --><ellipse cx="82" cy="123" rx="70" ry="6" fill="url(#cm-ombra)"/><!-- pedana nera: piedini e piano --><g><polygon points="118,112 148,98 148,112 118,126" fill="var(--pedana)"/><polygon points="118,112 148,98 148,112 118,126" fill="url(#cm-lato)"/><rect x="14" y="112" width="104" height="14" fill="var(--pedana)"/><rect x="14" y="112" width="104" height="14" fill="url(#cm-v)"/><rect x="40" y="118" width="22" height="8" fill="#000" opacity=".55"/><rect x="82" y="118" width="22" height="8" fill="#000" opacity=".55"/><polygon points="16,112 118,112 148,98 46,98" fill="var(--pedana)"/><polygon points="16,112 118,112 148,98 46,98" fill="#fff" opacity=".12"/></g><!-- bordo dell'apertura e interno scuro --><g><polygon points="22,52 114,52 144,38 52,38" fill="#6d747e"/><polygon points="28,50 108,50 136,40 56,40" fill="#1a1d23"/></g><!-- gomma che esce dall'apertura: lastre nere impilate (la parete davanti copre la parte bassa) --><g><g transform="translate(0 0)"><polygon points="28,52 108,52 134,41 56,41" fill="#15181d"/><polygon points="28,52 108,52 108,55.5 28,55.5" fill="#0b0d10"/><polygon points="108,52 134,41 134,44.5 108,55.5" fill="#050607"/><polygon points="28,52 108,52 134,41 56,41" fill="url(#cm-gomma)" opacity=".75"/><path d="M28 52 H108" stroke="#fff" stroke-opacity=".35" stroke-width=".8"/></g><g transform="translate(0 -4)"><polygon points="28,52 108,52 134,41 56,41" fill="#1b1f25"/><polygon points="28,52 108,52 108,55.5 28,55.5" fill="#0b0d10"/><polygon points="108,52 134,41 134,44.5 108,55.5" fill="#050607"/><polygon points="28,52 108,52 134,41 56,41" fill="url(#cm-gomma)" opacity=".75"/><path d="M28 52 H108" stroke="#fff" stroke-opacity=".35" stroke-width=".8"/></g><g transform="translate(0 -8)"><polygon points="28,52 108,52 134,41 56,41" fill="#15181d"/><polygon points="28,52 108,52 108,55.5 28,55.5" fill="#0b0d10"/><polygon points="108,52 134,41 134,44.5 108,55.5" fill="#050607"/><polygon points="28,52 108,52 134,41 56,41" fill="url(#cm-gomma)" opacity=".75"/><path d="M28 52 H108" stroke="#fff" stroke-opacity=".35" stroke-width=".8"/></g><g transform="translate(0 -12)"><polygon points="28,52 108,52 134,41 56,41" fill="#1b1f25"/><polygon points="28,52 108,52 108,55.5 28,55.5" fill="#0b0d10"/><polygon points="108,52 134,41 134,44.5 108,55.5" fill="#050607"/><polygon points="28,52 108,52 134,41 56,41" fill="url(#cm-gomma)" opacity=".75"/><path d="M28 52 H108" stroke="#fff" stroke-opacity=".35" stroke-width=".8"/></g><g transform="translate(0 -16)"><polygon points="28,52 108,52 134,41 56,41" fill="#15181d"/><polygon points="28,52 108,52 108,55.5 28,55.5" fill="#0b0d10"/><polygon points="108,52 134,41 134,44.5 108,55.5" fill="#050607"/><polygon points="28,52 108,52 134,41 56,41" fill="url(#cm-gomma)" opacity=".75"/><path d="M28 52 H108" stroke="#fff" stroke-opacity=".35" stroke-width=".8"/></g><path d="M62 34 l7 -1.4 m10 -.2 l8 -1.8" stroke="#fff" stroke-opacity=".6" stroke-width="1.2" stroke-linecap="round" fill="none" transform="translate(0 -4)"/></g><!-- cassone grigio: interno, faccia davanti, fianco --><g><polygon points="114,52 144,38 144,98 114,112" fill="var(--cassone)"/><polygon points="114,52 144,38 144,98 114,112" fill="url(#cm-lato)"/><rect x="22" y="52" width="92" height="60" fill="var(--cassone)"/><rect x="22" y="52" width="92" height="60" fill="url(#cm-v)"/><rect x="22" y="52" width="92" height="60" fill="url(#cm-h)" opacity=".5"/><path d="M22 52 H114 L144 38" stroke="#fff" stroke-opacity=".6" stroke-width="1.4" fill="none"/><path d="M114 52 V112" stroke="#000" stroke-opacity=".3" stroke-width="1"/><path d="M22 84 H114" stroke="#000" stroke-opacity=".18" stroke-width=".8"/><g fill="#000" opacity=".4"><circle cx="30" cy="60" r="1.2"/><circle cx="106" cy="60" r="1.2"/><circle cx="30" cy="104" r="1.2"/><circle cx="106" cy="104" r="1.2"/></g></g><!-- etichetta gialla vecchia e foglio bianco con M-464 --><rect x="26" y="66" width="22" height="22" rx="1.5" fill="#e6d44a" transform="rotate(-3 37 77)"/><rect x="26" y="66" width="22" height="22" rx="1.5" fill="url(#cm-v)" opacity=".5" transform="rotate(-3 37 77)"/><g transform="rotate(1.5 78 84)"><rect x="54" y="62" width="50" height="46" fill="var(--carta)"/><rect x="54" y="62" width="50" height="46" fill="url(#cm-v)" opacity=".35"/><g fill="#38404c"><rect x="58" y="66" width="30" height="2.4"/><rect x="58" y="71" width="38" height="1.8"/><rect x="58" y="75" width="24" height="1.8"/><rect x="58" y="79" width="34" height="1.8"/></g><g fill="#222"><rect x="58" y="84" width="1" height="6"/><rect x="60" y="84" width="2" height="6"/><rect x="63.5" y="84" width="1" height="6"/><rect x="66" y="84" width="2.5" height="6"/><rect x="70" y="84" width="1" height="6"/><rect x="72.5" y="84" width="2" height="6"/><rect x="76" y="84" width="1" height="6"/><rect x="78.5" y="84" width="2.5" height="6"/><rect x="83" y="84" width="1" height="6"/><rect x="85.5" y="84" width="2" height="6"/><rect x="89" y="84" width="1.5" height="6"/><rect x="92" y="84" width="1" height="6"/></g></g></symbol></svg>
 
 <main id="vista-leggi" hidden>
   <div class="fuori-turno" id="fuori-turno" hidden></div>
@@ -621,6 +687,7 @@ if (/prove/.test(location.pathname)) {
         <div class="campo"><label for="aggiungi-commessa">Commessa</label>
           <div class="prefisso"><span aria-hidden="true">P</span><input class="testo" id="aggiungi-commessa" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div></div>
       </div>
+      <p class="piccolo" id="aggiungi-nota" style="margin:14px 0 0" hidden>Avvio macchina: la pressa resta in «attesa ok qualità» finché non segni l'ok in Lettura cicli.</p>
       <button id="aggiungi-ok" class="salva" style="width:100%;margin-top:22px">Aggiungi</button>
     </div>
     <div class="avviso" id="avviso-aggiungi" role="alert"></div>
@@ -1179,7 +1246,7 @@ function lettureAssorbente(s) {
   const t = chiaveTurno(turnoDi(new Date(s.ora)));
   return letture.find(x => x.pressa === s.pressa && !eSolo(x) && x.ora > s.ora && chiaveTurno(turnoDi(new Date(x.ora))) === t) || null;
 }
-const eAssorbito = l => eSolo(l) && !!lettureAssorbente(l);
+const eAssorbito = l => eSolo(l) && !l.ok_qualita && !!lettureAssorbente(l);
 function aggiornaFerme() { ferme = PRESSE.filter(p => eFerma(ultimaLettura(p))); }
 aggiornaFerme();
 // minuti di fermo della pressa nel turno in corso, fino ad adesso (anche il fermo ancora aperto)
@@ -1197,6 +1264,7 @@ const TESTO_MOTIVO = { manutenzione: 'manutenzione', mancanza_materiale: 'mancan
 // opz.totale (elenco presse): per un fermo solo "Fermo per manutenzione · minuti totali di fermo nel turno"
 function testoEvento(l, opz) {
   const parti = [];
+  if (l && l.ok_qualita) return 'Ok qualità alle ' + new Date(l.ora).toTimeString().slice(0, 5);   // la pressa parte a produrre
   if (opz && eFermo(l) && !l.ripresa_stessa) {
     const m = TESTO_MOTIVO[l.motivo] || '';
     return 'Fermo' + (l.motivo === 'altro' ? (l.nota ? ': ' + l.nota : ' per altro') : m ? ' per ' + m : '') + (opz.totale >= 1 ? ' · ' + testoDurata(opz.totale) : '');
@@ -1211,7 +1279,7 @@ function testoEvento(l, opz) {
   }
   if (eFermo(l)) {
     const m = TESTO_MOTIVO[l.motivo] || '';
-    const inizio = eSolo(l) ? l : letture.find(x => eSolo(x) && lettureAssorbente(x) === l);   // il fermo assorbito dà l'ora d'inizio
+    const inizio = eSolo(l) ? l : letture.find(x => eSolo(x) && !x.ok_qualita && lettureAssorbente(x) === l);   // il fermo assorbito dà l'ora d'inizio
     parti.push((inizio ? 'Fermo dalle ' + new Date(inizio.ora).toTimeString().slice(0, 5) : 'Fermo') + (m ? ' · ' + m : '') + (l.motivo === 'altro' && l.nota ? ': ' + l.nota : ''));
     if (l.ripartita_alle) {
       const min = Math.round((new Date(l.ripartita_alle) - new Date(l.ora)) / 60000);   // quanto è stata ferma: dalla lettura con Fermo alla ripartenza
@@ -1270,13 +1338,15 @@ function ultimePerPressa(chiave) {
 }
 
 // ---------------- Pagine ----------------
-const VISTE = ['home', 'produzione', 'leggi', 'storico', 'entra'];
-const TITOLI = { produzione: 'Produzione', leggi: 'Lettura cicli', storico: 'Storico cicli' };
+const VISTE = ['home', 'produzione', 'dati', 'leggi', 'storico', 'entra'];
+const TITOLI = { produzione: 'Produzione', dati: 'Dati commessa', leggi: 'Lettura cicli', storico: 'Storico cicli' };
+let pressaDati = null;                              // la pressa di cui si vedono i dati commessa
 // pulsante a due righe: sopra in grande Avanti/Indietro, sotto in piccolo dove porta
 const duePassi = (grande, piccolo) => '<span class="n-grande">' + grande + '</span><span class="n-piccolo">' + piccolo + '</span>';
 function vai(nome) {
   if (nome === 'riepilogo') nome = 'leggi';
-  if (!VISTE.includes(nome) || (nome === 'produzione' && !PROVA)) nome = 'home';   // Produzione solo nella versione sviluppatore
+  if (!VISTE.includes(nome) || ((nome === 'produzione' || nome === 'dati') && !PROVA)) nome = 'home';   // Produzione solo nella versione sviluppatore
+  if (nome === 'dati' && (pressaDati == null || !PRESSE.includes(pressaDati))) nome = 'produzione';
   if (!accesso || accesso.attesa) nome = 'entra';  // senza codice reparto (o in attesa di conferma) si resta alla schermata di accesso
   else if (nome === 'entra') nome = 'home';
   VISTE.forEach(v => { $('vista-' + v).hidden = v !== nome; });
@@ -1285,11 +1355,14 @@ function vai(nome) {
   document.body.classList.toggle('home', nome === 'home');
   
   if (nome !== 'home') $('titolo').textContent = TITOLI[nome];
-  $('indietro').innerHTML = nome === 'storico' ? '&larr; Letture' : nome === 'leggi' || nome === 'produzione' ? duePassi('Indietro', 'Home') : '&larr; Home';   // dallo storico si torna alla lettura cicli
+  $('indietro').innerHTML = nome === 'storico' ? '&larr; Letture' : nome === 'dati' ? duePassi('Indietro', 'Produzione') : nome === 'leggi' || nome === 'produzione' ? duePassi('Indietro', 'Home') : '&larr; Home';   // dallo storico si torna alla lettura cicli
   if (nome === 'home') disegnaHome();
+  if (nome === 'leggi') $('elenco-presse').after(document.querySelector('.aggiungi'));         // un solo "Aggiungi pressa", comune alle due pagine
+  if (nome === 'produzione') $('presse-produzione').after(document.querySelector('.aggiungi'));
   if (nome === 'leggi') { pressaAperta = null; $('msg').textContent = ''; disegnaElencoPresse(); disegnaRiepilogo(); azzera(); }
   if (nome === 'storico') disegnaStorico();
   if (nome === 'produzione') disegnaProduzione();
+  if (nome === 'dati') apriDati();
   const altra = PROVA ? { leggi: ['Produzione', 'produzione'], produzione: ['Lettura cicli', 'leggi'] }[nome] : null;
   $('testata').classList.toggle('con-nav', !!altra); $('vai-altra').hidden = !altra;
   if (altra) { $('vai-altra').innerHTML = duePassi('Avanti', altra[0]); $('vai-altra').dataset.vai = altra[1]; }
@@ -1298,7 +1371,7 @@ function vai(nome) {
   window.scrollTo(0, 0);
 }
 $('vai-altra').onclick = () => vai($('vai-altra').dataset.vai);
-$('indietro').onclick = () => vai(location.hash === '#storico' ? 'leggi' : 'home');
+$('indietro').onclick = () => vai(location.hash === '#storico' ? 'leggi' : location.hash === '#dati' ? 'produzione' : 'home');
 // il pulsante scende e solo dopo si cambia pagina, così l'animazione si vede
 function premi(id, pagina) {
   $(id).onclick = () => {
@@ -1320,7 +1393,7 @@ function disegnaHome() {
   const chi = diTurno(t);
   $('turno').textContent = 'Turno in corso: ' + NOMI_TURNO[t.nome] + ' ' + f(t.inizio.getHours()) + ' – ' + f(t.fine.getHours()) + (chi ? ' · ' + chi : '');
   const lette = ultimePerPressa(chiaveTurno(t));
-  const inFunzione = PRESSE.filter(p => !ferme.includes(p));
+  const inFunzione = PRESSE.filter(p => !ferme.includes(p) && !avvioInAttesa(p));
   const nLette = inFunzione.filter(p => lette[p]).length;
   $('home-stato').textContent = nLette
     ? nLette + ' di ' + inFunzione.length + ' presse lette in questo turno'
@@ -1349,27 +1422,293 @@ function quandoBreve(d) {
 }
 // disegno della pressa: gialla la 68 e la 69, blu le altre. In funzione: luce verde e stampo che si muove (ritmo diverso per ogni pressa).
 // Ferma: manutenzione = luce rossa, mancanza materiale = verde lampeggiante, mancanza operatore = luci spente; stampo fermo
-// PROVA DEL DISEGNO: sei presse di esempio, solo disegni, in stati diversi (non sono quelle vere). Si disegnano una volta sola, così il movimento non riparte.
+// Produzione: una scheda per ogni pressa dell'elenco comune (le stesse della Lettura cicli), col suo stato.
+// Le schede si creano una volta sola e poi si aggiornano al loro posto, così il movimento non riparte a ogni dato nuovo.
+function classiPressa(p, ferma, motivo, att) {
+  const stato = att ? ' pr-ferma pr-att' : !ferma ? '' : motivo === 'manutenzione' ? ' pr-ferma pr-man' : motivo === 'mancanza_materiale' ? ' pr-ferma pr-mat' : ' pr-ferma pr-alt';
+  return 'dis-pressa ' + (p === 68 || p === 69 ? 'pr-gialla' : 'pr-blu') + stato;
+}
+// le due strisce sotto la pressa: avanzamento della commessa e mescola a bordo (col cassone davanti)
+const striscePronte = () =>
+  '<div class="str str-com"><div class="str-testa"><span>Commessa</span><span class="str-val"></span></div><div class="barra"><i style="width:0%"></i></div><div class="str-nota"></div></div>' +
+  '<div class="str str-mes"><svg class="ico-cassone" viewBox="0 0 160 130" aria-hidden="true"><use href="#cassone"/><g transform="rotate(1.5 78 84)"><text class="cas-cod" x="79" y="104" text-anchor="middle" font-family="Barlow Condensed, Barlow, Arial Narrow, sans-serif" font-weight="700" font-size="13" letter-spacing=".6" fill="#10151f"></text></g></svg>' +
+  '<div class="str-corpo"><div class="str-testa"><span class="str-mes-et">Mescola</span><span class="str-val"></span></div><div class="barra"><i style="width:0%"></i></div><div class="str-nota"></div></div></div>';
+function disegnaStrisce(c, p) {
+  const k = contiPressa(p), att = avvioInAttesa(p), com = c.querySelector('.str-com'), mes = c.querySelector('.str-mes');
+  const metti = (el, val, perc, nota, vuota) => {
+    el.querySelector('.str-val').innerHTML = val;
+    el.querySelector('.barra i').style.width = Math.max(0, Math.min(100, perc || 0)) + '%';
+    el.querySelector('.str-nota').innerHTML = nota;
+    el.classList.toggle('str-vuota', !!vuota);
+  };
+  // commessa
+  if (att) metti(com, '', 0, 'Attesa ok qualità: la commessa parte con l\'ok.', true);
+  else if (!k.d) metti(com, '', 0, 'Tocca la pressa e scrivi i dati della commessa.', true);
+  else {
+    const ol = k.inOltranza, piena = k.pezzi >= k.d.quantita;
+    const pillola = ol ? '<span class="oltr' + (piena ? ' pieno' : '') + '" aria-hidden="true">✓</span><b>Stampa ad oltranza attivata</b>' + (k.oltrAuto ? ' · fino a Fine commessa' : '') + '<br>' : '';
+    const chiude = k.chiudiMescola ? 'chiude a fine mescola <b>' + testoFine(k.fine) + '</b> (~' + nIt(k.pezziFinali) + ' pezzi)' : '';
+    metti(com, '<b>' + (k.stimati ? '~' : '') + nIt(k.pezzi) + '</b> / ' + nIt(k.d.quantita) + ' pezzi' + (ol ? ' · <b>' + nIt(Math.floor(k.pct)) + '%</b>' : ''), Math.min(100, k.pct),
+      pillola + (k.cicliMancano ? 'Mancano <b>' + nIt(Math.max(0, k.d.quantita - k.pezzi)) + '</b> pezzi · ' + (chiude || (ol ? 'poi si prosegue a oltranza' : 'fine stimata <b>' + testoFine(k.fine) + '</b>'))
+        : ol ? 'Oltre la quantità: <b>+' + nIt(k.pezzi - k.d.quantita) + '</b> pezzi' + (chiude ? ' · ' + chiude : '') : '<b>Commessa finita</b>'));
+  }
+  // mescola
+  const i = k.i, codice = i.mescola || '';
+  c.querySelector('.cas-cod').textContent = codice;
+  c.querySelector('.cas-cod').setAttribute('font-size', codice ? Math.min(13, 80 / codice.length).toFixed(1) : 13);
+  mes.classList.remove('rosso', 'arancio');
+  c.querySelector('.str-mes-et').textContent = 'Mescola' + (codice ? ' ' + codice : '');
+  if (i.kg == null) metti(mes, '', 0, 'Tocca la pressa e scrivi i kg di mescola a bordo.', true);
+  else if (k.rim == null) metti(mes, '<b>' + nIt(i.kg, 1) + '</b> kg a bordo', 0, 'Scrivi anche il peso della stampata per contare quanta ne resta.');
+  else {
+    // quando finisce la mescola: nel turno in corso = rosso, nel turno dopo = arancione, più avanti = verde (se non basta fino a fine commessa lo dice la scritta)
+    const adesso = new Date(), t = turnoDi(adesso), dopo = turnoDi(t.fine);
+    const prima = !!(k.d && k.cicliMancano && k.fineMescola && k.fine && k.fineMescola < k.fine);   // finisce prima della commessa
+    const nelTurno = k.fineMescola && k.fineMescola < t.fine, nelDopo = k.fineMescola && !nelTurno && k.fineMescola < dopo.fine;
+    const serve = !k.chiudiMescola && (k.inOltranza || !k.cicliMancano || k.rim <= 0 || prima);   // se la commessa chiude con la mescola non serve un altro cassone   // ad oltranza, o raggiunta la quantità ma non ancora chiusa con Fine commessa: il cassone serve ancora   // se la commessa finisce prima della mescola, nessun allarme: resta verde anche se la mescola finisce nel turno
+    mes.classList.toggle('rosso', (serve && (k.rim <= 0 || !!nelTurno)) || (k.chiudiMescola && k.rim <= 0));
+    mes.classList.toggle('arancio', serve && k.rim > 0 && !!nelDopo);
+    metti(mes, '<b>' + (k.rim > 0 && k.rim < i.kg ? '~' : '') + nIt(k.rim, 1) + '</b> kg a bordo', i.kg > 0 ? (1 - k.rim / i.kg) * 100 : 100,   // la barra si riempie col consumo: piena = cassone vuoto
+      
+      k.rim <= 0 ? '<b>Mescola finita.</b>' + (k.chiudiMescola ? ' Chiudi la commessa.' : serve ? ' Serve un cassone.' : '')
+      : k.chiudiMescola ? 'La commessa chiude con la mescola: <b>' + testoFine(k.fineMescola) + '</b>'
+      : serve && nelTurno ? '<b>Finisce in questo turno</b>, ~' + oraIt(k.fineMescola) + '. Serve un cassone.'
+      : serve && nelDopo ? '<b>Finisce nel turno dopo</b>, ' + testoFine(k.fineMescola) + '. Serve un cassone.'
+      : prima ? '<b>Finisce prima della commessa:</b> ' + testoFine(k.fineMescola) + '. Serve un cassone.'
+      : k.inOltranza ? 'Ad oltranza: la mescola finisce <b>' + testoFine(k.fineMescola) + '</b>'
+      : k.cicliMancano ? 'Basta fino a fine commessa · finisce <b>' + testoFine(k.fineMescola) + '</b>' : 'Finisce <b>' + testoFine(k.fineMescola) + '</b>');
+  }
+}
 function disegnaProduzione() {
   const box = $('presse-produzione');
-  if (!box.childElementCount) {
-    const esempi = [[68, false], [40, false], [55, true, 'manutenzione'], [69, false], [67, true, 'mancanza_materiale'], [33, true, 'mancanza_operatore']];
-    box.innerHTML = esempi.map(([p, ferma, motivo]) => '<div class="card pressa-prod" data-p="' + p + '"><div class="testa-prod"></div>' +
-      '<div class="corpo-prod"><span class="num-angolo">' + p + '</span>' + disegnoPressa(p, ferma, { motivo }) + '</div></div>').join('');
-  }
-  // articolo e commessa si aggiornano a ogni arrivo di dati, senza ridisegnare le presse (il movimento non deve ripartire)
-  box.querySelectorAll('.pressa-prod').forEach(c => {
-    const p = Number(c.dataset.p), u = ultimaReale(p), nuova = commessaNuova(p), stessa = u && !eFine(u);   // come nella tendina di lettura
-    const art = nuova ? nuova.articolo : stessa && u.articolo, com = nuova ? nuova.commessa : stessa && u.commessa;
-    c.querySelector('.testa-prod').innerHTML = '<span class="art">' + esc(art || '—') + '</span>' + (com ? '<span class="comm">' + esc(com) + '</span>' : '');
+  box.querySelectorAll('.pressa-prod').forEach(c => { if (!PRESSE.includes(Number(c.dataset.p))) c.remove(); });   // pressa tolta dall'elenco
+  PRESSE.forEach(p => {
+    let c = box.querySelector('.pressa-prod[data-p="' + p + '"]');
+    const ferma = ferme.includes(p), u = ultimaLettura(p), motivo = ferma && u ? u.motivo : null;
+    if (!c) {
+      box.insertAdjacentHTML('beforeend', '<div class="card pressa-prod" data-p="' + p + '"><div class="testa-prod"></div>' +
+        '<div class="corpo-prod"><span class="num-angolo">' + p + '</span>' + disegnoPressa(p, ferma, { motivo }) + '</div><div class="strisce-prod">' + striscePronte() + '</div>' +
+        '<button type="button" class="apri-dati" data-p="' + p + '" aria-label="Dati della pressa ' + p + '"></button></div>');
+      c = box.querySelector('.pressa-prod[data-p="' + p + '"]');
+    }
+    const att = avvioInAttesa(p);
+    c.querySelector('.dis-pressa').setAttribute('class', classiPressa(p, ferma, motivo, !!att));
+    const ur = ultimaReale(p), nuova = commessaNuova(p), stessa = ur && !eFine(ur);   // articolo e commessa come nella tendina di lettura
+    const art = nuova ? nuova.articolo : stessa && ur.articolo, com = nuova ? nuova.commessa : stessa && ur.commessa;
+    disegnaStrisce(c, p);
+    c.querySelector('.testa-prod').innerHTML = '<span class="art">' + esc(art || '—') + '</span>' + (com ? '<span class="comm">' + esc(com) + '</span>' : '') + (att ? '<span class="att">attesa ok qualità</span>' : '');
   });
+  box.querySelectorAll('.apri-dati').forEach(b => { b.onclick = () => { pressaDati = Number(b.dataset.p); vai('dati'); }; });
+  const ordine = () => [...box.children].map(c => Number(c.dataset.p));
+  if (JSON.stringify(ordine()) !== JSON.stringify(PRESSE)) PRESSE.forEach(p => box.appendChild(box.querySelector('.pressa-prod[data-p="' + p + '"]')));   // l'elenco è in ordine di numero
 }
 function disegnoPressa(p, ferma, u) {
   const motivo = ferma && u ? u.motivo : null;
-  const stato = !ferma ? '' : motivo === 'manutenzione' ? ' pr-ferma pr-man' : motivo === 'mancanza_materiale' ? ' pr-ferma pr-mat' : ' pr-ferma pr-alt';
   const dur = (2.4 + (p * 7 % 10) / 10 * 1.4).toFixed(1), rit = (-(p * 13 % 30) / 10).toFixed(1);
-  return '<svg class="dis-pressa ' + (p === 68 || p === 69 ? 'pr-gialla' : 'pr-blu') + stato + '" viewBox="0 -13 320 125" preserveAspectRatio="xMinYMid meet" style="--dur:' + dur + 's;--rit:' + rit + 's" aria-hidden="true"><use href="#pressa"/></svg>';
+  return '<svg class="' + classiPressa(p, ferma, motivo) + '" viewBox="0 -13 320 125" preserveAspectRatio="xMinYMid meet" style="--dur:' + dur + 's;--rit:' + rit + 's" aria-hidden="true"><use href="#pressa"/></svg>';
 }
+// ---------------- Regole della commessa ----------------
+// P + anno (2 cifre) + mese (2 cifre) + numero d'ordine (3 cifre): P2610032 = 2026, ottobre, ordine 032.
+// Non blocca: se non torna con la data di oggi avvisa e chiede "Confermo". L'anno scorso vale solo a gennaio, il mese scorso vale sempre.
+const MESI_IT = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+function avvisoCommessa(cifre, oggi = new Date()) {
+  const c = String(cifre || '').replace(/^P/i, '');
+  if (!c) return '';
+  if (!/^\d{7}$/.test(c)) return 'La commessa ha 7 cifre: anno (2), mese (2) e numero d\'ordine (3).';
+  const mm = Number(c.slice(2, 4)), anno = 2000 + Number(c.slice(0, 2)), aOggi = oggi.getFullYear(), mOggi = oggi.getMonth() + 1;
+  if (mm < 1 || mm > 12) return 'Nella commessa le cifre 3 e 4 sono il mese: «' + c.slice(2, 4) + '» non esiste.';
+  if (!(anno === aOggi || (anno === aOggi - 1 && mOggi === 1))) return 'L\'anno della commessa («' + c.slice(0, 2) + '», cioè ' + anno + ') non è giusto: siamo nel ' + aOggi + '.';
+  const fa = (aOggi * 12 + mOggi) - (anno * 12 + mm);
+  if (fa < 0) return 'La commessa è di ' + MESI_IT[mm - 1] + ' ' + anno + ', un mese che non è ancora iniziato.';
+  if (fa >= 2) return 'La commessa è di ' + MESI_IT[mm - 1] + ' ' + anno + ', di due mesi fa o più.';
+  return '';
+}
+// Se la commessa scritta (cambiata rispetto a prima) non torna, il primo tocco avvisa e il pulsante diventa "Confermo"; il secondo salva.
+let confermaCommessa = null;                          // { cifre, pulsante, testo }
+function annullaConfermaCommessa() {
+  if (confermaCommessa) { confermaCommessa.pulsante.textContent = confermaCommessa.testo; confermaCommessa = null; }
+}
+function commessaSospetta(cifre, cambiata, pulsante, mostra) {
+  if (confermaCommessa && confermaCommessa.cifre === cifre && confermaCommessa.pulsante === pulsante) { annullaConfermaCommessa(); return false; }   // già avvisata: confermata
+  const a = cifre && cambiata ? avvisoCommessa(cifre) : '';
+  if (!a) return false;
+  annullaConfermaCommessa();
+  confermaCommessa = { cifre, pulsante, testo: pulsante.textContent };
+  pulsante.textContent = 'Confermo';
+  mostra(a + ' Controlla il numero, oppure tocca Confermo se è giusto.');
+  return true;
+}
+['commessa', 'aggiungi-commessa', 'd-commessa'].forEach(id => { $(id).addEventListener('input', annullaConfermaCommessa); });
+
+// ---------------- Dati commessa ----------------
+// Si apre toccando la pressa in Produzione. Articolo e commessa sono gli stessi della Lettura cicli; i dati (pezzi, vani, ciclo, stampata)
+// valgono per la commessa a cui sono stati scritti: se la commessa cambia, vanno riscritti. La mescola a bordo è della pressa.
+function commessaCorrente(p) {
+  const u = ultimaReale(p), nuova = commessaNuova(p), stessa = u && !eFine(u);   // come nella tendina di lettura
+  return { articolo: (nuova ? nuova.articolo : stessa && u.articolo) || '', commessa: (nuova ? nuova.commessa : stessa && u.commessa) || '' };
+}
+function datiPressa(p) {
+  const i = infoPresse[p];
+  return i && i.datiPer && i.datiPer === commessaCorrente(p).commessa && i.quantita > 0 && i.vani > 0 ? i : null;
+}
+// cicli della commessa all'istante dato (il contatore riparte da zero a ogni commessa), anche tra una lettura e l'altra:
+// - dopo l'ultima lettura: ultima lettura + ritmo × ore di produzione effettive (senza fermi né attese) da allora, cioè una stima in tempo reale
+// - tra due letture: in proporzione alle ore effettive
+// - prima della prima lettura: da zero, dalla partenza della commessa (solo se la pressa ha una lettura dopo, oppure un ok qualità)
+function cicliStimati(p, quando, ritmo) {
+  const inizio = inizioCommessa(p, letture.length, new Date());
+  let prima = null, dopo = null;
+  letture.forEach(l => {
+    if (l.pressa !== p || eSolo(l) || eFine(l) || new Date(l.ora) < inizio) return;
+    if (new Date(l.ora) <= quando) prima = l; else if (!dopo) dopo = l;
+  });
+  const conOk = letture.some(l => l.pressa === p && l.ok_qualita && new Date(l.ora).getTime() === inizio.getTime());
+  if (!prima && !dopo && !conOk) return { cicli: 0, stimati: false };
+  const base = prima ? prima.cicli : 0, da = prima ? new Date(prima.ora) : inizio;
+  if (quando <= da) return { cicli: base, stimati: false };
+  if (dopo) {
+    const tot = durate(p, da, new Date(dopo.ora)).effettiva, h = durate(p, da, quando).effettiva;
+    return { cicli: base + (tot > 0 ? Math.max(0, dopo.cicli - base) * Math.min(1, h / tot) : 0), stimati: false };
+  }
+  const ore = ritmo > 0 ? durate(p, da, quando).effettiva : 0;
+  return { cicli: base + (ritmo > 0 ? ritmo * ore : 0), stimati: ore > 0.005 };
+}
+// ritmo in cicli all'ora: dal tempo ciclo del foglio; dopo un tratto di almeno un turno intero senza fermi né tempi esclusi, dai cicli veri (l'ultimo tratto così)
+function ritmoCommessa(p, ciclo) {
+  const teorico = ciclo > 0 ? 3600 / ciclo : null, inizio = inizioCommessa(p, letture.length, new Date());
+  const lp = letture.filter(l => l.pressa === p && !eSolo(l));
+  let veri = null;
+  for (let k = 1; k < lp.length; k++) {
+    const a = lp[k - 1], b = lp[k], da = new Date(a.ora), fino = new Date(b.ora);
+    if (da < inizio || eFine(a) || b.cicli <= a.cicli || b.contatore_ripartito) continue;
+    const pr = produzioneDi(fino);
+    if (!pr || !eFineTurno(fino)) continue;                       // la lettura chiude un turno
+    const pieno = (pr.fine - pr.inizio) / ORA, h = oreProduzione(da, fino);
+    if (h < pieno - 0.6 || oreFerme(fermiDi(p, fino), da, fino) >= 1 / 60) continue;   // turno intero, senza fermi
+    veri = (b.cicli - a.cicli) / h;
+  }
+  return { cicliOra: veri || teorico, veri: !!veri };
+}
+// quando finiscono `cicli` cicli al ritmo dato: si contano solo le ore di produzione (niente sabato e domenica)
+function fineStimata(cicli, cicliOra, da) {
+  if (!(cicliOra > 0)) return null;
+  let ore = cicli / cicliOra, t = new Date(da);
+  for (let i = 0; i < 600; i++) {
+    const pr = produzioneDi(t);
+    if (!pr) { t = turnoDi(t).fine; continue; }
+    const inizio = t > pr.inizio ? t : pr.inizio, disp = Math.max(0, (pr.fine - inizio) / ORA);
+    if (disp >= ore) return new Date(inizio.getTime() + ore * ORA);
+    ore -= disp; t = turnoDi(inizio).fine;
+  }
+  return null;
+}
+function testoFine(d) {
+  if (!d) return '—';
+  const oggi = new Date().toDateString() === d.toDateString();
+  return (oggi ? 'oggi' : d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'numeric' })) + ', ~' + oraIt(d);
+}
+const nIt = (x, dec = 0) => Number(x).toLocaleString('it-IT', { maximumFractionDigits: dec }).replace(/^(-?\d+)/, m => m.replace(/\B(?=(\d{3})+(?!\d))/g, '.'));   // anche le migliaia a 4 cifre: 2.200
+// conti di una pressa: pezzi, cicli che mancano, ritmo, fine commessa, mescola rimasta e quando finisce (pagina dati e strisce di Produzione)
+function contiPressa(p) {
+  const d = datiPressa(p), i = infoPresse[p] || {}, adesso = new Date(), k = { d, i };
+  let est = null;
+  if (d) {
+    k.ritmo = ritmoCommessa(p, d.ciclo);
+    est = avvioInAttesa(p) ? { cicli: 0, stimati: false } : cicliStimati(p, adesso, k.ritmo.cicliOra);
+    k.cicli = Math.floor(est.cicli); k.stimati = est.stimati; k.pezzi = k.cicli * d.vani;
+    k.pct = k.pezzi / d.quantita * 100;
+    k.oltranza = !!d.oltranza;                                  // spuntata prima
+    k.oltrAuto = !k.oltranza && k.pezzi >= d.quantita;           // raggiunta la quantità: si prosegue ad oltranza da soli, finché non si fa Fine commessa
+    k.inOltranza = k.oltranza || k.oltrAuto;
+    k.cicliMancano = Math.max(0, Math.ceil((d.quantita - k.pezzi) / d.vani));
+    k.fine = k.cicliMancano ? fineStimata(k.cicliMancano, k.ritmo.cicliOra, adesso) : adesso;
+    if (d.stampata) k.kgServono = k.cicliMancano * d.stampata / 1000;
+    if (i.kg != null && i.kgOra && d.stampata) {
+      const usati = Math.max(0, est.cicli - cicliStimati(p, new Date(i.kgOra), k.ritmo.cicliOra).cicli) * d.stampata / 1000;
+      k.rim = Math.max(0, i.kg - usati);
+      k.fineMescola = k.rim > 0 ? fineStimata(k.rim * 1000 / d.stampata, k.ritmo.cicliOra, adesso) : adesso;
+      // "chiudo la commessa a fine mescola": la fine della commessa è la fine della mescola
+      k.chiudiMescola = !!d.chiudiMescola;
+      if (k.chiudiMescola) { k.fine = k.fineMescola; k.pezziFinali = Math.floor(est.cicli + k.rim * 1000 / d.stampata) * d.vani; }
+    }
+  }
+  return k;
+}
+function disegnaDatiRighe() {
+  const p = pressaDati, k = contiPressa(p), d = k.d, i = k.i, righe = [];
+  if (!d) righe.push(['', 'Scrivi pezzi da produrre e vani (con articolo e commessa) per vedere i conti.']);
+  else {
+    righe.push(['Cicli della commessa', (k.stimati ? '~' : '') + nIt(k.cicli)], ['Pezzi stampati', (k.stimati ? '~' : '') + nIt(k.pezzi) + ' su ' + nIt(d.quantita) + ' (' + nIt(Math.min(100, k.pezzi / d.quantita * 100)) + '%)'], ['Cicli che mancano', nIt(k.cicliMancano)]);
+    righe.push(['Ritmo usato', k.ritmo.cicliOra ? nIt(k.ritmo.cicliOra, 1) + ' cicli/h · ' + (k.ritmo.veri ? "ultimo turno intero" : 'tempo ciclo ' + nIt(d.ciclo, 1) + ' s') : '—']);
+    righe.push(['Fine commessa', (k.chiudiMescola ? 'a fine mescola · ' : '') + (k.cicliMancano || k.chiudiMescola ? testoFine(k.fine) : 'quantità raggiunta: si prosegue ad oltranza')]);
+    if (k.chiudiMescola) righe.push(['Pezzi finali stimati', '~' + nIt(k.pezziFinali)]);
+    if (k.inOltranza) righe.push(['Stampa ad oltranza', (k.oltrAuto ? 'automatica, fino a Fine commessa · ' : '') + (k.pezzi > d.quantita ? 'attiva · +' + nIt(k.pezzi - d.quantita) + ' pezzi (' + nIt(Math.floor(k.pct)) + '%)' : 'attivata (' + nIt(Math.floor(k.pct)) + '%)')]);
+    if (d.stampata) righe.push(['Mescola ancora necessaria', '~' + nIt(k.kgServono, 1) + ' kg']);
+  }
+  if (k.rim != null) {
+    righe.push(['Mescola a bordo adesso', '~' + nIt(k.rim, 1) + ' kg' + (i.mescola ? ' (' + esc(i.mescola) + ')' : '')]);
+    righe.push(['La mescola finisce', k.ritmo && k.ritmo.cicliOra ? testoFine(k.fineMescola) : '—']);
+  }
+  $('dati-righe').innerHTML = righe.map(([a, b]) => '<div class="riga-d">' + (a ? '<span>' + a + '</span><b>' + b + '</b>' : '<span>' + b + '</span>') + '</div>').join('');
+}
+function apriDati() {
+  const p = pressaDati, c = commessaCorrente(p), i = infoPresse[p] || {}, d = datiPressa(p);
+  $('dati-titolo').textContent = 'Pressa ' + p + (avvioInAttesa(p) ? ' · attesa ok qualità' : '');
+  $('d-articolo').value = c.articolo; $('d-commessa').value = c.commessa.replace(/^P/i, '');
+  $('d-oltranza').checked = !!(d && d.oltranza); $('d-chiudi-mescola').checked = !!(d && d.chiudiMescola); $('d-quantita').value = d ? d.quantita : ''; $('d-vani').value = d ? d.vani : ''; $('d-ciclo').value = d && d.ciclo ? d.ciclo : ''; $('d-stampata').value = d && d.stampata ? d.stampata : '';
+  $('d-mescola').value = (i.mescola || '').replace(/^M-?/i, '');   // la M- è già stampata nella casella $('d-kg').value = i.kg == null ? '' : i.kg;
+  const vecchi = i.datiPer && !d;
+  $('dati-nota').hidden = !vecchi;
+  if (vecchi) $('dati-nota').textContent = 'I dati di prima erano della commessa ' + i.datiPer + ': scrivi quelli della commessa nuova.';
+  $('avviso-dati').textContent = '';
+  disegnaDatiRighe();
+}
+// numero scritto in una casella: vuoto = null; sbagliato = si ferma con un messaggio
+function numeroDa(id, nome, min, max, intero) {
+  const t = $(id).value.trim().replace(',', '.');
+  if (!t) return null;
+  const n = Number(t);
+  if (!isFinite(n) || n < min || n > max || (intero && !Number.isInteger(n))) { $('avviso-dati').textContent = nome + ': scrivi un numero' + (intero ? ' intero' : '') + ' tra ' + min + ' e ' + max + '.'; $(id).focus(); throw new Error('numero'); }
+  return n;
+}
+// codice mescola dopo la M- già stampata: numeri separati da «/», e B come ultimo pezzo (M-316/193, M-316/B, M-316/193/B)
+const CODICE_MESCOLA = /^\d+(\/\d+)*(\/B)?$/;
+$('d-mescola').oninput = () => {                      // si scrivono solo numeri, «/» e B (la b minuscola diventa maiuscola)
+  const v = $('d-mescola').value.toUpperCase().replace(/[^0-9\/B]/g, '');
+  if (v !== $('d-mescola').value) $('d-mescola').value = v;
+};
+$('dati-salva').onclick = () => {
+  const p = pressaDati;
+  if (p == null || !inTurno()) return;
+  let q, v, c, g, kg;
+  try {
+    q = numeroDa('d-quantita', 'Pezzi da produrre', 1, 9999999, true); v = numeroDa('d-vani', 'Vani', 1, 450, true);
+    c = numeroDa('d-ciclo', 'Ciclo', 1, 9999, false); g = numeroDa('d-stampata', 'Stampata', 0.1, 99999, false); kg = numeroDa('d-kg', 'Kg a bordo', 0, 99999, false);
+  } catch (e) { return; }
+  const articolo = $('d-articolo').value.trim(), cifre = $('d-commessa').value.trim().replace(/^P/i, ''), commessa = cifre ? 'P' + cifre : '';
+  if ((q || v || c || g) && !commessa) { $('avviso-dati').textContent = 'Scrivi anche la commessa: i dati valgono per quella.'; $('d-commessa').focus(); return; }
+  if (commessaSospetta(cifre, commessa !== commessaCorrente(p).commessa, $('dati-salva'), t => { $('avviso-dati').textContent = t; })) return;
+  const codice = $('d-mescola').value.trim();
+  if (codice && !CODICE_MESCOLA.test(codice)) { $('avviso-dati').textContent = 'Mescola: scrivi solo numeri e «/», e al massimo B dopo una «/» (es. 316/193 oppure 316/B).'; $('d-mescola').focus(); return; }
+  const mescola = codice ? 'M-' + codice : '', i = infoPresse[p] || {}, corr = commessaCorrente(p), adesso = new Date().toISOString();
+  const oltranza = $('d-oltranza').checked && !!(q || v || c || g);   // vale per la commessa dei dati
+  const chiudiMescola = $('d-chiudi-mescola').checked && !!(q || v || c || g);
+  const campi = { nome: accesso.nome, dati_commessa: (q || v || c || g) ? commessa : null, quantita: q, vani: v, ciclo_s: c, stampata_g: g, oltranza: oltranza ? true : null, chiudi_mescola: chiudiMescola ? true : null, mescola: mescola || null };
+  if (articolo !== corr.articolo || commessa !== corr.commessa) { campi.articolo = articolo || null; campi.commessa = commessa || null; campi.ora = adesso; }   // come "Salva articolo e commessa" nella lettura
+  let kgOra = i.kgOra || '';
+  if (kg !== null && kg !== i.kg) { campi.mescola_kg = kg; campi.mescola_ora = kgOra = adesso; }          // cassone nuovo o kg corretti: da qui si riparte a contare
+  else if (kg === null && i.kg != null) { campi.mescola_kg = null; campi.mescola_ora = null; kgOra = ''; }
+  infoPresse[p] = { ...i, articolo: campi.articolo === undefined ? i.articolo : articolo, commessa: campi.commessa === undefined ? i.commessa : commessa, ora: campi.ora || i.ora,
+    quantita: q || 0, vani: v || 0, ciclo: c || 0, stampata: g || 0, oltranza, chiudiMescola, mescola, kg, kgOra, datiPer: campi.dati_commessa || '' };
+  salva(PREF + 'info-presse', infoPresse);
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  $('avviso-dati').textContent = 'Salvo…';
+  disegnaDatiRighe();
+  // "salvati" solo quando il database risponde di sì; se rifiuta, lo si dice qui (il messaggio in alto è di un'altra pagina)
+  db.aggiornaPressa(p, campi).then(() => { if (pressaDati === p && !$('vista-dati').hidden) $('avviso-dati').textContent = 'Dati salvati.'; })
+    .catch(e => { if (!$('vista-dati').hidden) $('avviso-dati').textContent = e && e.code === 'permission-denied' ? 'Il database non ha accettato i dati: non ha il permesso (le regole nuove sono state incollate in Console?).' : 'Il database non ha accettato i dati. Riprova.'; });
+};
+
 // presse in funzione in cima, ferme in fondo; ognuna è un pulsante che apre la sua tendina
 function disegnaElencoPresse() {
   document.body.classList.toggle('lettura-aperta', pressaAperta != null && !$('vista-leggi').hidden);
@@ -1379,26 +1718,28 @@ function disegnaElencoPresse() {
   $('fuori-turno').hidden = scr || !accesso;        // fuori turno: avviso in cima e niente modifiche
   if (!scr && accesso) $('fuori-turno').textContent = testoFuoriTurno();
   const voce = p => {
-    const l = lette[p], f = ferme.includes(p), aperta = p === pressaAperta;
+    const l = lette[p], f = ferme.includes(p), aperta = p === pressaAperta, att = avvioInAttesa(p);
     // sulle presse ferme, al posto dello stato, il pulsantino "Riparte ora"
-    const stato = f ? (scr ? '<span class="st spazio-rip"></span>' : '<span class="st">ferma</span>') : l ? '<span class="st letta">' + SPUNTA + l.cicli + '</span>' : '<span class="st manca">da leggere</span>';
+    const stato = att ? (scr ? '<span class="st spazio-rip"></span>' : '<span class="st">attesa</span>') : f ? (scr ? '<span class="st spazio-rip"></span>' : '<span class="st">ferma</span>') : l ? '<span class="st letta">' + SPUNTA + l.cicli + '</span>' : '<span class="st manca">da leggere</span>';
     const u = ultimaLettura(p);
     // in mezzo la lettura che precede quella di questo turno (se la pressa è già letta), altrimenti l'ultima (di solito del turno prima): cicli e ora
     let prec = ultimaReale(p);
     if (l) { prec = null; for (let i = letture.indexOf(l) - 1; i >= 0; i--) if (letture[i].pressa === p && !eSolo(letture[i])) { prec = letture[i]; break; } }
     const ultima = !f && prec ? '<span class="ultima"><b>' + prec.cicli + '</b><span>' + quandoBreve(new Date(prec.ora)) + '</span>' + (prec.nome ? '<span class="da">' + esc(prec.nome) + '</span>' : '') + '</span>' : '';
-    const ev = testoEvento(f || (!l && eFermo(u)) ? u : l, { totale: minutiFermoNelTurno(p) });   // anche "Ripartita alle…" finché non si legge
+    const ev = att ? 'Attesa ok qualità · avvio alle ' + att.toTimeString().slice(0, 5) : testoEvento(f || (!l && eFermo(u)) ? u : l, { totale: minutiFermoNelTurno(p) });   // anche "Ripartita alle…" finché non si legge
     return '<div class="voce' + (aperta ? ' aperta' : '') + (f ? ' ferma-p' : '') + '" data-p="' + p + '"><div class="testa-p">' +
       '<button class="togli-sw" data-togli="' + p + '" tabindex="-1">Togli</button><div class="scorre">' +
       '<button class="pressa-btn" data-p="' + p + '" aria-expanded="' + aperta + '"><span class="titolo-p"><span class="num">Pressa ' + p + '</span>' +
       (ev ? '<span class="sub">' + ev.replace(/</g, '&lt;') + '</span>' : '') + '</span>' + ultima + stato + CHEVRON + '</button>' +
       (f && scr ? '<button class="chip riparte" data-riparte="' + p + '">Riparte ora</button>' : '') +
+      (att && scr ? '<button class="chip riparte" data-okq="' + p + '">Ok qualità</button>' : '') +
       '</div></div><div class="slot"></div></div>';
   };
   // ordine fisso nel tempo: in cima la pressa letta per ultima (di qualunque turno), poi le precedenti; mai lette in fondo, nell'ordine solito
   const quando = p => { const u = ultimaLettura(p); return u ? new Date(u.ora).getTime() : 0; };
-  const inF = PRESSE.filter(p => !ferme.includes(p)).sort((a, b) => quando(b) - quando(a)), ferm = PRESSE.filter(p => ferme.includes(p));
-  $('elenco-presse').innerHTML = inF.map(voce).join('') + (ferm.length ? '<div class="sep">Ferme</div>' + ferm.map(voce).join('') : '');
+  const inAtt = PRESSE.filter(p => avvioInAttesa(p) && !ferme.includes(p)).sort((a, b) => avvioInAttesa(a) - avvioInAttesa(b));
+  const inF = PRESSE.filter(p => !ferme.includes(p) && !inAtt.includes(p)).sort((a, b) => quando(b) - quando(a)), ferm = PRESSE.filter(p => ferme.includes(p));
+  $('elenco-presse').innerHTML = inF.map(voce).join('') + (inAtt.length ? '<div class="sep">Attesa ok qualità</div>' + inAtt.map(voce).join('') : '') + (ferm.length ? '<div class="sep">Ferme</div>' + ferm.map(voce).join('') : '');
   // dopo uno scorrimento il tocco non apre la pressa; con "Togli" scoperto, il tocco lo richiude
   const dopoScorrimento = () => {
     if (trascinato) return true;
@@ -1407,6 +1748,7 @@ function disegnaElencoPresse() {
   };
   document.querySelectorAll('.pressa-btn').forEach(b => { b.onclick = () => { if (!dopoScorrimento()) apri(Number(b.dataset.p)); }; });
   document.querySelectorAll('[data-riparte]').forEach(b => { b.onclick = () => { if (!dopoScorrimento()) riparte(Number(b.dataset.riparte)); }; });
+  document.querySelectorAll('[data-okq]').forEach(b => { b.onclick = () => { if (!dopoScorrimento()) okQualita(Number(b.dataset.okq)); }; });
   if (scrivibile()) document.querySelectorAll('.scorre').forEach(attivaScorrimento);
   document.querySelectorAll('[data-togli]').forEach(b => { b.onclick = () => togliPressa(Number(b.dataset.togli)); });
   scorsa = null;
@@ -1429,6 +1771,13 @@ function commessaNuova(p) {
   if (!n || !(n.articolo || n.commessa)) return null;
   return letture.some(l => l.pressa === p && !eSolo(l) && l.ora >= n.ora) ? null : n;
 }
+// Avvio macchina: la pressa aggiunta da Produzione aspetta l'ok della qualità. Finisce quando c'è una lettura "ok qualità" dopo l'avvio.
+// Restituisce l'ora di avvio se aspetta ancora, altrimenti null.
+function avvioInAttesa(p) {
+  const n = infoPresse[p];
+  if (!n || !n.attesa || !n.avvio) return null;
+  return letture.some(l => l.pressa === p && l.ok_qualita && l.ora >= n.avvio) ? null : new Date(n.avvio);
+}
 function salvaPresse() { PRESSE.sort((a, b) => a - b); salva(CHIAVE_PRESSE, PRESSE); aggiornaFerme(); }
 // La prima volta che il reparto non ha ancora l'elenco comune, ogni telefono ci mette le sue presse (una volta sola)
 function presseArrivate(elenco, dalServer) {
@@ -1442,19 +1791,23 @@ function presseArrivate(elenco, dalServer) {
   }
   if (dalServer) salva(CHIAVE_FATTO, true);
   const nuove = elenco.map(x => Number(x.pressa)).sort((a, b) => a - b), info = {};
-  elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '' }; });
+  elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '', attesa: x.attesa_qualita === true, avvio: x.avvio || '',
+    quantita: x.quantita || 0, vani: x.vani || 0, ciclo: x.ciclo_s || 0, stampata: x.stampata_g || 0, oltranza: x.oltranza === true, chiudiMescola: x.chiudi_mescola === true, mescola: x.mescola || '', kg: x.mescola_kg == null ? null : x.mescola_kg, kgOra: x.mescola_ora || '', datiPer: x.dati_commessa || '' }; });
   if (JSON.stringify(nuove) === JSON.stringify([...PRESSE].sort((a, b) => a - b)) && JSON.stringify(info) === JSON.stringify(infoPresse)) return;   // niente di nuovo (es. solo la sincronizzazione)
   PRESSE = nuove; infoPresse = info;
   salvaPresse(); salva(PREF + 'info-presse', infoPresse);
   if (pressaAperta != null && !PRESSE.includes(pressaAperta)) chiudi();
   if (!$('vista-leggi').hidden && !trascinato && pressaAperta == null) { disegnaElencoPresse(); disegnaRiepilogo(); }
+  if (!$('vista-produzione').hidden) disegnaProduzione();
+  if (!$('vista-dati').hidden) { if (PRESSE.includes(pressaDati)) disegnaDatiRighe(); else vai('produzione'); }
 }
 $('aggiungi-apri').onclick = () => {
-  if (!inTurno()) return;
+  if (!inTurno()) { $('avviso-aggiungi').textContent = $('msg').textContent; return; }   // in Produzione il messaggio in alto non c'è
   const aprire = $('aggiungi-blocco').hidden;
   $('aggiungi-blocco').hidden = !aprire; $('aggiungi-apri').setAttribute('aria-expanded', String(aprire));
   $('avviso-aggiungi').textContent = '';
   if (!aprire) return;
+  $('aggiungi-nota').hidden = $('vista-produzione').hidden;
   $('aggiungi-num').value = $('aggiungi-articolo').value = $('aggiungi-commessa').value = '';
   $('aggiungi-scorciatoie').innerHTML = PRESSE_REPARTO.filter(p => !PRESSE.includes(p)).map(p => '<button class="chip" data-scorc="' + p + '">' + p + '</button>').join('');
   document.querySelectorAll('[data-scorc]').forEach(b => { b.onclick = () => { $('aggiungi-num').value = b.dataset.scorc; $('aggiungi-articolo').focus(); }; });
@@ -1465,14 +1818,18 @@ $('aggiungi-ok').onclick = () => {
   if (!/^\d{1,4}$/.test(t) || !p) { $('avviso-aggiungi').textContent = 'Scrivi il numero della pressa.'; $('aggiungi-num').focus(); return; }
   if (PRESSE.includes(p)) { $('avviso-aggiungi').textContent = 'La pressa ' + p + ' è già nell\'elenco.'; return; }
   const articolo = $('aggiungi-articolo').value.trim(), cifre = $('aggiungi-commessa').value.trim().replace(/^P/i, '');
+  if (commessaSospetta(cifre, true, $('aggiungi-ok'), t => { $('avviso-aggiungi').textContent = t; })) return;
   const nuova = { pressa: p, ora: new Date().toISOString(), nome: accesso.nome };
+  const avvio = !$('vista-produzione').hidden;           // da Produzione: avvio macchina, la pressa aspetta l'ok della qualità
+  if (avvio) { const a = new Date(); a.setSeconds(0, 0); nuova.attesa_qualita = true; nuova.avvio = a.toISOString(); }
   if (articolo) nuova.articolo = articolo;
   if (cifre) nuova.commessa = 'P' + cifre;
-  PRESSE.push(p); infoPresse[p] = { articolo, commessa: nuova.commessa || '', ora: nuova.ora }; salvaPresse();   // si vede subito, il database la passa ai colleghi
+  PRESSE.push(p); infoPresse[p] = { articolo, commessa: nuova.commessa || '', ora: nuova.ora, attesa: avvio, avvio: nuova.avvio || '' }; salvaPresse();   // si vede subito, il database la passa ai colleghi
   db.aggiungiPressa(nuova).catch(erroreDati);
   $('aggiungi-blocco').hidden = true; $('aggiungi-apri').setAttribute('aria-expanded', 'false'); $('avviso-aggiungi').textContent = '';
   $('aggiungi-num').blur();
   disegnaElencoPresse();
+  if (!$('vista-produzione').hidden) { disegnaProduzione(); $('avviso-aggiungi').textContent = 'Pressa ' + p + ' aggiunta: attesa ok qualità.'; }
   $('msg').textContent = 'Pressa ' + p + ' aggiunta all\'elenco.';
 };
 // la pressa sfuma e l'elenco si richiude piano; poi esce davvero dall'elenco
@@ -1493,6 +1850,7 @@ function togliDavvero(p) {
   db.togliPressa(p).catch(erroreDati);
   if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
   disegnaRiepilogo();
+  if (!$('vista-produzione').hidden) disegnaProduzione();
   $('msg').textContent = 'Pressa ' + p + ' tolta dall\'elenco. Le sue letture restano nello storico.';
 }
 // scorrimento verso sinistra sulla pressa: oltre metà strada resta aperto e scopre "Togli", altrimenti torna al suo posto
@@ -1542,7 +1900,21 @@ function mostraRiparte(avviso) {
   $('rip-giorno').textContent = ripData.toDateString() === new Date().toDateString() ? 'Oggi' : 'Il ' + ripData.toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: '2-digit' });
   $('avviso-riparte').textContent = avviso || '';
 }
-const testoPrima = () => (ripModo === 'ferma' ? "Prima dell'ultima lettura (" : 'Prima del fermo (') + ripMin.toTimeString().slice(0, 5) + ') non si può.';
+const testoPrima = () => (ripModo === 'ferma' ? "Prima dell'ultima lettura (" : ripModo === 'okq' ? "Prima dell'avvio macchina (" : 'Prima del fermo (') + ripMin.toTimeString().slice(0, 5) + ') non si può.';
+// ok della qualità: si sceglie l'ora (adesso o indietro, mai prima dell'avvio macchina); da lì la pressa è in produzione
+function okQualita(p) {
+  if (!inTurno()) return;
+  const av = avvioInAttesa(p);
+  if (!av) return;
+  ripPressa = p; ripModo = 'okq';
+  ripMin = alMinuto(av);
+  ripData = alMinuto(oraDiScrittura());
+  if (ripData < ripMin) ripData = ripMin;
+  $('riparte-pressa').textContent = p;
+  $('titolo-riparte').firstChild.textContent = 'Pressa '; $('titolo-riparte').lastChild.textContent = ' ok qualità alle';
+  mostraRiparte();
+  if (typeof dialogoRiparte.showModal === 'function') dialogoRiparte.showModal(); else dialogoRiparte.setAttribute('open', '');
+}
 // fermo senza cicli: si sceglie l'ora (adesso o indietro, mai prima dell'ultima lettura della pressa), poi il motivo
 let fermoSolo = false;
 function ferma(p) {
@@ -1604,6 +1976,15 @@ dialogoRiparte.addEventListener('close', () => {
 $('conferma-riparte').onclick = () => {
   const p = ripPressa;
   if (ripModo === 'ferma') { dialogoRiparte.close(); fermoSolo = true; apriMotivi(); return; }   // ora scelta: ora il motivo
+  if (ripModo === 'okq') {                        // ok qualità: la pressa parte; il tempo dall'avvio all'ok non conta né come lavorato né come fermo
+    const av = avvioInAttesa(p);
+    dialogoRiparte.close();
+    if (!av) return;
+    nuovaLettura({ pressa: p, cicli: 0, ora: ripData.toISOString(), ore: 0, solo_evento: true, ok_qualita: true, avvio_macchina: av.toISOString() });
+    aggiornaFerme(); disegnaElencoPresse(); disegnaRiepilogo(); disegnaHome();
+    $('msg').textContent = 'Pressa ' + p + ': ok qualità alle ' + ripData.toTimeString().slice(0, 5) + ', in produzione.';
+    return;
+  }
   if (ripModo === 'lettura') {                   // l'ora va nella casella "Ripartita alle" e le ore si contano da lì
     $('rip-ora').value = ripData.toTimeString().slice(0, 5);
     $('rip-ora-blocco').hidden = false;
@@ -1654,6 +2035,7 @@ let scrollPrima = 0;                               // dove si era nell'elenco pr
 function apri(p) {
   if (pressaAperta === p) { chiudi(); return; }
   if (!inTurno()) return;                          // fuori turno la tendina non si apre
+  if (avvioInAttesa(p)) { okQualita(p); return; }   // in attesa dell'ok non c'è niente da leggere: si segna l'ok
   const da = topDi(p); scrollPrima = window.scrollY;
   pressaAperta = p; pressaScelta = p; ricordaPressa();
   $('msg').textContent = '';
@@ -1759,8 +2141,9 @@ $('salva-campi').onclick = () => {
   if (p == null || !inTurno()) return;
   const articolo = $('articolo').value.trim(), cifre = $('commessa').value.trim().replace(/^P/i, '');
   if (!articolo && !cifre) { $('avviso-salva').textContent = 'Scrivi articolo o commessa.'; $('articolo').focus(); return; }
+  if (commessaSospetta(cifre, ('P' + cifre) !== commessaCorrente(p).commessa, $('salva-campi'), t => { $('avviso-salva').textContent = t; })) return;
   const campi = { articolo: articolo || null, commessa: cifre ? 'P' + cifre : null, ora: new Date().toISOString(), nome: accesso.nome };
-  infoPresse[p] = { articolo, commessa: campi.commessa || '', ora: campi.ora };
+  infoPresse[p] = { ...infoPresse[p], articolo, commessa: campi.commessa || '', ora: campi.ora };   // attesa e avvio restano
   db.aggiornaPressa(p, campi).catch(erroreDati);
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   mostraCampi(false);
@@ -1902,16 +2285,25 @@ function cicliOrari(p) {
   };
   return media(fine) || media(-1);
 }
-// più bassa dell'ultima lettura, oppure molti più cicli di quelli possibili nel tempo passato (media × 1,5, più mezz'ora di margine)
+const MAX_CICLI_TURNO = p => p === 74 ? 850 : 500;   // cicli al massimo in un turno di 8 ore: la 74 ha uno stampo che arriva a 800
+// più bassa dell'ultima lettura, oltre il tetto di cicli per turno, oppure molti più cicli di quelli possibili nel tempo passato (media × 1,5, più mezz'ora di margine)
 function controllaLettura(p, cicli, adesso, ripartenza) {
   const u = ultimaReale(p);
-  if (!u || eFine(u)) return null;                // dopo Fine commessa il contatore riparte da zero
+  if (!u) return null;
   const n = x => Math.round(x).toLocaleString('it-IT');
+  // tetto assoluto: al massimo MAX_CICLI_TURNO cicli ogni 8 ore di produzione (in proporzione alle ore, mai meno di un'ora)
+  const tetto = (fatti, dal) => {
+    const ore = Math.max(1, oreProduzione(dal, fineConto(adesso))), max = MAX_CICLI_TURNO(p) * ore / 8;
+    return fatti > max ? { testo: 'Troppi cicli: ' + n(fatti) + ' in ' + formatoOre(ore) + ' di produzione, al massimo ' + n(max) + ' (' + MAX_CICLI_TURNO(p) + ' ogni 8 ore). Correggi il numero, oppure tocca Confermo se è giusto.' } : null;
+  };
+  if (eFine(u)) return tetto(cicli, fineCambio(u, adesso));      // dopo Fine commessa il contatore riparte da zero: si conta dalla partenza della commessa nuova
   if (cicli < u.cicli) return { bassa: true, testo: 'Più bassa dell\'ultima lettura (' + n(u.cicli) + '). Correggi il numero, oppure tocca Confermo se è giusta (contatore ripartito).' };
-  const media = cicliOrari(p);
-  if (!media) return null;
   let da = ripartenza || (eFermo(u) ? turnoDi(adesso).inizio : new Date(u.ora));   // dopo un fermo si conta dalla ripartenza
   if (da < new Date(u.ora)) da = new Date(u.ora);
+  const troppi = tetto(cicli - u.cicli, da);
+  if (troppi) return troppi;
+  const media = cicliOrari(p);
+  if (!media) return null;
   const attesi = media * oreProduzione(da, adesso);
   if (cicli - u.cicli > attesi * 1.5 + media / 2)
     return { testo: 'Salto troppo grande: ' + n(cicli - u.cicli) + ' cicli dall\'ultima lettura, di solito circa ' + n(attesi) + ' in questo tempo. Correggi il numero, oppure tocca Confermo se è giusta.' };
@@ -1924,6 +2316,7 @@ $('cicli-input').oninput = () => {
 };
 
 function azzera() {
+  annullaConfermaCommessa();
   controllo = false;
   cicliConfermati = null; $('salva').textContent = 'Salva';
   $('cicli-input').value = '';
@@ -1937,6 +2330,8 @@ function registra() {
   const cicli = Number(testo);
   if (!testo || !Number.isInteger(cicli) || cicli < 0) { $('avviso-salva').textContent = 'Scrivi il numero dei cicli totali.'; $('cicli-input').focus(); return; }
   if (optFermo.checked && !motivo) { apriMotivi(); return; }      // per sicurezza: senza motivo non si salva il fermo
+  const cifreC = $('commessa').value.trim().replace(/^P/i, '');   // commessa cambiata nella lettura: se non torna con la data, si chiede conferma
+  if (commessaSospetta(cifreC, ('P' + cifreC) !== commessaCorrente(pressaAperta).commessa, $('salva'), t => { $('avviso-salva').textContent = t; })) return;
   const adesso = oraFine || oraDiScrittura();
   const avviso = t => { $('avviso-salva').textContent = t; };
   if (!$('ripartenza').hidden && !ripScelta) { avviso('Indica quando è ripartita la pressa, o se è ancora ferma.'); $('ripartenza').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
@@ -2092,6 +2487,7 @@ function fermiDi(pressa, finoA, chiudi) {
   const lp = letture.filter(l => l.pressa === pressa), fermi = [];
   lp.forEach((l, k) => {
     const dopo = lp[k + 1], inizio = new Date(l.ora);
+    if (l.ok_qualita && l.avvio_macchina) fermi.push([turnoDi(new Date(l.avvio_macchina)).inizio, inizio, true]);   // attesa ok qualità: tempo escluso (dall'inizio del turno dell'avvio)
     if (eFine(l) && !eSolo(l)) {
       const reale = lp.slice(k + 1).find(x => !eSolo(x));
       fermi.push([inizio, fineCambio(l, reale ? new Date(reale.ora) : finoA), true]);
@@ -2149,7 +2545,9 @@ function inizioCommessa(p, i, d) {
   let primo = d;
   for (let j = i - 1; j >= 0; j--) {
     const x = letture[j];
-    if (x.pressa !== p || eSolo(x)) continue;
+    if (x.pressa !== p) continue;
+    if (x.ok_qualita) return new Date(x.ora);       // la commessa parte dall'ok della qualità
+    if (eSolo(x)) continue;
     if (eFine(x)) return fineCambio(x, primo);
     primo = new Date(x.ora);
   }
@@ -2380,7 +2778,7 @@ $('esporta').onclick = async () => {
   s.className = PROVA ? 'striscia-prova' : 'striscia-beta';
   const ver = document.querySelector('meta[name="versione"]').content, agg = document.querySelector('meta[name="aggiornamento"]');
   // numero dell'aggiornamento e ora della pubblicazione: si vede quante volte è cambiata l'app e se il telefono ha l'ultima
-  s.textContent = PROVA ? 'SVILUPPATORE · n. ' + (agg ? agg.content : '?') + ' · ' + ver.slice(8, 10) + ':' + ver.slice(10, 12) : 'BETA 8';
+  s.textContent = PROVA ? 'SVILUPPATORE · n. ' + (agg ? agg.content : '?') + ' · ' + ver.slice(8, 10) + ':' + ver.slice(10, 12) : 'BETA 9';
   document.querySelector('.pagina').prepend(s);
   if (PROVA) document.title = 'NIS Sviluppatore';
   // la striscia arancio resta in cima: la pressa aperta deve fermarsi sotto
@@ -2401,6 +2799,7 @@ function datiArrivati(nuove) {
   if (!$('vista-storico').hidden) disegnaStorico();
   if (!$('vista-home').hidden) disegnaHome();
   if (!$('vista-produzione').hidden) disegnaProduzione();
+  if (!$('vista-dati').hidden) disegnaDatiRighe();
 }
 async function preparaDb() {
   if (!db) db = CONFIG_PRONTA ? await dbFirebase(FIREBASE) : dbFinto();
@@ -2470,6 +2869,8 @@ function aggiornaVista() {
   if (!$('vista-produzione').hidden) disegnaProduzione();
 }
 setInterval(aggiornaVista, 30000);                 // il turno finisce anche con l'app aperta
+// pezzi e mescola avanzano anche tra una lettura e l'altra: le strisce si aggiornano da sole
+setInterval(() => { if (document.hidden) return; if (!$('vista-produzione').hidden) disegnaProduzione(); if (!$('vista-dati').hidden) disegnaDatiRighe(); }, 15000);
 // passo 1: il codice. Se esiste si passa alla scelta del nome (i nomi sono quelli della rotazione dei turni)
 let entrata = null;                                // { codice, chiave, rotazione, persone } durante l'accesso
 const safariIphone = /iPhone|iPod/.test(navigator.userAgent) && navigator.standalone === false;
