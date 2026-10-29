@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029185044">
-<meta name="aggiornamento" content="84">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029190151">
+<meta name="aggiornamento" content="85">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1453,12 +1453,12 @@ function disegnaStrisce(c, p) {
     const adesso = new Date(), t = turnoDi(adesso), dopo = turnoDi(t.fine);
     const prima = !!(k.d && k.cicliMancano && k.fineMescola && k.fine && k.fineMescola < k.fine);   // finisce prima della commessa
     const nelTurno = k.fineMescola && k.fineMescola < t.fine, nelDopo = k.fineMescola && !nelTurno && k.fineMescola < dopo.fine;
-    const serve = k.rim <= 0 || prima || (!k.d || !k.cicliMancano);
+    const serve = !!k.cicliMancano && (k.rim <= 0 || prima);   // se la commessa finisce prima della mescola, nessun allarme: resta verde anche se la mescola finisce nel turno
     mes.classList.toggle('rosso', serve && (k.rim <= 0 || !!nelTurno));
     mes.classList.toggle('arancio', serve && k.rim > 0 && !!nelDopo);
     metti(mes, '<b>' + (k.rim > 0 && k.rim < i.kg ? '~' : '') + nIt(k.rim, 1) + '</b> kg a bordo', i.kg > 0 ? (1 - k.rim / i.kg) * 100 : 100,   // la barra si riempie col consumo: piena = cassone vuoto
       
-      k.rim <= 0 ? '<b>Mescola finita.</b> Serve un cassone.'
+      k.rim <= 0 ? '<b>Mescola finita.</b>' + (serve ? ' Serve un cassone.' : '')
       : serve && nelTurno ? '<b>Finisce in questo turno</b>, ~' + oraIt(k.fineMescola) + '. Serve un cassone.'
       : serve && nelDopo ? '<b>Finisce nel turno dopo</b>, ' + testoFine(k.fineMescola) + '. Serve un cassone.'
       : prima ? '<b>Finisce prima della commessa:</b> ' + testoFine(k.fineMescola) + '. Serve un cassone.'
