@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029200310">
-<meta name="aggiornamento" content="89">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029201910">
+<meta name="aggiornamento" content="90">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -636,7 +636,7 @@ if (/prove/.test(location.pathname)) {
   <div class="card">
     <h2 class="titolo-sez" style="margin-bottom:14px">Mescola a bordo pressa</h2>
     <div class="blocco riga">
-      <div class="campo"><label for="d-mescola">Codice mescola</label><input class="testo" id="d-mescola" maxlength="40" autocomplete="off"></div>
+      <div class="campo"><label for="d-mescola">Codice mescola</label><div class="prefisso"><span aria-hidden="true">M-</span><input class="testo" id="d-mescola" style="padding-left:46px" placeholder="316/193" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false"></div></div>
       <div class="campo"><label for="d-kg">Kg a bordo adesso</label><input class="testo" id="d-kg" inputmode="decimal" maxlength="7" autocomplete="off"></div>
     </div>
     <p class="piccolo" style="margin:12px 0 0">Quando arriva un cassone nuovo, riscrivi i kg che hai a bordo: da lì l'app riparte a contare.</p>
@@ -1623,7 +1623,7 @@ function apriDati() {
   $('dati-titolo').textContent = 'Pressa ' + p + (avvioInAttesa(p) ? ' · attesa ok qualità' : '');
   $('d-articolo').value = c.articolo; $('d-commessa').value = c.commessa.replace(/^P/i, '');
   $('d-oltranza').checked = !!(d && d.oltranza); $('d-chiudi-mescola').checked = !!(d && d.chiudiMescola); $('d-quantita').value = d ? d.quantita : ''; $('d-vani').value = d ? d.vani : ''; $('d-ciclo').value = d && d.ciclo ? d.ciclo : ''; $('d-stampata').value = d && d.stampata ? d.stampata : '';
-  $('d-mescola').value = i.mescola || ''; $('d-kg').value = i.kg == null ? '' : i.kg;
+  $('d-mescola').value = (i.mescola || '').replace(/^M-?/i, '');   // la M- è già stampata nella casella $('d-kg').value = i.kg == null ? '' : i.kg;
   const vecchi = i.datiPer && !d;
   $('dati-nota').hidden = !vecchi;
   if (vecchi) $('dati-nota').textContent = 'I dati di prima erano della commessa ' + i.datiPer + ': scrivi quelli della commessa nuova.';
@@ -1638,6 +1638,12 @@ function numeroDa(id, nome, min, max, intero) {
   if (!isFinite(n) || n < min || n > max || (intero && !Number.isInteger(n))) { $('avviso-dati').textContent = nome + ': scrivi un numero' + (intero ? ' intero' : '') + ' tra ' + min + ' e ' + max + '.'; $(id).focus(); throw new Error('numero'); }
   return n;
 }
+// codice mescola dopo la M- già stampata: numeri separati da «/», e B come ultimo pezzo (M-316/193, M-316/B, M-316/193/B)
+const CODICE_MESCOLA = /^\d+(\/\d+)*(\/B)?$/;
+$('d-mescola').oninput = () => {                      // si scrivono solo numeri, «/» e B (la b minuscola diventa maiuscola)
+  const v = $('d-mescola').value.toUpperCase().replace(/[^0-9\/B]/g, '');
+  if (v !== $('d-mescola').value) $('d-mescola').value = v;
+};
 $('dati-salva').onclick = () => {
   const p = pressaDati;
   if (p == null || !inTurno()) return;
@@ -1648,7 +1654,9 @@ $('dati-salva').onclick = () => {
   } catch (e) { return; }
   const articolo = $('d-articolo').value.trim(), cifre = $('d-commessa').value.trim().replace(/^P/i, ''), commessa = cifre ? 'P' + cifre : '';
   if ((q || v || c || g) && !commessa) { $('avviso-dati').textContent = 'Scrivi anche la commessa: i dati valgono per quella.'; $('d-commessa').focus(); return; }
-  const mescola = $('d-mescola').value.trim(), i = infoPresse[p] || {}, corr = commessaCorrente(p), adesso = new Date().toISOString();
+  const codice = $('d-mescola').value.trim();
+  if (codice && !CODICE_MESCOLA.test(codice)) { $('avviso-dati').textContent = 'Mescola: scrivi solo numeri e «/», e al massimo B dopo una «/» (es. 316/193 oppure 316/B).'; $('d-mescola').focus(); return; }
+  const mescola = codice ? 'M-' + codice : '', i = infoPresse[p] || {}, corr = commessaCorrente(p), adesso = new Date().toISOString();
   const oltranza = $('d-oltranza').checked && !!(q || v || c || g);   // vale per la commessa dei dati
   const chiudiMescola = $('d-chiudi-mescola').checked && !!(q || v || c || g);
   const campi = { nome: accesso.nome, dati_commessa: (q || v || c || g) ? commessa : null, quantita: q, vani: v, ciclo_s: c, stampata_g: g, oltranza: oltranza ? true : null, chiudi_mescola: chiudiMescola ? true : null, mescola: mescola || null };
