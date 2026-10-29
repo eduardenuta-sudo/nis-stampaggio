@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029184427">
-<meta name="aggiornamento" content="82">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029184453">
+<meta name="aggiornamento" content="83">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1619,7 +1619,7 @@ $('dati-salva').onclick = () => {
   if (p == null || !inTurno()) return;
   let q, v, c, g, kg;
   try {
-    q = numeroDa('d-quantita', 'Pezzi da produrre', 1, 9999999, true); v = numeroDa('d-vani', 'Vani', 1, 350, true);
+    q = numeroDa('d-quantita', 'Pezzi da produrre', 1, 9999999, true); v = numeroDa('d-vani', 'Vani', 1, 450, true);
     c = numeroDa('d-ciclo', 'Ciclo', 1, 9999, false); g = numeroDa('d-stampata', 'Stampata', 0.1, 99999, false); kg = numeroDa('d-kg', 'Kg a bordo', 0, 99999, false);
   } catch (e) { return; }
   const articolo = $('d-articolo').value.trim(), cifre = $('d-commessa').value.trim().replace(/^P/i, ''), commessa = cifre ? 'P' + cifre : '';
