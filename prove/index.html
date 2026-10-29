@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029204417">
-<meta name="aggiornamento" content="94">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029213431">
+<meta name="aggiornamento" content="95">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -635,11 +635,12 @@ if (/prove/.test(location.pathname)) {
   </div>
   <div class="card">
     <h2 class="titolo-sez" style="margin-bottom:14px">Mescola a bordo pressa</h2>
+    <div class="campo" style="margin-bottom:14px"><label for="d-mescola">Codice mescola</label><div class="prefisso"><span aria-hidden="true">M-</span><input class="testo" id="d-mescola" style="padding-left:46px" placeholder="316/193" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false"></div></div>
     <div class="blocco riga">
-      <div class="campo"><label for="d-mescola">Codice mescola</label><div class="prefisso"><span aria-hidden="true">M-</span><input class="testo" id="d-mescola" style="padding-left:46px" placeholder="316/193" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false"></div></div>
+      <div class="campo"><label for="d-pieno">Kg cassone pieno</label><input class="testo" id="d-pieno" inputmode="decimal" maxlength="7" autocomplete="off"></div>
       <div class="campo"><label for="d-kg">Kg a bordo adesso</label><input class="testo" id="d-kg" inputmode="decimal" maxlength="7" autocomplete="off"></div>
     </div>
-    <p class="piccolo" style="margin:12px 0 0">Quando arriva un cassone nuovo, riscrivi i kg che hai a bordo: da lì l'app riparte a contare.</p>
+    <p class="piccolo" style="margin:12px 0 0">Con un cassone nuovo scrivi tutti e due i campi. Se poi aggiungi o togli mescola, cambia solo i kg a bordo: il cassone pieno resta quello.</p>
   </div>
   <button id="dati-salva" class="salva" style="width:100%">Salva i dati</button>
   <div class="avviso" id="avviso-dati" role="alert"></div>
@@ -1468,7 +1469,7 @@ function disegnaStrisce(c, p) {
     const serve = !k.chiudiMescola && (k.inOltranza || !k.cicliMancano || k.rim <= 0 || prima);   // se la commessa chiude con la mescola non serve un altro cassone   // ad oltranza, o raggiunta la quantità ma non ancora chiusa con Fine commessa: il cassone serve ancora   // se la commessa finisce prima della mescola, nessun allarme: resta verde anche se la mescola finisce nel turno
     mes.classList.toggle('rosso', (serve && (k.rim <= 0 || !!nelTurno)) || (k.chiudiMescola && k.rim <= 0));
     mes.classList.toggle('arancio', serve && k.rim > 0 && !!nelDopo);
-    metti(mes, '<b>' + (k.rim > 0 && k.rim < i.kg ? '~' : '') + nIt(k.rim, 1) + '</b> kg a bordo', i.kg > 0 ? (1 - k.rim / i.kg) * 100 : 100,   // la barra si riempie col consumo: piena = cassone vuoto
+    metti(mes, '<b>' + (k.rim > 0 && k.rim < i.kg ? '~' : '') + nIt(k.rim, 1) + '</b> kg a bordo', (i.pieno || i.kg) > 0 ? (1 - k.rim / (i.pieno || i.kg)) * 100 : 100,   // la barra si riempie col consumo del cassone intero (se non è scritto, dei kg inseriti): piena = cassone vuoto
       
       k.rim <= 0 ? '<b>Mescola finita.</b>' + (k.chiudiMescola ? ' Chiudi la commessa.' : serve ? ' Serve un cassone.' : '')
       : k.chiudiMescola ? 'La commessa chiude con la mescola: <b>' + testoFine(k.fineMescola) + '</b>'
@@ -1656,7 +1657,8 @@ function apriDati() {
   $('dati-titolo').textContent = 'Pressa ' + p + (avvioInAttesa(p) ? ' · attesa ok qualità' : '');
   $('d-articolo').value = c.articolo; $('d-commessa').value = c.commessa.replace(/^P/i, '');
   $('d-oltranza').checked = !!(d && d.oltranza); $('d-chiudi-mescola').checked = !!(d && d.chiudiMescola); $('d-quantita').value = d ? d.quantita : ''; $('d-vani').value = d ? d.vani : ''; $('d-ciclo').value = d && d.ciclo ? d.ciclo : ''; $('d-stampata').value = d && d.stampata ? d.stampata : '';
-  $('d-mescola').value = (i.mescola || '').replace(/^M-?/i, '');   // la M- è già stampata nella casella $('d-kg').value = i.kg == null ? '' : i.kg;
+  $('d-mescola').value = (i.mescola || '').replace(/^M-?/i, '');   // la M- è già stampata nella casella
+  $('d-pieno').value = i.pieno == null ? '' : i.pieno; $('d-kg').value = i.kg == null ? '' : i.kg;
   const vecchi = i.datiPer && !d;
   $('dati-nota').hidden = !vecchi;
   if (vecchi) $('dati-nota').textContent = 'I dati di prima erano della commessa ' + i.datiPer + ': scrivi quelli della commessa nuova.';
@@ -1680,26 +1682,27 @@ $('d-mescola').oninput = () => {                      // si scrivono solo numeri
 $('dati-salva').onclick = () => {
   const p = pressaDati;
   if (p == null || !inTurno()) return;
-  let q, v, c, g, kg;
+  let q, v, c, g, kg, pieno;
   try {
     q = numeroDa('d-quantita', 'Pezzi da produrre', 1, 9999999, true); v = numeroDa('d-vani', 'Vani', 1, 450, true);
-    c = numeroDa('d-ciclo', 'Ciclo', 1, 9999, false); g = numeroDa('d-stampata', 'Stampata', 0.1, 99999, false); kg = numeroDa('d-kg', 'Kg a bordo', 0, 99999, false);
+    c = numeroDa('d-ciclo', 'Ciclo', 1, 9999, false); g = numeroDa('d-stampata', 'Stampata', 0.1, 99999, false); kg = numeroDa('d-kg', 'Kg a bordo', 0, 99999, false); pieno = numeroDa('d-pieno', 'Kg cassone pieno', 0.1, 99999, false);
   } catch (e) { return; }
   const articolo = $('d-articolo').value.trim(), cifre = $('d-commessa').value.trim().replace(/^P/i, ''), commessa = cifre ? 'P' + cifre : '';
   if ((q || v || c || g) && !commessa) { $('avviso-dati').textContent = 'Scrivi anche la commessa: i dati valgono per quella.'; $('d-commessa').focus(); return; }
   if (commessaSospetta(cifre, commessa !== commessaCorrente(p).commessa, $('dati-salva'), t => { $('avviso-dati').textContent = t; })) return;
+  if (pieno != null && kg != null && kg > pieno) { $('avviso-dati').textContent = 'I kg a bordo (' + nIt(kg, 1) + ') non possono essere più del cassone pieno (' + nIt(pieno, 1) + '): correggi uno dei due.'; $('d-kg').focus(); return; }
   const codice = $('d-mescola').value.trim();
   if (codice && !CODICE_MESCOLA.test(codice)) { $('avviso-dati').textContent = 'Mescola: scrivi solo numeri e «/», e al massimo B dopo una «/» (es. 316/193 oppure 316/B).'; $('d-mescola').focus(); return; }
   const mescola = codice ? 'M-' + codice : '', i = infoPresse[p] || {}, corr = commessaCorrente(p), adesso = new Date().toISOString();
   const oltranza = $('d-oltranza').checked && !!(q || v || c || g);   // vale per la commessa dei dati
   const chiudiMescola = $('d-chiudi-mescola').checked && !!(q || v || c || g);
-  const campi = { nome: accesso.nome, dati_commessa: (q || v || c || g) ? commessa : null, quantita: q, vani: v, ciclo_s: c, stampata_g: g, oltranza: oltranza ? true : null, chiudi_mescola: chiudiMescola ? true : null, mescola: mescola || null };
+  const campi = { nome: accesso.nome, dati_commessa: (q || v || c || g) ? commessa : null, quantita: q, vani: v, ciclo_s: c, stampata_g: g, oltranza: oltranza ? true : null, chiudi_mescola: chiudiMescola ? true : null, mescola: mescola || null, mescola_pieno: pieno };
   if (articolo !== corr.articolo || commessa !== corr.commessa) { campi.articolo = articolo || null; campi.commessa = commessa || null; campi.ora = adesso; }   // come "Salva articolo e commessa" nella lettura
   let kgOra = i.kgOra || '';
   if (kg !== null && kg !== i.kg) { campi.mescola_kg = kg; campi.mescola_ora = kgOra = adesso; }          // cassone nuovo o kg corretti: da qui si riparte a contare
   else if (kg === null && i.kg != null) { campi.mescola_kg = null; campi.mescola_ora = null; kgOra = ''; }
   infoPresse[p] = { ...i, articolo: campi.articolo === undefined ? i.articolo : articolo, commessa: campi.commessa === undefined ? i.commessa : commessa, ora: campi.ora || i.ora,
-    quantita: q || 0, vani: v || 0, ciclo: c || 0, stampata: g || 0, oltranza, chiudiMescola, mescola, kg, kgOra, datiPer: campi.dati_commessa || '' };
+    quantita: q || 0, vani: v || 0, ciclo: c || 0, stampata: g || 0, oltranza, chiudiMescola, mescola, pieno, kg, kgOra, datiPer: campi.dati_commessa || '' };
   salva(PREF + 'info-presse', infoPresse);
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   $('avviso-dati').textContent = 'Salvo…';
@@ -1792,7 +1795,7 @@ function presseArrivate(elenco, dalServer) {
   if (dalServer) salva(CHIAVE_FATTO, true);
   const nuove = elenco.map(x => Number(x.pressa)).sort((a, b) => a - b), info = {};
   elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '', attesa: x.attesa_qualita === true, avvio: x.avvio || '',
-    quantita: x.quantita || 0, vani: x.vani || 0, ciclo: x.ciclo_s || 0, stampata: x.stampata_g || 0, oltranza: x.oltranza === true, chiudiMescola: x.chiudi_mescola === true, mescola: x.mescola || '', kg: x.mescola_kg == null ? null : x.mescola_kg, kgOra: x.mescola_ora || '', datiPer: x.dati_commessa || '' }; });
+    quantita: x.quantita || 0, vani: x.vani || 0, ciclo: x.ciclo_s || 0, stampata: x.stampata_g || 0, oltranza: x.oltranza === true, chiudiMescola: x.chiudi_mescola === true, mescola: x.mescola || '', pieno: x.mescola_pieno == null ? null : x.mescola_pieno, kg: x.mescola_kg == null ? null : x.mescola_kg, kgOra: x.mescola_ora || '', datiPer: x.dati_commessa || '' }; });
   if (JSON.stringify(nuove) === JSON.stringify([...PRESSE].sort((a, b) => a - b)) && JSON.stringify(info) === JSON.stringify(infoPresse)) return;   // niente di nuovo (es. solo la sincronizzazione)
   PRESSE = nuove; infoPresse = info;
   salvaPresse(); salva(PREF + 'info-presse', infoPresse);
