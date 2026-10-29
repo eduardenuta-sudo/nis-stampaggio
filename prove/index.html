@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029195732">
-<meta name="aggiornamento" content="88">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029200310">
+<meta name="aggiornamento" content="89">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -630,6 +630,8 @@ if (/prove/.test(location.pathname)) {
     </div>
     <label class="opzione" style="margin:16px 0 0"><input type="checkbox" id="d-oltranza"><span class="casella" aria-hidden="true"></span><span class="testo-opz">Stampa ad oltranza</span></label>
     <p class="piccolo" style="margin:10px 0 0">Per quando arriva l'ordine di continuare oltre i pezzi da produrre: la percentuale prosegue oltre il 100% finché non togli la spunta.</p>
+    <label class="opzione" style="margin:16px 0 0"><input type="checkbox" id="d-chiudi-mescola"><span class="casella" aria-hidden="true"></span><span class="testo-opz">Chiudo la commessa a fine mescola</span></label>
+    <p class="piccolo" style="margin:10px 0 0">La fine della commessa diventa la fine della mescola a bordo pressa. Serve che ci siano i kg a bordo e il peso della stampata.</p>
   </div>
   <div class="card">
     <h2 class="titolo-sez" style="margin-bottom:14px">Mescola a bordo pressa</h2>
@@ -1445,9 +1447,10 @@ function disegnaStrisce(c, p) {
   else {
     const ol = k.inOltranza, piena = k.pezzi >= k.d.quantita;
     const pillola = ol ? '<span class="oltr' + (piena ? ' pieno' : '') + '" aria-hidden="true">✓</span><b>Stampa ad oltranza attivata</b>' + (k.oltrAuto ? ' · fino a Fine commessa' : '') + '<br>' : '';
+    const chiude = k.chiudiMescola ? 'chiude a fine mescola <b>' + testoFine(k.fine) + '</b> (~' + nIt(k.pezziFinali) + ' pezzi)' : '';
     metti(com, '<b>' + (k.stimati ? '~' : '') + nIt(k.pezzi) + '</b> / ' + nIt(k.d.quantita) + ' pezzi' + (ol ? ' · <b>' + nIt(Math.floor(k.pct)) + '%</b>' : ''), Math.min(100, k.pct),
-      pillola + (k.cicliMancano ? 'Mancano <b>' + nIt(Math.max(0, k.d.quantita - k.pezzi)) + '</b> pezzi · ' + (ol ? 'poi si prosegue a oltranza' : 'fine stimata <b>' + testoFine(k.fine) + '</b>')
-        : ol ? 'Oltre la quantità: <b>+' + nIt(k.pezzi - k.d.quantita) + '</b> pezzi' : '<b>Commessa finita</b>'));
+      pillola + (k.cicliMancano ? 'Mancano <b>' + nIt(Math.max(0, k.d.quantita - k.pezzi)) + '</b> pezzi · ' + (chiude || (ol ? 'poi si prosegue a oltranza' : 'fine stimata <b>' + testoFine(k.fine) + '</b>'))
+        : ol ? 'Oltre la quantità: <b>+' + nIt(k.pezzi - k.d.quantita) + '</b> pezzi' + (chiude ? ' · ' + chiude : '') : '<b>Commessa finita</b>'));
   }
   // mescola
   const i = k.i, codice = i.mescola || '';
@@ -1462,12 +1465,13 @@ function disegnaStrisce(c, p) {
     const adesso = new Date(), t = turnoDi(adesso), dopo = turnoDi(t.fine);
     const prima = !!(k.d && k.cicliMancano && k.fineMescola && k.fine && k.fineMescola < k.fine);   // finisce prima della commessa
     const nelTurno = k.fineMescola && k.fineMescola < t.fine, nelDopo = k.fineMescola && !nelTurno && k.fineMescola < dopo.fine;
-    const serve = k.inOltranza || !k.cicliMancano || k.rim <= 0 || prima;   // ad oltranza, o raggiunta la quantità ma non ancora chiusa con Fine commessa: il cassone serve ancora   // se la commessa finisce prima della mescola, nessun allarme: resta verde anche se la mescola finisce nel turno
-    mes.classList.toggle('rosso', serve && (k.rim <= 0 || !!nelTurno));
+    const serve = !k.chiudiMescola && (k.inOltranza || !k.cicliMancano || k.rim <= 0 || prima);   // se la commessa chiude con la mescola non serve un altro cassone   // ad oltranza, o raggiunta la quantità ma non ancora chiusa con Fine commessa: il cassone serve ancora   // se la commessa finisce prima della mescola, nessun allarme: resta verde anche se la mescola finisce nel turno
+    mes.classList.toggle('rosso', (serve && (k.rim <= 0 || !!nelTurno)) || (k.chiudiMescola && k.rim <= 0));
     mes.classList.toggle('arancio', serve && k.rim > 0 && !!nelDopo);
     metti(mes, '<b>' + (k.rim > 0 && k.rim < i.kg ? '~' : '') + nIt(k.rim, 1) + '</b> kg a bordo', i.kg > 0 ? (1 - k.rim / i.kg) * 100 : 100,   // la barra si riempie col consumo: piena = cassone vuoto
       
-      k.rim <= 0 ? '<b>Mescola finita.</b>' + (serve ? ' Serve un cassone.' : '')
+      k.rim <= 0 ? '<b>Mescola finita.</b>' + (k.chiudiMescola ? ' Chiudi la commessa.' : serve ? ' Serve un cassone.' : '')
+      : k.chiudiMescola ? 'La commessa chiude con la mescola: <b>' + testoFine(k.fineMescola) + '</b>'
       : serve && nelTurno ? '<b>Finisce in questo turno</b>, ~' + oraIt(k.fineMescola) + '. Serve un cassone.'
       : serve && nelDopo ? '<b>Finisce nel turno dopo</b>, ' + testoFine(k.fineMescola) + '. Serve un cassone.'
       : prima ? '<b>Finisce prima della commessa:</b> ' + testoFine(k.fineMescola) + '. Serve un cassone.'
@@ -1590,6 +1594,9 @@ function contiPressa(p) {
       const usati = Math.max(0, est.cicli - cicliStimati(p, new Date(i.kgOra), k.ritmo.cicliOra).cicli) * d.stampata / 1000;
       k.rim = Math.max(0, i.kg - usati);
       k.fineMescola = k.rim > 0 ? fineStimata(k.rim * 1000 / d.stampata, k.ritmo.cicliOra, adesso) : adesso;
+      // "chiudo la commessa a fine mescola": la fine della commessa è la fine della mescola
+      k.chiudiMescola = !!d.chiudiMescola;
+      if (k.chiudiMescola) { k.fine = k.fineMescola; k.pezziFinali = Math.floor(est.cicli + k.rim * 1000 / d.stampata) * d.vani; }
     }
   }
   return k;
@@ -1600,7 +1607,8 @@ function disegnaDatiRighe() {
   else {
     righe.push(['Cicli della commessa', (k.stimati ? '~' : '') + nIt(k.cicli)], ['Pezzi stampati', (k.stimati ? '~' : '') + nIt(k.pezzi) + ' su ' + nIt(d.quantita) + ' (' + nIt(Math.min(100, k.pezzi / d.quantita * 100)) + '%)'], ['Cicli che mancano', nIt(k.cicliMancano)]);
     righe.push(['Ritmo usato', k.ritmo.cicliOra ? nIt(k.ritmo.cicliOra, 1) + ' cicli/h · ' + (k.ritmo.veri ? "ultimo turno intero" : 'tempo ciclo ' + nIt(d.ciclo, 1) + ' s') : '—']);
-    righe.push(['Fine commessa', k.cicliMancano ? testoFine(k.fine) : 'quantità raggiunta: si prosegue ad oltranza']);
+    righe.push(['Fine commessa', (k.chiudiMescola ? 'a fine mescola · ' : '') + (k.cicliMancano || k.chiudiMescola ? testoFine(k.fine) : 'quantità raggiunta: si prosegue ad oltranza')]);
+    if (k.chiudiMescola) righe.push(['Pezzi finali stimati', '~' + nIt(k.pezziFinali)]);
     if (k.inOltranza) righe.push(['Stampa ad oltranza', (k.oltrAuto ? 'automatica, fino a Fine commessa · ' : '') + (k.pezzi > d.quantita ? 'attiva · +' + nIt(k.pezzi - d.quantita) + ' pezzi (' + nIt(Math.floor(k.pct)) + '%)' : 'attivata (' + nIt(Math.floor(k.pct)) + '%)')]);
     if (d.stampata) righe.push(['Mescola ancora necessaria', '~' + nIt(k.kgServono, 1) + ' kg']);
   }
@@ -1614,7 +1622,7 @@ function apriDati() {
   const p = pressaDati, c = commessaCorrente(p), i = infoPresse[p] || {}, d = datiPressa(p);
   $('dati-titolo').textContent = 'Pressa ' + p + (avvioInAttesa(p) ? ' · attesa ok qualità' : '');
   $('d-articolo').value = c.articolo; $('d-commessa').value = c.commessa.replace(/^P/i, '');
-  $('d-oltranza').checked = !!(d && d.oltranza); $('d-quantita').value = d ? d.quantita : ''; $('d-vani').value = d ? d.vani : ''; $('d-ciclo').value = d && d.ciclo ? d.ciclo : ''; $('d-stampata').value = d && d.stampata ? d.stampata : '';
+  $('d-oltranza').checked = !!(d && d.oltranza); $('d-chiudi-mescola').checked = !!(d && d.chiudiMescola); $('d-quantita').value = d ? d.quantita : ''; $('d-vani').value = d ? d.vani : ''; $('d-ciclo').value = d && d.ciclo ? d.ciclo : ''; $('d-stampata').value = d && d.stampata ? d.stampata : '';
   $('d-mescola').value = i.mescola || ''; $('d-kg').value = i.kg == null ? '' : i.kg;
   const vecchi = i.datiPer && !d;
   $('dati-nota').hidden = !vecchi;
@@ -1642,13 +1650,14 @@ $('dati-salva').onclick = () => {
   if ((q || v || c || g) && !commessa) { $('avviso-dati').textContent = 'Scrivi anche la commessa: i dati valgono per quella.'; $('d-commessa').focus(); return; }
   const mescola = $('d-mescola').value.trim(), i = infoPresse[p] || {}, corr = commessaCorrente(p), adesso = new Date().toISOString();
   const oltranza = $('d-oltranza').checked && !!(q || v || c || g);   // vale per la commessa dei dati
-  const campi = { nome: accesso.nome, dati_commessa: (q || v || c || g) ? commessa : null, quantita: q, vani: v, ciclo_s: c, stampata_g: g, oltranza: oltranza ? true : null, mescola: mescola || null };
+  const chiudiMescola = $('d-chiudi-mescola').checked && !!(q || v || c || g);
+  const campi = { nome: accesso.nome, dati_commessa: (q || v || c || g) ? commessa : null, quantita: q, vani: v, ciclo_s: c, stampata_g: g, oltranza: oltranza ? true : null, chiudi_mescola: chiudiMescola ? true : null, mescola: mescola || null };
   if (articolo !== corr.articolo || commessa !== corr.commessa) { campi.articolo = articolo || null; campi.commessa = commessa || null; campi.ora = adesso; }   // come "Salva articolo e commessa" nella lettura
   let kgOra = i.kgOra || '';
   if (kg !== null && kg !== i.kg) { campi.mescola_kg = kg; campi.mescola_ora = kgOra = adesso; }          // cassone nuovo o kg corretti: da qui si riparte a contare
   else if (kg === null && i.kg != null) { campi.mescola_kg = null; campi.mescola_ora = null; kgOra = ''; }
   infoPresse[p] = { ...i, articolo: campi.articolo === undefined ? i.articolo : articolo, commessa: campi.commessa === undefined ? i.commessa : commessa, ora: campi.ora || i.ora,
-    quantita: q || 0, vani: v || 0, ciclo: c || 0, stampata: g || 0, oltranza, mescola, kg, kgOra, datiPer: campi.dati_commessa || '' };
+    quantita: q || 0, vani: v || 0, ciclo: c || 0, stampata: g || 0, oltranza, chiudiMescola, mescola, kg, kgOra, datiPer: campi.dati_commessa || '' };
   salva(PREF + 'info-presse', infoPresse);
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   $('avviso-dati').textContent = 'Salvo…';
@@ -1741,7 +1750,7 @@ function presseArrivate(elenco, dalServer) {
   if (dalServer) salva(CHIAVE_FATTO, true);
   const nuove = elenco.map(x => Number(x.pressa)).sort((a, b) => a - b), info = {};
   elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '', attesa: x.attesa_qualita === true, avvio: x.avvio || '',
-    quantita: x.quantita || 0, vani: x.vani || 0, ciclo: x.ciclo_s || 0, stampata: x.stampata_g || 0, oltranza: x.oltranza === true, mescola: x.mescola || '', kg: x.mescola_kg == null ? null : x.mescola_kg, kgOra: x.mescola_ora || '', datiPer: x.dati_commessa || '' }; });
+    quantita: x.quantita || 0, vani: x.vani || 0, ciclo: x.ciclo_s || 0, stampata: x.stampata_g || 0, oltranza: x.oltranza === true, chiudiMescola: x.chiudi_mescola === true, mescola: x.mescola || '', kg: x.mescola_kg == null ? null : x.mescola_kg, kgOra: x.mescola_ora || '', datiPer: x.dati_commessa || '' }; });
   if (JSON.stringify(nuove) === JSON.stringify([...PRESSE].sort((a, b) => a - b)) && JSON.stringify(info) === JSON.stringify(infoPresse)) return;   // niente di nuovo (es. solo la sincronizzazione)
   PRESSE = nuove; infoPresse = info;
   salvaPresse(); salva(PREF + 'info-presse', infoPresse);
