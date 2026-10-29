@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029203719">
-<meta name="aggiornamento" content="92">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029204043">
+<meta name="aggiornamento" content="93">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1509,7 +1509,7 @@ function disegnoPressa(p, ferma, u) {
 }
 // ---------------- Regole della commessa ----------------
 // P + anno (2 cifre) + mese (2 cifre) + numero d'ordine (3 cifre): P2610032 = 2026, ottobre, ordine 032.
-// Non blocca: se non torna con la data di oggi avvisa e chiede "Confermo". L'anno scorso vale fino a febbraio, il mese scorso vale sempre.
+// Non blocca: se non torna con la data di oggi avvisa e chiede "Confermo". L'anno scorso vale solo a gennaio, il mese scorso vale sempre.
 const MESI_IT = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
 function avvisoCommessa(cifre, oggi = new Date()) {
   const c = String(cifre || '').replace(/^P/i, '');
@@ -1517,7 +1517,7 @@ function avvisoCommessa(cifre, oggi = new Date()) {
   if (!/^\d{7}$/.test(c)) return 'La commessa ha 7 cifre: anno (2), mese (2) e numero d\'ordine (3).';
   const mm = Number(c.slice(2, 4)), anno = 2000 + Number(c.slice(0, 2)), aOggi = oggi.getFullYear(), mOggi = oggi.getMonth() + 1;
   if (mm < 1 || mm > 12) return 'Nella commessa le cifre 3 e 4 sono il mese: «' + c.slice(2, 4) + '» non esiste.';
-  if (!(anno === aOggi || (anno === aOggi - 1 && mOggi <= 2))) return 'L\'anno della commessa («' + c.slice(0, 2) + '», cioè ' + anno + ') non è giusto: siamo nel ' + aOggi + '.';
+  if (!(anno === aOggi || (anno === aOggi - 1 && mOggi === 1))) return 'L\'anno della commessa («' + c.slice(0, 2) + '», cioè ' + anno + ') non è giusto: siamo nel ' + aOggi + '.';
   const fa = (aOggi * 12 + mOggi) - (anno * 12 + mm);
   if (fa < 0) return 'La commessa è di ' + MESI_IT[mm - 1] + ' ' + anno + ', un mese che non è ancora iniziato.';
   if (fa >= 2) return 'La commessa è di ' + MESI_IT[mm - 1] + ' ' + anno + ', di due mesi fa o più.';
