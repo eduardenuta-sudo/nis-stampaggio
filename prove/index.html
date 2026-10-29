@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029155242">
-<meta name="aggiornamento" content="75">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029171257">
+<meta name="aggiornamento" content="76">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1288,6 +1288,8 @@ function vai(nome) {
   if (nome !== 'home') $('titolo').textContent = TITOLI[nome];
   $('indietro').innerHTML = nome === 'storico' ? '&larr; Letture' : nome === 'leggi' || nome === 'produzione' ? duePassi('Indietro', 'Home') : '&larr; Home';   // dallo storico si torna alla lettura cicli
   if (nome === 'home') disegnaHome();
+  if (nome === 'leggi') $('elenco-presse').after(document.querySelector('.aggiungi'));         // un solo "Aggiungi pressa", comune alle due pagine
+  if (nome === 'produzione') $('presse-produzione').after(document.querySelector('.aggiungi'));
   if (nome === 'leggi') { pressaAperta = null; $('msg').textContent = ''; disegnaElencoPresse(); disegnaRiepilogo(); azzera(); }
   if (nome === 'storico') disegnaStorico();
   if (nome === 'produzione') disegnaProduzione();
@@ -1350,26 +1352,35 @@ function quandoBreve(d) {
 }
 // disegno della pressa: gialla la 68 e la 69, blu le altre. In funzione: luce verde e stampo che si muove (ritmo diverso per ogni pressa).
 // Ferma: manutenzione = luce rossa, mancanza materiale = verde lampeggiante, mancanza operatore = luci spente; stampo fermo
-// PROVA DEL DISEGNO: sei presse di esempio, solo disegni, in stati diversi (non sono quelle vere). Si disegnano una volta sola, così il movimento non riparte.
+// Produzione: una scheda per ogni pressa dell'elenco comune (le stesse della Lettura cicli), col suo stato.
+// Le schede si creano una volta sola e poi si aggiornano al loro posto, così il movimento non riparte a ogni dato nuovo.
+function classiPressa(p, ferma, motivo) {
+  const stato = !ferma ? '' : motivo === 'manutenzione' ? ' pr-ferma pr-man' : motivo === 'mancanza_materiale' ? ' pr-ferma pr-mat' : ' pr-ferma pr-alt';
+  return 'dis-pressa ' + (p === 68 || p === 69 ? 'pr-gialla' : 'pr-blu') + stato;
+}
 function disegnaProduzione() {
   const box = $('presse-produzione');
-  if (!box.childElementCount) {
-    const esempi = [[68, false], [40, false], [55, true, 'manutenzione'], [69, false], [67, true, 'mancanza_materiale'], [33, true, 'mancanza_operatore']];
-    box.innerHTML = esempi.map(([p, ferma, motivo]) => '<div class="card pressa-prod" data-p="' + p + '"><div class="testa-prod"></div>' +
-      '<div class="corpo-prod"><span class="num-angolo">' + p + '</span>' + disegnoPressa(p, ferma, { motivo }) + '</div><div class="strisce-prod"></div></div>').join('');
-  }
-  // articolo e commessa si aggiornano a ogni arrivo di dati, senza ridisegnare le presse (il movimento non deve ripartire)
-  box.querySelectorAll('.pressa-prod').forEach(c => {
-    const p = Number(c.dataset.p), u = ultimaReale(p), nuova = commessaNuova(p), stessa = u && !eFine(u);   // come nella tendina di lettura
-    const art = nuova ? nuova.articolo : stessa && u.articolo, com = nuova ? nuova.commessa : stessa && u.commessa;
+  box.querySelectorAll('.pressa-prod').forEach(c => { if (!PRESSE.includes(Number(c.dataset.p))) c.remove(); });   // pressa tolta dall'elenco
+  PRESSE.forEach(p => {
+    let c = box.querySelector('.pressa-prod[data-p="' + p + '"]');
+    const ferma = ferme.includes(p), u = ultimaLettura(p), motivo = ferma && u ? u.motivo : null;
+    if (!c) {
+      box.insertAdjacentHTML('beforeend', '<div class="card pressa-prod" data-p="' + p + '"><div class="testa-prod"></div>' +
+        '<div class="corpo-prod"><span class="num-angolo">' + p + '</span>' + disegnoPressa(p, ferma, { motivo }) + '</div><div class="strisce-prod"></div></div>');
+      c = box.querySelector('.pressa-prod[data-p="' + p + '"]');
+    }
+    c.querySelector('.dis-pressa').setAttribute('class', classiPressa(p, ferma, motivo));
+    const ur = ultimaReale(p), nuova = commessaNuova(p), stessa = ur && !eFine(ur);   // articolo e commessa come nella tendina di lettura
+    const art = nuova ? nuova.articolo : stessa && ur.articolo, com = nuova ? nuova.commessa : stessa && ur.commessa;
     c.querySelector('.testa-prod').innerHTML = '<span class="art">' + esc(art || '—') + '</span>' + (com ? '<span class="comm">' + esc(com) + '</span>' : '');
   });
+  const ordine = () => [...box.children].map(c => Number(c.dataset.p));
+  if (JSON.stringify(ordine()) !== JSON.stringify(PRESSE)) PRESSE.forEach(p => box.appendChild(box.querySelector('.pressa-prod[data-p="' + p + '"]')));   // l'elenco è in ordine di numero
 }
 function disegnoPressa(p, ferma, u) {
   const motivo = ferma && u ? u.motivo : null;
-  const stato = !ferma ? '' : motivo === 'manutenzione' ? ' pr-ferma pr-man' : motivo === 'mancanza_materiale' ? ' pr-ferma pr-mat' : ' pr-ferma pr-alt';
   const dur = (2.4 + (p * 7 % 10) / 10 * 1.4).toFixed(1), rit = (-(p * 13 % 30) / 10).toFixed(1);
-  return '<svg class="dis-pressa ' + (p === 68 || p === 69 ? 'pr-gialla' : 'pr-blu') + stato + '" viewBox="0 -13 320 125" preserveAspectRatio="xMinYMid meet" style="--dur:' + dur + 's;--rit:' + rit + 's" aria-hidden="true"><use href="#pressa"/></svg>';
+  return '<svg class="' + classiPressa(p, ferma, motivo) + '" viewBox="0 -13 320 125" preserveAspectRatio="xMinYMid meet" style="--dur:' + dur + 's;--rit:' + rit + 's" aria-hidden="true"><use href="#pressa"/></svg>';
 }
 // presse in funzione in cima, ferme in fondo; ognuna è un pulsante che apre la sua tendina
 function disegnaElencoPresse() {
@@ -1449,9 +1460,10 @@ function presseArrivate(elenco, dalServer) {
   salvaPresse(); salva(PREF + 'info-presse', infoPresse);
   if (pressaAperta != null && !PRESSE.includes(pressaAperta)) chiudi();
   if (!$('vista-leggi').hidden && !trascinato && pressaAperta == null) { disegnaElencoPresse(); disegnaRiepilogo(); }
+  if (!$('vista-produzione').hidden) disegnaProduzione();
 }
 $('aggiungi-apri').onclick = () => {
-  if (!inTurno()) return;
+  if (!inTurno()) { $('avviso-aggiungi').textContent = $('msg').textContent; return; }   // in Produzione il messaggio in alto non c'è
   const aprire = $('aggiungi-blocco').hidden;
   $('aggiungi-blocco').hidden = !aprire; $('aggiungi-apri').setAttribute('aria-expanded', String(aprire));
   $('avviso-aggiungi').textContent = '';
@@ -1474,6 +1486,7 @@ $('aggiungi-ok').onclick = () => {
   $('aggiungi-blocco').hidden = true; $('aggiungi-apri').setAttribute('aria-expanded', 'false'); $('avviso-aggiungi').textContent = '';
   $('aggiungi-num').blur();
   disegnaElencoPresse();
+  if (!$('vista-produzione').hidden) { disegnaProduzione(); $('avviso-aggiungi').textContent = 'Pressa ' + p + ' aggiunta.'; }
   $('msg').textContent = 'Pressa ' + p + ' aggiunta all\'elenco.';
 };
 // la pressa sfuma e l'elenco si richiude piano; poi esce davvero dall'elenco
@@ -1494,6 +1507,7 @@ function togliDavvero(p) {
   db.togliPressa(p).catch(erroreDati);
   if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
   disegnaRiepilogo();
+  if (!$('vista-produzione').hidden) disegnaProduzione();
   $('msg').textContent = 'Pressa ' + p + ' tolta dall\'elenco. Le sue letture restano nello storico.';
 }
 // scorrimento verso sinistra sulla pressa: oltre metà strada resta aperto e scopre "Togli", altrimenti torna al suo posto
