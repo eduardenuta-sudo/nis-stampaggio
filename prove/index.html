@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029102524">
+<meta name="versione" content="20261029103159">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -118,6 +118,7 @@ if (/prove/.test(location.pathname)) {
   .segmenti { display: flex; gap: 4px; margin-top: 14px; }
   .segmenti i { flex: 1; height: 7px; border-radius: 4px; background: rgba(16,19,10,.22); }
   .segmenti i.letta { background: #10130a; }
+  .menu:disabled { opacity: .45; pointer-events: none; }   /* Produzione nella Beta: ancora in sviluppo */
   .segnale { display: inline-block; margin-top: 12px; padding: 3px 11px 2px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,.75); color: #fff; font: 600 .8rem/1.2 var(--font); letter-spacing: .14em; text-transform: uppercase; }
   .turno { position: relative; align-self: center; background: rgba(6,22,54,.82); border-radius: 20px; padding: 7px 16px; display: flex; align-items: center; justify-content: center; gap: 10px; color: #c3d2ee; font-size: .9rem; padding-bottom: 6px; }
   .spia { width: 10px; height: 10px; border-radius: 50%; background: #3ddc84; box-shadow: 0 0 0 3px rgba(255,255,255,.14); }
@@ -1226,7 +1227,7 @@ const TITOLI = { produzione: 'Produzione', leggi: 'Lettura cicli', storico: 'Sto
 const duePassi = (grande, piccolo) => '<span class="n-grande">' + grande + '</span><span class="n-piccolo">' + piccolo + '</span>';
 function vai(nome) {
   if (nome === 'riepilogo') nome = 'leggi';
-  if (!VISTE.includes(nome)) nome = 'home';
+  if (!VISTE.includes(nome) || (nome === 'produzione' && !PROVA)) nome = 'home';   // Produzione solo nella versione sviluppatore
   if (!accesso || accesso.attesa) nome = 'entra';  // senza codice reparto (o in attesa di conferma) si resta alla schermata di accesso
   else if (nome === 'entra') nome = 'home';
   VISTE.forEach(v => { $('vista-' + v).hidden = v !== nome; });
@@ -1239,7 +1240,7 @@ function vai(nome) {
   if (nome === 'leggi') { pressaAperta = null; $('msg').textContent = ''; disegnaElencoPresse(); disegnaRiepilogo(); azzera(); }
   if (nome === 'storico') disegnaStorico();
   if (nome === 'produzione') disegnaProduzione();
-  const altra = { leggi: ['Produzione', 'produzione'], produzione: ['Lettura cicli', 'leggi'] }[nome];
+  const altra = PROVA ? { leggi: ['Produzione', 'produzione'], produzione: ['Lettura cicli', 'leggi'] }[nome] : null;
   $('testata').classList.toggle('con-nav', !!altra); $('vai-altra').hidden = !altra;
   if (altra) { $('vai-altra').innerHTML = duePassi('Avanti', altra[0]); $('vai-altra').dataset.vai = altra[1]; }
   disegnaRichieste();
@@ -1258,6 +1259,7 @@ function premi(id, pagina) {
 }
 premi('vai-lettura', 'leggi');
 premi('vai-produzione', 'produzione');
+$('vai-produzione').disabled = !PROVA;
 $('vai-storico').onclick = () => vai('storico');
 document.addEventListener('touchstart', () => {}, { passive: true });   // fa funzionare :active su iPhone
 
@@ -2247,7 +2249,7 @@ $('esporta').onclick = async () => {
 {
   const s = document.createElement('div');
   s.className = PROVA ? 'striscia-prova' : 'striscia-beta';
-  s.textContent = PROVA ? 'SVILUPPATORE · v' + document.querySelector('meta[name="versione"]').content.slice(8, 12) : 'BETA 1';   // ora e minuti della versione: si vede subito se il telefono è aggiornato
+  s.textContent = PROVA ? 'SVILUPPATORE · v' + document.querySelector('meta[name="versione"]').content.slice(8, 12) : 'BETA 3';   // ora e minuti della versione: si vede subito se il telefono è aggiornato
   document.querySelector('.pagina').prepend(s);
   if (PROVA) document.title = 'NIS Sviluppatore';
 }

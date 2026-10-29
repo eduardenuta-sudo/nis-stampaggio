@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029102524">
+<meta name="versione" content="20261029103159">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -118,6 +118,7 @@ if (/prove/.test(location.pathname)) {
   .segmenti { display: flex; gap: 4px; margin-top: 14px; }
   .segmenti i { flex: 1; height: 7px; border-radius: 4px; background: rgba(16,19,10,.22); }
   .segmenti i.letta { background: #10130a; }
+  .menu:disabled { opacity: .45; pointer-events: none; }   /* Produzione nella Beta: ancora in sviluppo */
   .segnale { display: inline-block; margin-top: 12px; padding: 3px 11px 2px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,.75); color: #fff; font: 600 .8rem/1.2 var(--font); letter-spacing: .14em; text-transform: uppercase; }
   .turno { position: relative; align-self: center; background: rgba(6,22,54,.82); border-radius: 20px; padding: 7px 16px; display: flex; align-items: center; justify-content: center; gap: 10px; color: #c3d2ee; font-size: .9rem; padding-bottom: 6px; }
   .spia { width: 10px; height: 10px; border-radius: 50%; background: #3ddc84; box-shadow: 0 0 0 3px rgba(255,255,255,.14); }
@@ -164,6 +165,16 @@ if (/prove/.test(location.pathname)) {
     background: linear-gradient(#dde333, var(--giallo) 55%, #b3b900);
     box-shadow: 0 8px 0 #7d8100, 0 16px 22px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.55), inset 0 -3px 0 rgba(0,0,0,.12); }
   button.salva:active { box-shadow: 0 1px 0 #7d8100, 0 3px 6px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.35), inset 0 -3px 0 rgba(0,0,0,.12); }
+  /* Lettura cicli e Produzione: in alto Home a sinistra e l'altra sezione a destra, sotto il titolo con il logo */
+  #vai-altra[hidden] { display: none; }
+  header.con-nav { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "home logo altra" "titolo titolo titolo"; align-items: center; gap: 14px 12px; padding-top: 6px; }
+  header.con-nav #indietro { grid-area: home; }
+  header.con-nav #vai-altra { grid-area: altra; }
+  header.con-nav .indietro { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 8px 8px; width: 126px; }   /* tutti e due larghi uguale */
+  header.con-nav h1 { grid-area: titolo; justify-self: center; text-align: center; margin: 6px 0 0; }
+  header.con-nav .sigla { grid-area: logo; justify-self: center; width: 54px; }   /* il logo NIS sta in mezzo ai due pulsanti */
+  .n-grande { font: 700 1.15rem/1 var(--font-titoli); letter-spacing: .08em; text-transform: uppercase; }
+  .n-piccolo { font: 600 .75rem/1 var(--font); letter-spacing: .04em; opacity: .8; }
   .indietro { padding: 11px 16px; border-radius: 20px; box-shadow: 0 5px 0 #0a2253, 0 10px 14px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.35); }
   .indietro:active { transform: translateY(4px); box-shadow: 0 1px 0 #0a2253, 0 2px 4px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.2); }
   .riga { display: flex; gap: 12px; }
@@ -188,9 +199,9 @@ if (/prove/.test(location.pathname)) {
   .casella { flex: none; width: 30px; height: 30px; border-radius: 10px; border: 2px solid var(--muted); background: transparent; display: grid; place-items: center; transition: background .2s, border-color .2s; }
   .casella::after { content: ""; width: 16px; height: 9px; border-left: 4px solid var(--su-giallo); border-bottom: 4px solid var(--su-giallo);
     transform: rotate(-45deg) translate(1px, -2px) scale(0); transition: transform .18s cubic-bezier(.16,1,.3,1); }
-  #motivo-scelto { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: -2px 0 16px; padding: 0 6px 0 18px; font-weight: 600; color: var(--giallo); overflow-wrap: anywhere; }
+  #motivo-scelto, #fine-scelta { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: -2px 0 16px; padding: 0 6px 0 18px; font-weight: 600; color: var(--giallo); overflow-wrap: anywhere; }
   #btn-ferma[hidden], #btn-riparte[hidden], #motivo-scelto[hidden], #entra-nomi[hidden], #entra-chisei[hidden], #entra-ospite[hidden] { display: none; }
-  #motivo-scelto .chip { flex: none; }
+  #motivo-scelto .chip, #fine-scelta .chip { flex: none; }
   .opzione:has(input:checked) { border-color: var(--giallo); }
   .opzione input:checked + .casella { background: var(--giallo); border-color: var(--giallo); }
   .opzione input:checked + .casella::after { transform: rotate(-45deg) translate(1px, -2px) scale(1); }
@@ -206,7 +217,7 @@ if (/prove/.test(location.pathname)) {
   dialog::backdrop { background: rgba(3,10,26,.74); }
   @keyframes sale-dialogo { from { opacity: 0; transform: translateY(16px) scale(.97); } }
   .motivi-lista { display: flex; flex-direction: column; gap: 20px; margin: 4px 0 28px; }
-  #altro-blocco[hidden] { display: none; }
+  #fine-scelta[hidden], .motivi-lista .chip[hidden], #cor-fermo-blocco[hidden], #cor-fermo-blocco .campo[hidden] { display: none; }
   .motivi-lista button.chip { padding: 18px 20px; font-size: 1.1rem; text-align: left; }
   button.annulla { width: 100%; background: transparent; border: 1.5px solid var(--line); box-shadow: none; color: var(--muted); }
   button.annulla::after { display: none; }
@@ -297,6 +308,22 @@ if (/prove/.test(location.pathname)) {
   .pressa-btn .num { font: 700 1.9rem/1 var(--font-titoli); letter-spacing: .05em; text-transform: uppercase; }
   .pressa-btn .st { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .pressa-btn .st.letta { color: var(--giallo); font: 700 1.5rem/1 var(--font-titoli); letter-spacing: .05em; }
+  /* Produzione: una scheda per pressa, con il disegno della pressa (corpo giallo la 68 e la 69, blu le altre; torre di luci e stampo secondo lo stato) */
+  .pressa-prod { position: relative; display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+  .pressa-prod .num-angolo { position: absolute; top: 12px; left: 16px; z-index: 1; font: 700 1.7rem/1 var(--font-titoli); letter-spacing: .06em; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.5); }
+  .dis-pressa { width: calc(100% + 28px); max-width: none; height: auto; aspect-ratio: 320 / 125; margin: -6px -14px -4px; --scuro:#0f2147; --acciaio:#8fa0c4; --metallo:#d6deee; --o-rosso:.18; --o-blu:.18; --o-verde:1; overflow: visible; }
+  .dis-pressa.pr-gialla { --corpo:#c8d92f; } .dis-pressa.pr-blu { --corpo:#2f8fe0; }
+  .dis-pressa.pr-ferma { --p3-nome:none; --p3-nome-ram:none; }
+  .dis-pressa.pr-man { --o-rosso:1; --o-verde:.18; }
+  .dis-pressa.pr-mat { --o-rosso:.18; --o-verde:1; --p3-lamp: p3-lamp 1s linear infinite; }
+  .dis-pressa.pr-alt { --o-rosso:.18; --o-verde:.18; }
+  @keyframes p3-muovi { 0%,15% { transform: translateX(-18px) } 45%,65% { transform: translateX(0) } 95%,100% { transform: translateX(-18px) } }
+  @keyframes p3-ram { 0%,15% { transform: scaleX(.38) } 45%,65% { transform: scaleX(1) } 95%,100% { transform: scaleX(.38) } }
+  @keyframes p3-lamp { 0%,49% { opacity: 1 } 50%,100% { opacity: .12 } }
+  .p3-mobile { animation: p3-muovi var(--dur, 3s) ease-in-out infinite; animation-delay: var(--rit, 0s); animation-name: var(--p3-nome, p3-muovi); }
+  .p3-ram { transform-box: fill-box; transform-origin: 0 50%; animation: p3-ram var(--dur, 3s) ease-in-out infinite; animation-delay: var(--rit, 0s); animation-name: var(--p3-nome-ram, p3-ram); }
+  .p3-verde { animation: var(--p3-lamp, none); }
+  @media (prefers-reduced-motion: reduce) { .p3-mobile, .p3-ram, .p3-verde { animation: none; } }
   .pressa-btn:has(.ultima) { gap: 10px; padding-inline: 18px; }
   .pressa-btn .ultima { flex: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; margin-left: auto; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
     font: 600 .8rem/1.1 var(--font); letter-spacing: 0; text-transform: none; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -446,6 +473,7 @@ if (/prove/.test(location.pathname)) {
 
 <header id="testata" hidden>
   <button class="indietro" id="indietro">&larr; Home</button>
+  <button class="indietro" id="vai-altra" type="button" hidden></button>   <!-- Produzione / Lettura cicli: a destra, alla stessa altezza di Home -->
   <h1 id="titolo">Lettura cicli</h1>
   <img class="sigla" src="logo-nis.png" alt="NIS">
 </header>
@@ -527,6 +555,7 @@ if (/prove/.test(location.pathname)) {
 
 <!-- PRODUZIONE (in arrivo) -->
 <main id="vista-produzione" hidden>
+  <div id="presse-produzione"></div>
   <div class="card">
     <label>In arrivo</label>
     <p style="margin:0">Qui metteremo le commesse: apertura e chiusura con ora e lettura del contatore, e la stima di quando finiscono.</p>
@@ -534,6 +563,22 @@ if (/prove/.test(location.pathname)) {
 </main>
 
 <!-- LETTURA CICLI: elenco presse (tendine) + riepilogo -->
+<!-- simbolo della pressa, usato nell'elenco presse -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="p3-v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset=".2" stop-color="#fff" stop-opacity=".14"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset=".8" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity=".62"/></linearGradient>
+<linearGradient id="p3-c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".3" stop-color="#fff" stop-opacity=".05"/><stop offset=".6" stop-color="#000" stop-opacity=".15"/><stop offset="1" stop-color="#000" stop-opacity=".7"/></linearGradient>
+<linearGradient id="p3-h" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".6"/><stop offset=".28" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".65"/></linearGradient>
+<linearGradient id="p3-bordo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".7"/></linearGradient>
+<linearGradient id="p3-vetro" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<radialGradient id="p3-s" cx=".34" cy=".28" r=".8"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".3" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#000" stop-opacity=".65"/></radialGradient>
+<radialGradient id="p3-ombra"><stop offset="0" stop-color="#000" stop-opacity=".6"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+<radialGradient id="p3-gr"><stop offset=".3" stop-color="#ff3b30" stop-opacity="1"/><stop offset="1" stop-color="#ff3b30" stop-opacity="0"/></radialGradient>
+<radialGradient id="p3-gb"><stop offset=".3" stop-color="#3d7bff" stop-opacity="1"/><stop offset="1" stop-color="#3d7bff" stop-opacity="0"/></radialGradient>
+<radialGradient id="p3-gv"><stop offset=".3" stop-color="#2dff7a" stop-opacity="1"/><stop offset="1" stop-color="#2dff7a" stop-opacity="0"/></radialGradient>
+<radialGradient id="p3-rv" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#3dff85" stop-opacity=".95"/><stop offset=".4" stop-color="#2dff7a" stop-opacity=".5"/><stop offset="1" stop-color="#2dff7a" stop-opacity="0"/></radialGradient>
+<radialGradient id="p3-rr" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff5a4d" stop-opacity=".95"/><stop offset=".4" stop-color="#ff3b30" stop-opacity=".5"/><stop offset="1" stop-color="#ff3b30" stop-opacity="0"/></radialGradient>
+<clipPath id="p3-clip"><rect x="10" y="30" width="148" height="56" rx="10"/><rect x="152" y="46" width="152" height="38" rx="9"/></clipPath>
+<filter id="p3-om" x="-8%" y="-15%" width="116%" height="140%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.2" flood-color="#000" flood-opacity=".6"/></filter><symbol id="pressa" viewBox="0 -13 320 125"><ellipse cx="160" cy="105" rx="158" ry="7" fill="url(#p3-ombra)"/><g filter="url(#p3-om)"><rect x="6" y="87" width="308" height="12" rx="4" fill="var(--scuro)"/><rect x="6" y="87" width="308" height="12" rx="4" fill="#000" opacity=".55"/><rect x="6" y="84" width="308" height="12" rx="4" fill="var(--scuro)"/><rect x="6" y="84" width="308" height="12" rx="4" fill="url(#p3-c)"/><rect x="6.5" y="84.5" width="307" height="11" rx="3.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="22" y="99" width="24" height="6" rx="2" fill="var(--scuro)"/><rect x="22" y="99" width="24" height="6" rx="2" fill="url(#p3-c)"/><rect x="22.5" y="99.5" width="23" height="5" rx="1.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="150" y="99" width="24" height="6" rx="2" fill="var(--scuro)"/><rect x="150" y="99" width="24" height="6" rx="2" fill="url(#p3-c)"/><rect x="150.5" y="99.5" width="23" height="5" rx="1.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="274" y="99" width="24" height="6" rx="2" fill="var(--scuro)"/><rect x="274" y="99" width="24" height="6" rx="2" fill="url(#p3-c)"/><rect x="274.5" y="99.5" width="23" height="5" rx="1.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="10" y="34" width="148" height="56" rx="10" fill="var(--corpo)"/><rect x="10" y="34" width="148" height="56" rx="10" fill="#000" opacity=".55"/><rect x="10" y="30" width="148" height="56" rx="10" fill="var(--corpo)"/><rect x="10" y="30" width="148" height="56" rx="10" fill="url(#p3-v)"/><rect x="10.5" y="30.5" width="147" height="55" rx="9.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="152" y="49" width="152" height="38" rx="9" fill="var(--corpo)"/><rect x="152" y="49" width="152" height="38" rx="9" fill="#000" opacity=".55"/><rect x="152" y="46" width="152" height="38" rx="9" fill="var(--corpo)"/><rect x="152" y="46" width="152" height="38" rx="9" fill="url(#p3-v)"/><rect x="152.5" y="46.5" width="151" height="37" rx="8.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/></g><rect x="15" y="33" width="138" height="4" rx="2" fill="#fff" opacity=".45"/><rect x="160" y="49" width="90" height="3" rx="1.5" fill="#fff" opacity=".4"/><rect x="14" y="79" width="140" height="5" rx="2.5" fill="#000" opacity=".25"/><circle cx="17" cy="40" r="1.5" fill="#000" opacity=".45"/><circle cx="16.7" cy="39.6" r="1.1" fill="#fff" opacity=".7"/><circle cx="151" cy="40" r="1.5" fill="#000" opacity=".45"/><circle cx="150.7" cy="39.6" r="1.1" fill="#fff" opacity=".7"/><circle cx="17" cy="77" r="1.5" fill="#000" opacity=".45"/><circle cx="16.7" cy="76.6" r="1.1" fill="#fff" opacity=".7"/><circle cx="151" cy="77" r="1.5" fill="#000" opacity=".45"/><circle cx="150.7" cy="76.6" r="1.1" fill="#fff" opacity=".7"/><rect x="22" y="38" width="92" height="38" rx="7" fill="#000" opacity=".4"/><rect x="24" y="40" width="88" height="34" rx="6" fill="var(--scuro)"/><rect x="24" y="40" width="88" height="34" rx="6" fill="none" stroke="#000" stroke-opacity=".6" stroke-width="1.2"/><rect x="32" y="45" width="72" height="4.2" rx="2.1" fill="var(--acciaio)"/><rect x="32" y="45" width="72" height="4.2" rx="2.1" fill="url(#p3-c)"/><rect x="32" y="64" width="72" height="4.2" rx="2.1" fill="var(--acciaio)"/><rect x="32" y="64" width="72" height="4.2" rx="2.1" fill="url(#p3-c)"/><rect x="29" y="43" width="8" height="28" rx="2.5" fill="var(--metallo)"/><rect x="29" y="43" width="8" height="28" rx="2.5" fill="url(#p3-c)"/><rect x="29.5" y="43.5" width="7" height="27" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="98" y="43" width="8" height="28" rx="2.5" fill="var(--metallo)"/><rect x="98" y="43" width="8" height="28" rx="2.5" fill="url(#p3-c)"/><rect x="98.5" y="43.5" width="7" height="27" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect class="p3-ram" x="37" y="55" width="29" height="5" rx="2" fill="var(--acciaio)"/><rect x="84" y="46" width="10" height="22" rx="2.5" fill="var(--metallo)"/><rect x="84" y="46" width="10" height="22" rx="2.5" fill="url(#p3-c)"/><rect x="84.5" y="46.5" width="9" height="21" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="88" y="52" width="4" height="10" rx="1.5" fill="#0f2147" opacity=".45"/><g class="p3-mobile"><rect x="66" y="43" width="8" height="28" rx="2.5" fill="var(--metallo)"/><rect x="66" y="43" width="8" height="28" rx="2.5" fill="url(#p3-c)"/><rect x="66.5" y="43.5" width="7" height="27" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="74" y="46" width="10" height="22" rx="2.5" fill="var(--metallo)"/><rect x="74" y="46" width="10" height="22" rx="2.5" fill="url(#p3-c)"/><rect x="74.5" y="46.5" width="9" height="21" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="76" y="52" width="4" height="10" rx="1.5" fill="#0f2147" opacity=".45"/></g><path d="M24 40 H66 L50 74 H24 Z" fill="url(#p3-vetro)" opacity=".5"/><rect x="122" y="41" width="30" height="34" rx="6" fill="var(--scuro)"/><rect x="122" y="41" width="30" height="34" rx="6" fill="#000" opacity=".55"/><rect x="122" y="40" width="30" height="34" rx="6" fill="var(--scuro)"/><rect x="122" y="40" width="30" height="34" rx="6" fill="url(#p3-c)"/><rect x="122.5" y="40.5" width="29" height="33" rx="5.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="126" y="44" width="22" height="12" rx="2.5" fill="#7fd0ff"/><rect x="126" y="44" width="22" height="12" rx="2.5" fill="url(#p3-c)"/><rect x="127" y="45" width="12" height="4" rx="2" fill="#fff" opacity=".6"/><circle cx="130" cy="65" r="3.8" fill="#58e07b"/><circle cx="130" cy="65" r="3.8" fill="url(#p3-s)"/><circle cx="139" cy="65" r="3.8" fill="#ff6b5e"/><circle cx="139" cy="65" r="3.8" fill="url(#p3-s)"/><circle cx="148" cy="65" r="3.8" fill="#ffffff"/><circle cx="148" cy="65" r="3.8" fill="url(#p3-s)"/><rect x="146" y="56" width="12" height="6" rx="2.5" fill="var(--acciaio)"/><rect x="146" y="56" width="12" height="6" rx="2.5" fill="url(#p3-c)"/><rect x="146.5" y="56.5" width="11" height="5" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="157" y="52" width="98" height="16" rx="4" fill="var(--metallo)"/><rect x="157" y="52" width="98" height="16" rx="4" fill="#000" opacity=".55"/><rect x="157" y="51" width="98" height="16" rx="4" fill="var(--metallo)"/><rect x="157" y="51" width="98" height="16" rx="4" fill="url(#p3-c)"/><rect x="157.5" y="51.5" width="97" height="15" rx="3.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="168" y="49" width="8" height="20" rx="2.5" fill="var(--scuro)"/><rect x="168" y="49" width="8" height="20" rx="2.5" fill="url(#p3-c)"/><rect x="168.5" y="49.5" width="7" height="19" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="188" y="49" width="8" height="20" rx="2.5" fill="var(--scuro)"/><rect x="188" y="49" width="8" height="20" rx="2.5" fill="url(#p3-c)"/><rect x="188.5" y="49.5" width="7" height="19" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="208" y="49" width="8" height="20" rx="2.5" fill="var(--scuro)"/><rect x="208" y="49" width="8" height="20" rx="2.5" fill="url(#p3-c)"/><rect x="208.5" y="49.5" width="7" height="19" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="228" y="49" width="8" height="20" rx="2.5" fill="var(--scuro)"/><rect x="228" y="49" width="8" height="20" rx="2.5" fill="url(#p3-c)"/><rect x="228.5" y="49.5" width="7" height="19" rx="2.0" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="254" y="49" width="50" height="36" rx="9" fill="var(--scuro)"/><rect x="254" y="49" width="50" height="36" rx="9" fill="#000" opacity=".55"/><rect x="254" y="47" width="50" height="36" rx="9" fill="var(--scuro)"/><rect x="254" y="47" width="50" height="36" rx="9" fill="url(#p3-v)"/><rect x="254.5" y="47.5" width="49" height="35" rx="8.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><rect x="260" y="52" width="2" height="26" rx="1" fill="#fff" opacity=".12"/><rect x="265" y="52" width="2" height="26" rx="1" fill="#fff" opacity=".12"/><rect x="270" y="52" width="2" height="26" rx="1" fill="#fff" opacity=".12"/><circle cx="282" cy="65" r="13" fill="var(--acciaio)"/><circle cx="282" cy="65" r="13" fill="url(#p3-s)"/><circle cx="282" cy="65" r="6.5" fill="var(--scuro)"/><circle cx="282" cy="65" r="6.5" fill="url(#p3-s)"/><rect x="204" y="44" width="12" height="8" rx="1" fill="var(--acciaio)"/><rect x="204" y="44" width="12" height="8" rx="1" fill="url(#p3-c)"/><rect x="204.5" y="44.5" width="11" height="7" rx="0.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><path d="M194 22 H226 L218 45 H202 Z" fill="var(--metallo)"/><path d="M194 22 H226 L218 45 H202 Z" fill="url(#p3-h)" opacity=".5"/><path d="M194 22 H226 L218 45 H202 Z" fill="url(#p3-c)"/><rect x="190" y="18" width="40" height="8" rx="4" fill="var(--acciaio)"/><rect x="190" y="18" width="40" height="8" rx="4" fill="#000" opacity=".55"/><rect x="190" y="17" width="40" height="8" rx="4" fill="var(--acciaio)"/><rect x="190" y="17" width="40" height="8" rx="4" fill="url(#p3-c)"/><rect x="190.5" y="17.5" width="39" height="7" rx="3.5" fill="none" stroke="url(#p3-bordo)" stroke-width="1" opacity=".75"/><g clip-path="url(#p3-clip)"><g class="p3-verde" style="opacity:calc((var(--o-verde) - .18) * 1.22)"><ellipse cx="83" cy="34" rx="92" ry="46" fill="url(#p3-rv)"/><ellipse cx="190" cy="52" rx="62" ry="22" fill="url(#p3-rv)" opacity=".5"/></g><g style="opacity:calc((var(--o-rosso) - .18) * 1.22)"><ellipse cx="83" cy="34" rx="92" ry="46" fill="url(#p3-rr)"/><ellipse cx="190" cy="52" rx="62" ry="22" fill="url(#p3-rr)" opacity=".5"/></g></g><g><rect x="71.5" y="-10.5" width="23" height="3.2" rx="1.2" fill="#0b1626"/><rect x="71.5" y="-10.5" width="23" height="3.2" rx="1.2" fill="url(#p3-h)"/><rect x="73" y="-7.3" width="20" height="9" rx="2" fill="#06101f"/><g style="opacity:var(--o-rosso)"><ellipse cx="83" cy="-2.8" rx="30" ry="14.5" fill="url(#p3-gr)"/><rect x="73" y="-7.3" width="20" height="9" rx="2" fill="#ff3b30"/><rect x="73" y="-7.3" width="20" height="9" rx="2" fill="url(#p3-h)" opacity=".75"/><rect x="77" y="-5.699999999999999" width="12" height="5.8" rx="2.5" fill="#fff" opacity=".4"/></g><rect x="71.5" y="1.7" width="23" height="2.4" rx="1.2" fill="#0b1626"/><rect x="71.5" y="1.7" width="23" height="2.4" rx="1.2" fill="url(#p3-h)"/><rect x="73" y="4.1" width="20" height="9" rx="2" fill="#06101f"/><g style="opacity:var(--o-blu)"><ellipse cx="83" cy="8.6" rx="30" ry="14.5" fill="url(#p3-gb)"/><rect x="73" y="4.1" width="20" height="9" rx="2" fill="#3d7bff"/><rect x="73" y="4.1" width="20" height="9" rx="2" fill="url(#p3-h)" opacity=".75"/><rect x="77" y="5.699999999999999" width="12" height="5.8" rx="2.5" fill="#fff" opacity=".4"/></g><rect x="71.5" y="13.1" width="23" height="2.4" rx="1.2" fill="#0b1626"/><rect x="71.5" y="13.1" width="23" height="2.4" rx="1.2" fill="url(#p3-h)"/><rect x="73" y="15.5" width="20" height="9" rx="2" fill="#06101f"/><g class="p3-verde" style="opacity:var(--o-verde)"><ellipse cx="83" cy="20.0" rx="30" ry="14.5" fill="url(#p3-gv)"/><rect x="73" y="15.5" width="20" height="9" rx="2" fill="#2dff7a"/><rect x="73" y="15.5" width="20" height="9" rx="2" fill="url(#p3-h)" opacity=".75"/><rect x="77" y="17.1" width="12" height="5.8" rx="2.5" fill="#fff" opacity=".4"/></g><rect x="73" y="24.5" width="20" height="6" rx="2" fill="#0b1626"/><rect x="73" y="24.5" width="20" height="6" rx="2" fill="url(#p3-h)"/></g></symbol></defs></svg>
+
 <main id="vista-leggi" hidden>
   <div class="fuori-turno" id="fuori-turno" hidden></div>
   <div class="avanz"><span id="avanz-testo">0 di 7 presse lette</span><span class="segmenti" id="avanz-seg" aria-hidden="true"></span></div>
@@ -566,6 +611,11 @@ if (/prove/.test(location.pathname)) {
     <div class="blocco" id="azioni-fermo">
       <button id="btn-ferma" class="salva" style="width:100%">Ferma la pressa</button>
       <button id="btn-riparte" class="salva" style="width:100%" hidden>La pressa riparte</button>
+      <!-- "Ferma la pressa" con motivo Fine commessa: servono ancora i cicli finali -->
+      <div id="fine-scelta" hidden>
+        <span id="fine-testo"></span>
+        <button class="chip" id="fine-annulla">Annulla</button>
+      </div>
     </div>
     <!-- solo se l'ultima lettura della pressa era un fermo macchina -->
     <div class="blocco" id="ripartenza" hidden>
@@ -573,6 +623,7 @@ if (/prove/.test(location.pathname)) {
       <div class="riga">
         <button class="chip" data-rip="prima" aria-pressed="false">In un turno precedente</button>
         <button class="chip" data-rip="mio" aria-pressed="false">Nel mio turno</button>
+        <button class="chip" data-rip="ferma" aria-pressed="false">È ancora ferma</button>
       </div>
       <div class="campo" id="rip-ora-blocco" hidden>
         <label for="rip-ora">Ripartita alle</label>
@@ -604,6 +655,7 @@ if (/prove/.test(location.pathname)) {
     <div class="blocco campo">
       <label for="ore-input">Ore lavorate (calcolate, puoi cambiarle)</label>
       <input class="testo" id="ore-input" inputmode="decimal" placeholder="es. 7:30">
+      <p class="piccolo" id="ore-conti" style="margin:10px 0 0"></p>
     </div>
 
     <!-- Salva accanto al numero: il tastierino numerico di iPhone non ha Invio e coprirebbe un pulsante più in basso -->
@@ -613,8 +665,6 @@ if (/prove/.test(location.pathname)) {
         <input class="manuale" id="cicli-input" inputmode="numeric" pattern="[0-9]*" placeholder="es. 3630">
         <button id="salva" class="salva">Salva</button>
       </div>
-      <!-- a fine turno la finestra non compare da sola: la si apre da qui -->
-      <button id="segnala" class="annulla" style="margin-top:18px">Fermo o fine commessa?</button>
     </div>
 
     <div class="avviso" id="avviso-salva" role="alert"></div>
@@ -666,11 +716,8 @@ if (/prove/.test(location.pathname)) {
   <div class="motivi-lista">
     <button class="chip" data-motivo="manutenzione" aria-pressed="false">Manutenzione</button>
     <button class="chip" data-motivo="mancanza_materiale" aria-pressed="false">Mancanza materiale</button>
-    <button class="chip" data-motivo="altro" aria-pressed="false">Altro</button>
-    <div id="altro-blocco" hidden>
-      <input class="testo" id="altro-nota" placeholder="Descrivi il problema (facoltativo)" maxlength="200" aria-label="Descrizione del problema">
-      <button id="conferma-altro" class="salva" style="width:100%;margin-top:22px">Conferma</button>
-    </div>
+    <button class="chip" data-motivo="fine_commessa" aria-pressed="false">Fine commessa</button>   <!-- solo da "Ferma la pressa" -->
+    <button class="chip" data-motivo="mancanza_operatore" aria-pressed="false">Mancanza operatore</button>
   </div>
   <button id="annulla-motivo" class="annulla">Annulla</button>
 </dialog>
@@ -713,6 +760,11 @@ if (/prove/.test(location.pathname)) {
     <div class="campo"><label for="cor-articolo">Articolo</label><input class="testo" id="cor-articolo" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div>
     <div class="campo"><label for="cor-commessa">Commessa</label>
       <div class="prefisso"><span aria-hidden="true">P</span><input class="testo" id="cor-commessa" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div></div>
+  </div>
+  <!-- fermi: si cambiano le ore e i conti del fermo si rifanno -->
+  <div class="blocco riga" id="cor-fermo-blocco" hidden>
+    <div class="campo" id="cor-dalle-campo"><label for="cor-dalle">Ferma dalle</label><input class="testo" type="time" id="cor-dalle"></div>
+    <div class="campo" id="cor-alle-campo"><label for="cor-alle">Ripartita alle</label><input class="testo" type="time" id="cor-alle"></div>
   </div>
   <!-- solo sui fermi segnati con "Riparte ora": si può togliere la ripartenza sbagliata -->
   <div class="blocco" id="cor-rip-blocco" hidden><span id="cor-rip-testo"></span><button class="chip" id="cor-rip-togli" aria-pressed="false">Togli</button></div>
@@ -834,6 +886,12 @@ async function dbFirebase(cfg) {
     togliRichiesta(id) { return F.deleteDoc(F.doc(fs, 'reparti', rep, 'richieste', id)); },
     diventaOspite(nome, sostituisce, richiesta) { return F.setDoc(F.doc(fs, 'reparti', rep, 'ospiti', uid), { nome, sostituisce, richiesta }); },
     fineOspite(uidOspite) { return F.deleteDoc(F.doc(fs, 'reparti', rep, 'ospiti', uidOspite)); },
+    // elenco presse comune al reparto; il secondo valore dice se arriva dal server (non solo dalla copia sul telefono)
+    ascoltaPresse(cb) {
+      return F.onSnapshot(F.collection(fs, 'reparti', rep, 'presse'), { includeMetadataChanges: true }, s => cb(s.docs.map(d => d.data()), !s.metadata.fromCache), () => {});   // senza permesso resta l'elenco del telefono
+    },
+    aggiungiPressa(d) { return F.setDoc(F.doc(fs, 'reparti', rep, 'presse', String(d.pressa)), { ...d, uid }); },
+    togliPressa(p) { return F.deleteDoc(F.doc(fs, 'reparti', rep, 'presse', String(p))); },
     ascolta(cb, errore) {
       const da = new Date(Date.now() - GIORNI_LETTURE * 864e5).toISOString();
       return F.onSnapshot(F.query(coll(), F.where('ora', '>=', da), F.orderBy('ora')), s => cb(s.docs.map(d => ({ ...d.data(), id: d.id }))), errore);
@@ -874,7 +932,9 @@ function dbFinto() {
     setTimeout(() => gruppo({ persone: { ...(r.persone || {}) }, richieste: (r.richieste || []).map(x => ({ ...x })),
       ospiti: Object.entries(r.ospiti || {}).map(([u, o]) => ({ ...o, uid: u })) }), 0);
   };
-  const cambiaRep = f => { const tutti = reparti(); f(tutti[rep]); salva(K + 'reparti', tutti); avvisaGruppo(); };
+  const cambiaRep = f => { const tutti = reparti(); f(tutti[rep]); salva(K + 'reparti', tutti); avvisaGruppo(); avvisaPresse(); };
+  let presseCb = null;
+  const avvisaPresse = () => { if (presseCb) setTimeout(() => presseCb(Object.values((reparti()[rep] || {}).presse || {}).map(x => ({ ...x })), true), 0); };
   return {
     uid,
     async entra(codice) {
@@ -902,6 +962,12 @@ function dbFinto() {
     togliRichiesta(id) { cambiaRep(r => { r.richieste = (r.richieste || []).filter(x => x.id !== id); }); return Promise.resolve(); },
     diventaOspite(nome, sostituisce, richiesta) { cambiaRep(r => { r.ospiti = { ...(r.ospiti || {}), [uid]: { nome, sostituisce, richiesta } }; }); return Promise.resolve(); },
     fineOspite(u) { cambiaRep(r => { const o = { ...(r.ospiti || {}) }; delete o[u]; r.ospiti = o; }); return Promise.resolve(); },
+    ascoltaPresse(cb) { presseCb = cb; avvisaPresse(); },
+    aggiungiPressa(d) {
+      if (((reparti()[rep] || {}).presse || {})[d.pressa]) return vietato();   // come le regole: un numero si crea una volta sola
+      cambiaRep(r => { r.presse = { ...(r.presse || {}), [d.pressa]: { ...d, uid } }; }); return Promise.resolve();
+    },
+    togliPressa(p) { cambiaRep(r => { const x = { ...(r.presse || {}) }; delete x[p]; r.presse = x; }); return Promise.resolve(); },
     ascolta(cb) { ascoltatore = cb; avvisa(); },
     nuovoId() { return 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); },
     scrivi(l) {
@@ -1067,21 +1133,11 @@ const eFerma = l => eFermo(l) && !l.ripartita_alle;
 const eFine = l => !!l && (l.fine_commessa === true || l.evento === 'fine_commessa');
 function aggiornaFerme() { ferme = PRESSE.filter(p => eFerma(ultimaLettura(p))); }
 aggiornaFerme();
-// fermi già chiusi (con ripartenza) della pressa nel turno in corso: quanti e quanti minuti in tutto
-function fermiNelTurno(p) {
-  const t = turnoDi(new Date());
-  let n = 0, min = 0;
-  const lp = letture.filter(l => l.pressa === p);
-  lp.forEach((l, k) => {
-    if (!eFermo(l)) return;
-    const dopo = lp[k + 1];
-    // la ripartenza: "Riparte ora" sulla lettura, oppure l'ora scritta nella lettura dopo
-    const fine = l.ripartita_alle || (dopo && dopo.ripartenza);
-    if (!fine) return;
-    const a = Math.max(new Date(l.ora), t.inizio), b = Math.min(new Date(fine), t.fine);
-    if (b > a) { n++; min += (b - a) / 60000; }
-  });
-  return { n, min: Math.round(min) };
+// minuti di fermo della pressa nel turno in corso, fino ad adesso (anche il fermo ancora aperto)
+function minutiFermoNelTurno(p) {
+  const adesso = new Date(), pr = produzioneDi(adesso);
+  if (!pr) return 0;
+  return Math.round(contaOre(fermiDi(p, adesso), pr.inizio, adesso).ferme * 60);
 }
 // minuti → "1 ora e 20 minuti", "2 ore", "45 minuti"
 function testoDurata(min) {
@@ -1089,7 +1145,7 @@ function testoDurata(min) {
   const ore = h ? h + (h === 1 ? ' ora' : ' ore') : '', minuti = m ? m + (m === 1 ? ' minuto' : ' minuti') : '';
   return [ore, minuti].filter(Boolean).join(' e ');
 }
-const TESTO_MOTIVO = { manutenzione: 'manutenzione', mancanza_materiale: 'mancanza materiale', altro: 'altro' };
+const TESTO_MOTIVO = { manutenzione: 'manutenzione', mancanza_materiale: 'mancanza materiale', mancanza_operatore: 'mancanza operatore', altro: 'altro' };   // altro: solo fermi vecchi
 // opz.totale (elenco presse): per un fermo solo "Fermo per manutenzione · minuti totali di fermo nel turno"
 function testoEvento(l, opz) {
   const parti = [];
@@ -1167,9 +1223,11 @@ function ultimePerPressa(chiave) {
 // ---------------- Pagine ----------------
 const VISTE = ['home', 'produzione', 'leggi', 'storico', 'entra'];
 const TITOLI = { produzione: 'Produzione', leggi: 'Lettura cicli', storico: 'Storico cicli' };
+// pulsante a due righe: sopra in grande Avanti/Indietro, sotto in piccolo dove porta
+const duePassi = (grande, piccolo) => '<span class="n-grande">' + grande + '</span><span class="n-piccolo">' + piccolo + '</span>';
 function vai(nome) {
   if (nome === 'riepilogo') nome = 'leggi';
-  if (!VISTE.includes(nome)) nome = 'home';
+  if (!VISTE.includes(nome) || (nome === 'produzione' && !PROVA)) nome = 'home';   // Produzione solo nella versione sviluppatore
   if (!accesso || accesso.attesa) nome = 'entra';  // senza codice reparto (o in attesa di conferma) si resta alla schermata di accesso
   else if (nome === 'entra') nome = 'home';
   VISTE.forEach(v => { $('vista-' + v).hidden = v !== nome; });
@@ -1177,14 +1235,19 @@ function vai(nome) {
   document.body.classList.toggle('home', nome === 'home');
   
   if (nome !== 'home') $('titolo').textContent = TITOLI[nome];
-  $('indietro').innerHTML = nome === 'storico' ? '&larr; Letture' : '&larr; Home';   // dallo storico si torna alla lettura cicli
+  $('indietro').innerHTML = nome === 'storico' ? '&larr; Letture' : nome === 'leggi' || nome === 'produzione' ? duePassi('Indietro', 'Home') : '&larr; Home';   // dallo storico si torna alla lettura cicli
   if (nome === 'home') disegnaHome();
   if (nome === 'leggi') { pressaAperta = null; $('msg').textContent = ''; disegnaElencoPresse(); disegnaRiepilogo(); azzera(); }
   if (nome === 'storico') disegnaStorico();
+  if (nome === 'produzione') disegnaProduzione();
+  const altra = PROVA ? { leggi: ['Produzione', 'produzione'], produzione: ['Lettura cicli', 'leggi'] }[nome] : null;
+  $('testata').classList.toggle('con-nav', !!altra); $('vai-altra').hidden = !altra;
+  if (altra) { $('vai-altra').innerHTML = duePassi('Avanti', altra[0]); $('vai-altra').dataset.vai = altra[1]; }
   disegnaRichieste();
   if (location.hash !== '#' + nome) history.replaceState(null, '', '#' + nome);
   window.scrollTo(0, 0);
 }
+$('vai-altra').onclick = () => vai($('vai-altra').dataset.vai);
 $('indietro').onclick = () => vai(location.hash === '#storico' ? 'leggi' : 'home');
 // il pulsante scende e solo dopo si cambia pagina, così l'animazione si vede
 function premi(id, pagina) {
@@ -1196,6 +1259,7 @@ function premi(id, pagina) {
 }
 premi('vai-lettura', 'leggi');
 premi('vai-produzione', 'produzione');
+$('vai-produzione').disabled = !PROVA;
 $('vai-storico').onclick = () => vai('storico');
 document.addEventListener('touchstart', () => {}, { passive: true });   // fa funzionare :active su iPhone
 
@@ -1233,6 +1297,21 @@ function quandoBreve(d) {
   if (d.toDateString() === ieri.toDateString()) return 'ieri ' + h;
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' ' + h;
 }
+// disegno della pressa: gialla la 68 e la 69, blu le altre. In funzione: luce verde e stampo che si muove (ritmo diverso per ogni pressa).
+// Ferma: manutenzione = luce rossa, mancanza materiale = verde lampeggiante, mancanza operatore = luci spente; stampo fermo
+// PROVA DEL DISEGNO: sei presse di esempio, solo disegni, in stati diversi (non sono quelle vere). Si disegnano una volta sola, così il movimento non riparte.
+function disegnaProduzione() {
+  const box = $('presse-produzione');
+  if (box.childElementCount) return;
+  const esempi = [[68, false], [40, false], [55, true, 'manutenzione'], [69, false], [67, true, 'mancanza_materiale'], [33, true, 'mancanza_operatore']];
+  box.innerHTML = esempi.map(([p, ferma, motivo]) => '<div class="card pressa-prod"><span class="num-angolo">' + p + '</span>' + disegnoPressa(p, ferma, { motivo }) + '</div>').join('');
+}
+function disegnoPressa(p, ferma, u) {
+  const motivo = ferma && u ? u.motivo : null;
+  const stato = !ferma ? '' : motivo === 'manutenzione' ? ' pr-ferma pr-man' : motivo === 'mancanza_materiale' ? ' pr-ferma pr-mat' : ' pr-ferma pr-alt';
+  const dur = (2.4 + (p * 7 % 10) / 10 * 1.4).toFixed(1), rit = (-(p * 13 % 30) / 10).toFixed(1);
+  return '<svg class="dis-pressa ' + (p === 68 || p === 69 ? 'pr-gialla' : 'pr-blu') + stato + '" viewBox="0 -13 320 125" preserveAspectRatio="xMinYMid meet" style="--dur:' + dur + 's;--rit:' + rit + 's" aria-hidden="true"><use href="#pressa"/></svg>';
+}
 // presse in funzione in cima, ferme in fondo; ognuna è un pulsante che apre la sua tendina
 function disegnaElencoPresse() {
   casaPannello.appendChild(pannello);       // lo metto al sicuro prima di ricostruire l'elenco
@@ -1249,8 +1328,7 @@ function disegnaElencoPresse() {
     let prec = ultimaReale(p);
     if (l) { prec = null; for (let i = letture.indexOf(l) - 1; i >= 0; i--) if (letture[i].pressa === p && !eSolo(letture[i])) { prec = letture[i]; break; } }
     const ultima = !f && prec ? '<span class="ultima"><b>' + prec.cicli + '</b><span>' + quandoBreve(new Date(prec.ora)) + '</span>' + (prec.nome ? '<span class="da">' + esc(prec.nome) + '</span>' : '') + '</span>' : '';
-    const ft = fermiNelTurno(p);
-    const ev = testoEvento(f || (!l && eFermo(u)) ? u : l, { totale: ft.min });   // anche "Ripartita alle…" finché non si legge
+    const ev = testoEvento(f || (!l && eFermo(u)) ? u : l, { totale: minutiFermoNelTurno(p) });   // anche "Ripartita alle…" finché non si legge
     return '<div class="voce' + (aperta ? ' aperta' : '') + (f ? ' ferma-p' : '') + '" data-p="' + p + '"><div class="testa-p">' +
       '<button class="togli-sw" data-togli="' + p + '" tabindex="-1">Togli</button><div class="scorre">' +
       '<button class="pressa-btn" data-p="' + p + '" aria-expanded="' + aperta + '"><span class="titolo-p"><span class="num">Pressa ' + p + '</span>' +
@@ -1282,12 +1360,35 @@ function disegnaElencoPresse() {
   $('avanz-seg').innerHTML = inF.map(p => '<i' + (lette[p] ? ' class="letta"' : '') + '></i>').join('');
 }
 
-// aggiungi e togli presse: le letture restano sempre nello storico
+// aggiungi e togli presse: le letture restano sempre nello storico.
+// L'elenco è comune a tutto il reparto (database): chi aggiunge o toglie una pressa la cambia anche per i colleghi.
+// Sul telefono resta una copia, per partire subito anche senza rete.
 // articolo e commessa scritti aggiungendo la pressa: valgono fino alla prima lettura, che li salva con sé
-const CHIAVE_COMMESSE = PREF + 'commesse-nuove';
-let commesseNuove = {};
-try { commesseNuove = JSON.parse(localStorage.getItem(CHIAVE_COMMESSE) || '{}'); } catch (e) {}
+let infoPresse = leggiLocale(PREF + 'info-presse', {});   // numero → { articolo, commessa, ora }
+function commessaNuova(p) {
+  const n = infoPresse[p];
+  if (!n || !(n.articolo || n.commessa)) return null;
+  return letture.some(l => l.pressa === p && !eSolo(l) && l.ora >= n.ora) ? null : n;
+}
 function salvaPresse() { PRESSE.sort((a, b) => a - b); salva(CHIAVE_PRESSE, PRESSE); aggiornaFerme(); }
+// La prima volta che il reparto non ha ancora l'elenco comune, ogni telefono ci mette le sue presse (una volta sola)
+function presseArrivate(elenco, dalServer) {
+  const CHIAVE_FATTO = PREF + 'presse-condivise';
+  if (!elenco.length && !leggiLocale(CHIAVE_FATTO, false)) {
+    if (!dalServer) return;                        // copia sul telefono ancora vuota: si aspetta il server
+    salva(CHIAVE_FATTO, true);
+    const ora = new Date().toISOString();
+    PRESSE.forEach(p => db.aggiungiPressa({ pressa: p, ora, nome: accesso.nome }).catch(() => {}));   // se un collega l'ha già messa, va bene così
+    return;
+  }
+  if (dalServer) salva(CHIAVE_FATTO, true);
+  PRESSE = elenco.map(x => Number(x.pressa));
+  infoPresse = {};
+  elenco.forEach(x => { infoPresse[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '' }; });
+  salvaPresse(); salva(PREF + 'info-presse', infoPresse);
+  if (pressaAperta != null && !PRESSE.includes(pressaAperta)) chiudi();
+  if (!$('vista-leggi').hidden && !trascinato) { disegnaElencoPresse(); disegnaRiepilogo(); }
+}
 $('aggiungi-apri').onclick = () => {
   if (!inTurno()) return;
   const aprire = $('aggiungi-blocco').hidden;
@@ -1303,9 +1404,12 @@ $('aggiungi-ok').onclick = () => {
   const t = $('aggiungi-num').value.trim(), p = Number(t);
   if (!/^\d{1,4}$/.test(t) || !p) { $('avviso-aggiungi').textContent = 'Scrivi il numero della pressa.'; $('aggiungi-num').focus(); return; }
   if (PRESSE.includes(p)) { $('avviso-aggiungi').textContent = 'La pressa ' + p + ' è già nell\'elenco.'; return; }
-  PRESSE.push(p); salvaPresse();
   const articolo = $('aggiungi-articolo').value.trim(), cifre = $('aggiungi-commessa').value.trim().replace(/^P/i, '');
-  if (articolo || cifre) { commesseNuove[p] = { articolo, commessa: cifre ? 'P' + cifre : '' }; salva(CHIAVE_COMMESSE, commesseNuove); }
+  const nuova = { pressa: p, ora: new Date().toISOString(), nome: accesso.nome };
+  if (articolo) nuova.articolo = articolo;
+  if (cifre) nuova.commessa = 'P' + cifre;
+  PRESSE.push(p); infoPresse[p] = { articolo, commessa: nuova.commessa || '', ora: nuova.ora }; salvaPresse();   // si vede subito, il database la passa ai colleghi
+  db.aggiungiPressa(nuova).catch(erroreDati);
   $('aggiungi-blocco').hidden = true; $('aggiungi-apri').setAttribute('aria-expanded', 'false'); $('avviso-aggiungi').textContent = '';
   $('aggiungi-num').blur();
   disegnaElencoPresse();
@@ -1325,8 +1429,8 @@ function togliPressa(p) {
   togliDavvero(p);
 }
 function togliDavvero(p) {
-  if (commesseNuove[p]) { delete commesseNuove[p]; salva(CHIAVE_COMMESSE, commesseNuove); }
-  PRESSE = PRESSE.filter(x => x !== p); salvaPresse();
+  PRESSE = PRESSE.filter(x => x !== p); delete infoPresse[p]; salvaPresse();
+  db.togliPressa(p).catch(erroreDati);
   if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
   disegnaRiepilogo();
   $('msg').textContent = 'Pressa ' + p + ' tolta dall\'elenco. Le sue letture restano nello storico.';
@@ -1514,7 +1618,7 @@ const botRip = () => document.querySelectorAll('#ripartenza [data-rip]');
 function preparaCampi(p) {
   const u = ultimaReale(p), ult = ultimaLettura(p);
   const stessa = u && !eFine(u);                   // dopo "Fine commessa" articolo e commessa ripartono vuoti
-  const nuova = commesseNuove[p];                  // scritti con "Aggiungi pressa": hanno la precedenza
+  const nuova = commessaNuova(p);                  // scritti con "Aggiungi pressa": hanno la precedenza
   $('articolo').value = nuova ? nuova.articolo : stessa && u.articolo || '';
   $('commessa').value = ((nuova ? nuova.commessa : stessa && u.commessa) || '').replace(/^P/i, '');   // nella casella solo le cifre: la P è già stampata
   // già noti: le caselle spariscono per non affollare la tendina, ma i valori si salvano lo stesso con la lettura
@@ -1539,30 +1643,22 @@ function dataRipartenza(adesso) {
   if (d < t.inizio) d.setDate(d.getDate() + 1);
   return d;
 }
-// dopo una "Fine commessa" nello stesso turno, la commessa nuova parte da quella lettura
-function partenzaNuovaCommessa(adesso) {
-  const u = pressaAperta != null ? ultimaReale(pressaAperta) : null;
-  if (eFine(u) && u.partenza_commessa) return new Date(u.partenza_commessa);   // scelta con l'orologio
-  return eFine(u) && chiaveTurno(turnoDi(new Date(u.ora))) === chiaveTurno(turnoDi(adesso)) ? new Date(u.ora) : null;
+// la lettura che si sta scrivendo chiude il fermo della lettura prima: all'ora scelta, all'inizio del turno ("In un turno precedente")
+// oppure no ("È ancora ferma")
+function chiusuraInCorso(adesso) {
+  if (ripScelta === 'prima') return turnoDi(adesso).inizio;
+  return ripScelta === 'mio' ? dataRipartenza(adesso) : null;
 }
-// ore di produzione in cui la pressa è stata ferma con un fermo senza cicli, nel turno di d (da togliere alle ore lavorate)
-function oreFermoManuale(p, d, partenza) {
-  const pr = produzioneDi(d);
-  if (!pr) return 0;
-  const fine = eFineTurno(d) ? pr.fine : d;
-  return letture.reduce((somma, l, i) => {
-    if (l.pressa !== p || !eSolo(l) || !eFermo(l)) return somma;
-    const dopo = letture.slice(i + 1).find(x => x.pressa === p);
-    const a = new Date(Math.max(new Date(l.ora), pr.inizio, partenza || 0));
-    const b = new Date(Math.min(l.ripartita_alle ? new Date(l.ripartita_alle) : dopo ? new Date(dopo.ora) : fine, fine));
-    return b > a ? somma + oreProduzione(a, b) : somma;
-  }, 0);
+// conti della lettura che si sta scrivendo: turno e commessa
+function contiInCorso(adesso) {
+  const p = pressaAperta, chiudi = chiusuraInCorso(adesso);
+  return { turno: oreTurno(p, adesso, ultimaReale(p), chiudi), commessa: oreCommessa(p, letture.length, adesso, chiudi) };
 }
 function aggiornaOre() {
-  if (oreManuali) return;
-  const adesso = new Date(), partenza = dataRipartenza(adesso) || partenzaNuovaCommessa(adesso);
-  const fermo = pressaAperta != null ? oreFermoManuale(pressaAperta, adesso, partenza) : 0;
-  $('ore-input').value = testoOreCampo(Math.max(0, oreLavorate(adesso, partenza) - fermo));
+  if (pressaAperta == null) return;
+  const c = contiInCorso(oraFine || new Date());
+  if (!oreManuali) $('ore-input').value = testoOreCampo(c.turno.lavorate);
+  $('ore-conti').textContent = 'Ferma nel turno: ' + formatoOre(c.turno.ferme) + ' · Commessa finora: lavorata ' + formatoOre(c.commessa.lavorate) + ', ferma ' + formatoOre(c.commessa.ferme);
 }
 botRip().forEach(b => {
   b.onclick = () => {
@@ -1603,13 +1699,14 @@ function aggiornaMotivo() {
 }
 function apriMotivi() {
   precedente = motivo ? { motivo, nota: notaAltro } : null;   // se si preme Annulla si torna a quello di prima
-  motivo = null; scelta = null; $('altro-nota').value = precedente && precedente.motivo === 'altro' ? precedente.nota : ''; $('altro-blocco').hidden = true;
+  motivo = null; scelta = null;
+  document.querySelector('[data-motivo="fine_commessa"]').hidden = !fermoSolo;   // nella lettura dei cicli "Fine commessa" ha già la sua scelta
   botMotivi().forEach(b => b.setAttribute('aria-pressed', 'false'));
   if (typeof dialogo.showModal === 'function') dialogo.showModal(); else dialogo.setAttribute('open', '');
 }
 optFermo.onchange = () => {
   if (optFermo.checked) apriMotivi();
-  else { motivo = null; notaAltro = ''; $('altro-nota').value = ''; aggiornaMotivo(); }
+  else { motivo = null; notaAltro = ''; aggiornaMotivo(); }
 };
 optFine.onchange = () => { $('avviso-salva').textContent = ''; };
 $('cambia-motivo').onclick = apriMotivi;
@@ -1618,14 +1715,24 @@ botMotivi().forEach(b => {
   b.onclick = () => {
     scelta = b.dataset.motivo;
     botMotivi().forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-    if (scelta === 'altro') { $('altro-blocco').hidden = false; $('altro-nota').focus(); return; }   // per "Altro" serve ancora confermare
     motivo = scelta; notaAltro = '';
     dialogo.close('scelto');
   };
 });
-$('conferma-altro').onclick = () => { motivo = 'altro'; notaAltro = $('altro-nota').value.trim(); dialogo.close('scelto'); };
 $('annulla-motivo').onclick = () => dialogo.close('annulla');
 dialogo.addEventListener('click', e => { if (e.target === dialogo) dialogo.close('annulla'); });   // tocco sullo sfondo scuro
+// Fine commessa da "Ferma la pressa": il contatore poi riparte da zero, quindi servono i cicli finali.
+// La lettura si salva con Salva, all'ora scelta con l'orologio.
+let oraFine = null;
+function chiediCicliFine() {
+  oraFine = ripData; optFine.checked = true;
+  $('fine-testo').textContent = 'Fine commessa alle ' + oraFine.toTimeString().slice(0, 5) + ': scrivi i cicli totali';
+  $('fine-scelta').hidden = false; $('btn-ferma').hidden = true;
+  oreManuali = false; aggiornaOre();
+  $('cicli-input').focus({ preventScroll: true });
+}
+function togliFine() { oraFine = null; optFine.checked = false; $('fine-scelta').hidden = true; }
+$('fine-annulla').onclick = () => { togliFine(); $('btn-ferma').hidden = false; $('avviso-salva').textContent = ''; oreManuali = false; aggiornaOre(); };
 function salvaFermoSolo(m, nota) {
   const p = ripPressa, r = ultimaReale(p);
   const l = { pressa: p, cicli: r ? r.cicli : 0, ora: ripData.toISOString(), ore: 0, fermo: true, solo_evento: true, motivo: m };   // i cicli non si chiedono: resta quelli dell'ultima lettura
@@ -1640,7 +1747,8 @@ dialogo.addEventListener('close', () => {
     fermoSolo = false;
     const m = motivo, nota = notaAltro;
     motivo = null; notaAltro = ''; precedente = null; optFermo.checked = false; aggiornaMotivo();
-    if (m) salvaFermoSolo(m, nota);
+    if (m === 'fine_commessa') chiediCicliFine();
+    else if (m) salvaFermoSolo(m, nota);
     return;
   }
   if (!motivo) {
@@ -1693,7 +1801,7 @@ function azzera() {
   controllo = false;
   cicliConfermati = null; $('salva').textContent = 'Salva';
   $('cicli-input').value = '';
-  optFermo.checked = false; optFine.checked = false; motivo = null; notaAltro = ''; scelta = null; precedente = null; $('altro-nota').value = ''; aggiornaMotivo();
+  optFermo.checked = false; togliFine(); motivo = null; notaAltro = ''; scelta = null; precedente = null; aggiornaMotivo();
 }
 
 function registra() {
@@ -1703,13 +1811,14 @@ function registra() {
   const cicli = Number(testo);
   if (!testo || !Number.isInteger(cicli) || cicli < 0) { $('avviso-salva').textContent = 'Scrivi il numero dei cicli totali.'; $('cicli-input').focus(); return; }
   if (optFermo.checked && !motivo) { apriMotivi(); return; }      // per sicurezza: senza motivo non si salva il fermo
-  const adesso = new Date();
+  const adesso = oraFine || new Date();
   const avviso = t => { $('avviso-salva').textContent = t; };
-  if (!$('ripartenza').hidden && !ripScelta) { avviso('Indica quando è ripartita la pressa.'); $('ripartenza').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  if (!$('ripartenza').hidden && !ripScelta) { avviso('Indica quando è ripartita la pressa, o se è ancora ferma.'); $('ripartenza').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
   const ripartenza = dataRipartenza(adesso);
   if (ripScelta === 'mio' && !ripartenza) { avviso("Scrivi l'ora in cui è ripartita."); $('rip-ora').focus(); return; }
   if (ripartenza && ripartenza > adesso) { avviso("L'ora di ripartenza è dopo adesso: controllala."); $('rip-ora').focus(); return; }
   aggiornaOre();                                                   // se non sono state cambiate a mano, si ricalcolano all'ora del salvataggio
+  const conti = contiInCorso(adesso);
   const ore = leggiOre($('ore-input').value);
   if (ore == null) { avviso('Scrivi le ore lavorate, es. 7:30 oppure 8.'); $('ore-input').focus(); return; }
   // lettura che non torna: si avvisa e Salva diventa "Confermo"; cambiando il numero si torna a Salva
@@ -1718,15 +1827,14 @@ function registra() {
     cicliConfermati = cicli; $('salva').textContent = 'Confermo';
     avviso(strana.testo); return;
   }
-  // a metà turno serve un motivo: se non è già spuntato, lo si chiede. A fine turno solo con "Fermo o fine commessa?"
-  if ((!eFineTurno(adesso) || segnala) && !optFermo.checked && !optFine.checked && !controllo) {
-    $('testo-perche').textContent = segnala ? 'Cosa è successo alla pressa?' : 'Non è la fine del turno: scegli il motivo della lettura.';
-    document.querySelector('[data-perche="controllo"]').hidden = segnala;
+  // a metà turno serve un motivo: se non è già spuntato, lo si chiede
+  const ancoraFerma = eFerma(ultimaLettura(pressaAperta)) && (eSolo(ultimaLettura(pressaAperta)) || ripScelta === 'ferma');
+  if (!eFineTurno(adesso) && !optFermo.checked && !optFine.checked && !controllo && !ancoraFerma) {
     if (typeof dialogoPerche.showModal === 'function') dialogoPerche.showModal(); else dialogoPerche.setAttribute('open', '');
     return;
   }
   const p = pressaAperta;
-  const lettura = { pressa: p, cicli, ora: adesso.toISOString(), ore };
+  const lettura = { pressa: p, cicli, ora: adesso.toISOString(), ore, ore_fermo: conti.turno.ferme };
   const articolo = $('articolo').value.trim(), cifre = $('commessa').value.trim().replace(/^P/i, '');
   const commessa = cifre ? 'P' + cifre : '';
   if (articolo) lettura.articolo = articolo;
@@ -1741,8 +1849,14 @@ function registra() {
     lettura.fermo = true; lettura.motivo = motivo;
     if (motivo === 'altro' && notaAltro) lettura.nota = notaAltro;
   }
+  // letta mentre è ancora ferma: il fermo continua in questa lettura (la ripartenza la segna chi la vede ripartire)
+  const ult = ultimaLettura(p);
+  if (!optFermo.checked && !optFine.checked && eFerma(ult) && (eSolo(ult) || ripScelta === 'ferma')) {
+    lettura.fermo = true;
+    if (ult.motivo) lettura.motivo = ult.motivo;
+    if (ult.nota) lettura.nota = ult.nota;
+  }
   nuovaLettura(lettura);                     // con chi l'ha fatta (nome) e il suo codice
-  if (commesseNuove[p]) { delete commesseNuove[p]; salva(CHIAVE_COMMESSE, commesseNuove); }   // ora articolo e commessa stanno nella lettura
   aggiornaFerme();
   chiudi();                                  // la tendina si chiude e la pressa risulta letta
   disegnaRiepilogo();
@@ -1751,9 +1865,7 @@ function registra() {
 }
 $('btn-ferma').onclick = () => ferma(pressaAperta);
 $('btn-riparte').onclick = () => riparte(pressaAperta);
-let segnala = false;                         // true: la finestra di scelta è stata chiesta col pulsante, anche a fine turno
-$('salva').onclick = () => { segnala = false; registra(); };
-$('segnala').onclick = () => { segnala = true; registra(); };
+$('salva').onclick = registra;
 // finestra "Perché leggi adesso?": la scelta spunta la casella giusta e salva
 const dialogoPerche = $('dialogo-perche');
 document.querySelectorAll('#dialogo-perche [data-perche]').forEach(b => {
@@ -1767,7 +1879,6 @@ document.querySelectorAll('#dialogo-perche [data-perche]').forEach(b => {
   };
 });
 $('annulla-perche').onclick = () => dialogoPerche.close();
-dialogoPerche.addEventListener('close', () => { if (!optFermo.checked && !optFine.checked && !controllo) segnala = false; });
 dialogoPerche.addEventListener('click', e => { if (e.target === dialogoPerche) dialogoPerche.close(); });
 
 // ---------------- Riepilogo ----------------
@@ -1804,7 +1915,8 @@ function disegnaRighe() {
   $('righe').innerHTML = righe.filter(r => mostraSegnate || !eSegnata(r.lettura)).map(r =>
     '<tr' + (correggibile(r.lettura) ? ' data-cor="' + r.lettura.id + '"' : '') + (eSegnata(r.lettura) ? ' class="segnata"' : '') + '><td class="sp"><button class="x ok" data-mes="' + r.lettura.id + '" aria-pressed="' + eSegnata(r.lettura) +
       '" aria-label="' + (eSegnata(r.lettura) ? 'Rimetti in elenco' : 'Segnata sul MES') + ' pressa ' + r.pressa + '">✓</button></td><td class="pressa">' + r.pressa + (r.piu ? '<span class="ev">' + esc([r.lettura.articolo && 'Art. ' + r.lettura.articolo, r.lettura.commessa].filter(Boolean).join(' · ')) + '</span>' : '') +
-      (testoEvento(r.lettura) ? '<span class="ev">' + testoEvento(r.lettura).replace(/</g, '&lt;') + '</span>' : '') + '</td><td class="n">' + (eSolo(r.lettura) ? '—' : r.lettura.cicli) + '</td><td class="n ore">' +
+      (testoEvento(r.lettura) ? '<span class="ev">' + testoEvento(r.lettura).replace(/</g, '&lt;') + '</span>' : '') +
+      (!eSolo(r.lettura) && r.lettura.ore_fermo >= 1 / 60 ? '<span class="ev">Ferma ' + formatoOre(r.lettura.ore_fermo) + ' nel turno</span>' : '') + '</td><td class="n">' + (eSolo(r.lettura) ? '—' : r.lettura.cicli) + '</td><td class="n ore">' +
       (eSolo(r.lettura) ? '—' : formatoOre(oreDi(r.lettura))) + '</td><td class="az">' + (mie(r.lettura) && scr ? '<button class="x" data-del="' + r.lettura.id +
       '" aria-label="Elimina lettura pressa ' + r.pressa + '">×</button>' : '') + '</td></tr>').join('');
   document.querySelectorAll('[data-mes]').forEach(b => {
@@ -1844,38 +1956,89 @@ function oreProduzione(a, b) {
   }
   return ore;
 }
-// fermi della pressa: dalla lettura con Fermo macchina alla ripartenza. Se è ripartita in un turno precedente
-// (o la lettura dopo non dice niente) il fermo finisce all'inizio del turno della lettura dopo
-function fermiDi(pressa) {
+// Fermi della pressa: [inizio, fine, escluso]. Un fermo va dalla lettura (o "Ferma la pressa") alla ripartenza; se è ancora aperto
+// arriva fino a finoA, così chi legge a fine turno con la pressa ferma ha il fermo fino alla fine del turno e il collega dopo
+// lo ritrova dall'inizio del suo, fino a quando riparte. escluso = true: tra una Fine commessa e la partenza della commessa nuova,
+// o la ripresa della stessa in un turno dopo. Sono tempi di rendimento della pressa, non di produzione: non contano né come lavorate
+// né come ferme. Se la stessa commessa riprende nello stesso turno, la pausa è un fermo come gli altri.
+// chiudi: ripartenza scelta nella lettura che si sta scrivendo.
+function fermiDi(pressa, finoA, chiudi) {
   const lp = letture.filter(l => l.pressa === pressa), fermi = [];
   lp.forEach((l, k) => {
-    const dopo = lp[k + 1], chiuso = eSolo(l) && l.ripartita_alle;   // il fermo senza cicli finisce con "Riparte"
-    if (!eFermo(l) || (!dopo && !chiuso)) return;
-    const inizio = new Date(l.ora);
-    let fine = chiuso ? new Date(l.ripartita_alle) : dopo.ripartenza ? new Date(dopo.ripartenza)
-      : (dopo.ripartenza_prima || !eFermo(dopo)) ? turnoDi(new Date(dopo.ora)).inizio
-      : new Date(dopo.ora);                       // ancora ferma alla lettura dopo
+    const dopo = lp[k + 1], inizio = new Date(l.ora);
+    if (eFine(l) && !eSolo(l)) {
+      const reale = lp.slice(k + 1).find(x => !eSolo(x));
+      fermi.push([inizio, fineCambio(l, reale ? new Date(reale.ora) : finoA), true]);
+    }
+    if (!eFermo(l)) return;
+    let fine = l.ripartita_alle ? new Date(l.ripartita_alle)                  // "Riparte ora" / "La pressa riparte"
+      : !dopo ? (chiudi || finoA)                                             // ancora ferma
+      : dopo.ripartenza ? new Date(dopo.ripartenza)
+      : eFermo(dopo) ? new Date(dopo.ora)                                     // ancora ferma alla lettura dopo
+      : turnoDi(new Date(dopo.ora)).inizio;                                   // ripartita in un turno precedente (o non detto)
     if (fine < inizio) fine = inizio;
-    fermi.push([inizio, fine]);
+    fermi.push([inizio, fine, !!l.ripresa_stessa && chiaveTurno(turnoDi(inizio)) !== chiaveTurno(turnoDi(fine))]);
   });
   return fermi;
+}
+// fine del cambio commessa: la partenza scelta con l'orologio; senza, la Fine commessa stessa se si riparte nello stesso turno,
+// altrimenti l'inizio della produzione del turno in cui si riparte
+function fineCambio(f, poi) {
+  if (f.partenza_commessa) return new Date(f.partenza_commessa);
+  const o = new Date(f.ora);
+  if (!poi || chiaveTurno(turnoDi(poi)) === chiaveTurno(turnoDi(o))) return o;
+  return (produzioneDi(poi) || turnoDi(poi)).inizio;
+}
+// ore di produzione tra a e b coperte dai fermi (quelli sovrapposti contano una volta)
+function oreFerme(fermi, a, b) {
+  const t = fermi.map(([i, f]) => [i < a ? a : i, f > b ? b : f]).filter(([i, f]) => f > i).sort((x, y) => x[0] - y[0]);
+  let ore = 0, ci = null, cf = null;
+  t.forEach(([i, f]) => {
+    if (cf && i <= cf) { if (f > cf) cf = f; return; }
+    if (cf) ore += oreProduzione(ci, cf);
+    ci = i; cf = f;
+  });
+  return cf ? ore + oreProduzione(ci, cf) : ore;
+}
+// ore lavorate e ferme tra a e b: si tolgono i tempi esclusi, poi i fermi (le parti di fermo dentro un tempo escluso non contano)
+function contaOre(fermi, a, b) {
+  const tutti = oreFerme(fermi, a, b), esclusi = oreFerme(fermi.filter(f => f[2]), a, b);
+  return { lavorate: Math.max(0, oreProduzione(a, b) - tutti), ferme: tutti - esclusi };
+}
+// fin dove arriva il conto di una lettura: nell'ultima mezz'ora della produzione, fino alla fine del turno
+function fineConto(d) { const pr = produzioneDi(d); return pr && eFineTurno(d) ? pr.fine : d; }
+// Turno: ore lavorate e ore ferme sulle ore di produzione del turno (8, o 7 il venerdì notte e il lunedì mattina), tolti i tempi esclusi; si azzera a ogni turno.
+// Dopo una Fine commessa nello stesso turno si conta da lì: il tratto prima è nella lettura della Fine commessa.
+function oreTurno(p, d, prima, chiudi) {
+  const pr = produzioneDi(d);
+  if (!pr) return { lavorate: 0, ferme: 0 };
+  const b = fineConto(d);
+  let a = pr.inizio;
+  if (eFine(prima) && new Date(prima.ora) > a) a = new Date(prima.ora);
+  return contaOre(fermiDi(p, b, chiudi), a, b);
+}
+// Commessa: parte dalla ripartenza dopo l'ultima Fine commessa (i = posizione della lettura, letture.length per quella in corso);
+// senza Fine commessa nei dati, dall'inizio del turno della prima lettura. Si azzera solo con la Fine commessa.
+function inizioCommessa(p, i, d) {
+  let primo = d;
+  for (let j = i - 1; j >= 0; j--) {
+    const x = letture[j];
+    if (x.pressa !== p || eSolo(x)) continue;
+    if (eFine(x)) return fineCambio(x, primo);
+    primo = new Date(x.ora);
+  }
+  const pr = produzioneDi(primo);
+  return pr ? pr.inizio : primo;
+}
+function oreCommessa(p, i, d, chiudi) {
+  const a = inizioCommessa(p, i, d), b = fineConto(d);
+  if (b <= a) return { lavorate: 0, ferme: 0 };
+  return contaOre(fermiDi(p, b, chiudi), a, b);
 }
 // durata reale (fermi compresi) ed effettiva (fermi tolti) tra due istanti, in ore di produzione
 function durate(pressa, a, b) {
   const reale = oreProduzione(a, b);
-  const ferma = fermiDi(pressa).reduce((s, [i, f]) => s + (f > a && i < b ? oreProduzione(i > a ? i : a, f < b ? f : b) : 0), 0);
-  return { reale, effettiva: Math.max(0, reale - ferma) };
-}
-// la commessa parte dalla prima lettura dopo l'ultima Fine commessa (poi userà l'ora di partenza registrata in Produzione)
-function inizioCommessa(i) {
-  const l = letture[i];
-  let inizio = l;
-  for (let j = i - 1; j >= 0; j--) {
-    if (letture[j].pressa !== l.pressa || eSolo(letture[j])) continue;
-    if (eFine(letture[j])) break;
-    inizio = letture[j];
-  }
-  return new Date(inizio.ora);
+  return { reale, effettiva: Math.max(0, reale - oreFerme(fermiDi(pressa, b), a, b)) };
 }
 function letturaPrima(i) {
   for (let j = i - 1; j >= 0; j--) if (letture[j].pressa === letture[i].pressa && !eSolo(letture[j])) return letture[j];
@@ -1883,8 +2046,10 @@ function letturaPrima(i) {
 }
 function durateLettura(i) {
   const l = letture[i], d = new Date(l.ora), prima = letturaPrima(i);
-  if (eSolo(l)) return { ultima: null, commessa: { reale: 0, effettiva: 0 } };
-  return { ultima: prima ? durate(l.pressa, new Date(prima.ora), d) : null, commessa: durate(l.pressa, inizioCommessa(i), d) };
+  if (eSolo(l)) return { ultima: null, commessa: { reale: 0, effettiva: 0, ferme: 0 }, turno: { lavorate: 0, ferme: 0 } };
+  const c = oreCommessa(l.pressa, i, d);
+  return { ultima: prima ? durate(l.pressa, new Date(prima.ora), d) : null, commessa: { reale: c.lavorate + c.ferme, effettiva: c.lavorate, ferme: c.ferme },
+    turno: { lavorate: oreDi(l), ferme: l.ore_fermo != null ? l.ore_fermo : oreTurno(l.pressa, d, prima).ferme } };
 }
 window.__durateLettura = durateLettura; // per i test
 
@@ -1931,8 +2096,8 @@ function disegnaStorico() {
       '<div class="st-dati"><span>Cicli totali: <strong>' + l.cicli + '</strong></span>' +
       (delta != null ? '<span>Cicli dall\'ultima lettura: <strong>' + delta + '</strong></span>' : '') + '</div>' +
       (dur.ultima ? coppia('Durata dall\'ultima lettura', dur.ultima) : '') +
-      coppia('Durata commessa', dur.commessa) +
-      '<div class="st-dati"><span>Ore turno: <strong>' + formatoOre(oreDi(l)) + '</strong>' + (l.ore_manuali ? ' (a mano)' : '') + '</span></div>' +
+      '<div class="st-dati"><span>Turno: lavorata <strong>' + formatoOre(dur.turno.lavorate) + '</strong>' + (l.ore_manuali ? ' (a mano)' : '') + '</span><span>ferma <strong>' + formatoOre(dur.turno.ferme) + '</strong></span></div>' +
+      '<div class="st-dati"><span>Commessa' + (eFine(l) ? '' : ' finora') + ': lavorata <strong>' + formatoOre(dur.commessa.effettiva) + '</strong></span><span>ferma <strong>' + formatoOre(dur.commessa.ferme) + '</strong></span></div>' +
       (ev ? '<span class="ev">' + esc(ev) + '</span>' : '') +
       (l.nome ? '<div class="letta-da" style="margin-top:8px">Letta da ' + esc(l.nome) + '</div>' : '') + '</div>';
   }).reverse().join('');
@@ -1949,15 +2114,20 @@ function apriCorreggi(id) {
   const d = new Date(l.ora), propria = mie(l);
   $('titolo-correggi').textContent = 'Correggi pressa ' + l.pressa;
   $('correggi-quando').textContent = 'Lettura del ' + dataIt(d) + ' alle ' + oraIt(d) + (l.nome ? ', letta da ' + l.nome : '') + (l.modifica_di ? ', modificata da ' + l.modifica_di : '') + (testoEvento(l) ? ' · ' + testoEvento(l) : '') +
-    (propria ? '' : '. È di un collega: puoi solo togliere la ripartenza.');
+    (propria ? '' : ". È di un collega: puoi solo cambiare o togliere l'ora di ripartenza.");
   ['cor-cicli', 'cor-ore', 'cor-articolo', 'cor-commessa'].forEach(c => { $(c).disabled = !propria || eSolo(l); });   // lettura di un collega: dati bloccati
   $('cor-cicli').value = l.cicli;
   $('cor-ore').value = testoOreCampo(oreDi(l));
   $('cor-articolo').value = l.articolo || '';
   $('cor-commessa').value = (l.commessa || '').replace(/^P/i, '');
+  // ora del fermo: "Ferma dalle" solo sui fermi senza cicli propri (sulle letture l'ora è quella della lettura), "Ripartita alle" se c'è
+  const dalle = eSolo(l) && eFermo(l) && propria;
+  $('cor-dalle-campo').hidden = !dalle; $('cor-alle-campo').hidden = !(eFermo(l) && l.ripartita_alle);
+  $('cor-fermo-blocco').hidden = !dalle && $('cor-alle-campo').hidden;
+  $('cor-dalle').value = oraIt(d); $('cor-alle').value = l.ripartita_alle ? oraIt(new Date(l.ripartita_alle)) : '';
   $('cor-rip-blocco').hidden = !l.ripartita_alle;          // "Riparte ora" sbagliato: si toglie da qui
   if (l.ripartita_alle) { $('cor-rip-testo').textContent = 'Ripartita alle ' + oraIt(new Date(l.ripartita_alle)); $('cor-rip-togli').textContent = 'Togli'; $('cor-rip-togli').setAttribute('aria-pressed', 'false'); }
-  $('avviso-correggi').textContent = '';
+  $('avviso-correggi').textContent = ''; $('cor-alle').disabled = false;
   if (typeof dialogoCorreggi.showModal === 'function') dialogoCorreggi.showModal(); else dialogoCorreggi.setAttribute('open', '');
 }
 $('cor-rip-togli').onclick = () => {
@@ -1966,13 +2136,50 @@ $('cor-rip-togli').onclick = () => {
   $('cor-rip-togli').textContent = togli ? 'Rimetti' : 'Togli';
   const l = letture.find(x => x.id === corLettura);
   $('cor-rip-testo').textContent = togli ? 'Ripartenza tolta' : 'Ripartita alle ' + oraIt(new Date(l.ripartita_alle));
+  $('cor-alle').disabled = togli;
 };
+// hh:mm → la data più vicina a quella di prima (il turno di notte passa la mezzanotte)
+function oraVicina(v, base) {
+  const x = new Date(base); x.setHours(Number(v.slice(0, 2)), Number(v.slice(3, 5)), 0, 0);
+  if (x - base > 12 * ORA) x.setDate(x.getDate() - 1); else if (base - x > 12 * ORA) x.setDate(x.getDate() + 1);
+  return x;
+}
+// nuove ore del fermo: dopo la lettura precedente della pressa, prima della successiva, la ripartenza dopo il fermo e mai dopo adesso
+function nuoveOreFermo(l, togliRip) {
+  if ($('cor-fermo-blocco').hidden) return {};
+  const lp = letture.filter(x => x.pressa === l.pressa), k = lp.indexOf(l), prima = lp[k - 1], dopo = lp[k + 1], adesso = new Date();
+  const dalle = !$('cor-dalle-campo').hidden && $('cor-dalle').value ? oraVicina($('cor-dalle').value, new Date(l.ora)) : new Date(l.ora);
+  const alle = l.ripartita_alle && !togliRip && $('cor-alle').value ? oraVicina($('cor-alle').value, new Date(l.ripartita_alle)) : null;
+  if (prima && dalle < new Date(prima.ora)) return { errore: "Prima della lettura precedente (" + oraIt(new Date(prima.ora)) + ") non si può." };
+  if (dopo && dalle > new Date(dopo.ora)) return { errore: 'Dopo la lettura successiva (' + oraIt(new Date(dopo.ora)) + ') non si può.' };
+  if (dalle > adesso || (alle && alle > adesso)) return { errore: 'Più avanti di adesso non si può.' };
+  if (alle && alle <= dalle) return { errore: 'La ripartenza deve essere dopo il fermo.' };
+  if (alle && dopo && alle > new Date(dopo.ora)) return { errore: 'Ripartita dopo la lettura successiva (' + oraIt(new Date(dopo.ora)) + ')? Correggi l\'ora.' };
+  const campi = {};
+  if (dalle.getTime() !== new Date(l.ora).getTime()) campi.ora = dalle.toISOString();
+  if (alle && alle.getTime() !== new Date(l.ripartita_alle).getTime()) campi.ripartita_alle = alle.toISOString();
+  return { campi, da: new Date(Math.min(dalle, new Date(l.ora))) };
+}
+// dopo un fermo cambiato si rifanno ore lavorate e ferme delle letture dopo della stessa pressa (quelle che si possono ancora cambiare,
+// non scritte a mano). Le altre tengono le ore salvate; turno e commessa nello storico si ricalcolano comunque dai fermi.
+function ricontaDopo(p, da) {
+  const adesso = Date.now();
+  letture.forEach((x, i) => {
+    if (x.pressa !== p || eSolo(x) || x.ore_manuali || new Date(x.ora) < da || !mie(x)) return;
+    if (!accesso.admin && !(x.turno_fine_ms && adesso <= x.turno_fine_ms + 15 * 60000)) return;
+    const t = oreTurno(p, new Date(x.ora), letturaPrima(i));
+    if (Math.abs(t.lavorate - oreDi(x)) > 1e-6 || Math.abs(t.ferme - (x.ore_fermo || 0)) > 1e-6) aggiornaLettura(x.id, { ore: t.lavorate, ore_fermo: t.ferme });
+  });
+}
 $('conferma-correggi').onclick = () => {
   const l = letture.find(x => x.id === corLettura);
   if (!l) { dialogoCorreggi.close(); return; }      // eliminata nel frattempo da qualcun altro
   const togliRip = $('cor-rip-togli').getAttribute('aria-pressed') === 'true';
-  if (!mie(l)) {                                   // lettura di un collega: si può togliere solo la ripartenza
+  const of = nuoveOreFermo(l, togliRip);
+  if (of.errore) { $('avviso-correggi').textContent = of.errore; return; }
+  if (!mie(l)) {                                   // lettura di un collega: si può cambiare o togliere solo la ripartenza
     if (togliRip) aggiornaLettura(l.id, { ripartita_alle: null });
+    else if (of.campi && of.campi.ripartita_alle) aggiornaLettura(l.id, { ripartita_alle: of.campi.ripartita_alle });
   } else {
     const t = $('cor-cicli').value.trim(), cicli = Number(t), ore = leggiOre($('cor-ore').value);
     if (!t || !Number.isInteger(cicli) || cicli < 0) { $('avviso-correggi').textContent = 'Scrivi il numero dei cicli totali.'; return; }
@@ -1983,8 +2190,11 @@ $('conferma-correggi').onclick = () => {
     campi.articolo = articolo || null;
     campi.commessa = cifre ? 'P' + cifre : null;
     if (togliRip) campi.ripartita_alle = null;     // la pressa torna ferma
+    Object.assign(campi, of.campi);
     aggiornaLettura(l.id, campi);
+    if (campi.ora) letture.sort((a, b) => a.ora < b.ora ? -1 : a.ora > b.ora ? 1 : 0);
   }
+  if (of.da || togliRip) ricontaDopo(l.pressa, of.da || new Date(l.ora));
   aggiornaFerme();
   dialogoCorreggi.close();
   disegnaElencoPresse(); disegnaRiepilogo();
@@ -2013,14 +2223,14 @@ $('svuota').onclick = () => {
 $('esporta').onclick = async () => {
   const cella = v => /[";\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
   const righe = [['Data', 'Ora', 'Pressa', 'Articolo', 'Commessa', 'Cicli totali', "Cicli dall'ultima lettura",
-    "Durata dall'ultima lettura reale", "Durata dall'ultima lettura effettiva", 'Durata commessa reale', 'Durata commessa effettiva',
-    'Ore turno', 'Ore a mano', 'Ripartenza', 'Evento']];
+    "Durata dall'ultima lettura reale", "Durata dall'ultima lettura effettiva", 'Ore lavorate turno', 'Ore ferme turno', 'Ore a mano',
+    'Ore lavorate commessa', 'Ore ferme commessa', 'Ripartenza', 'Evento']];
   letture.forEach((l, i) => {
     const d = new Date(l.ora), delta = cicliDaUltima(i), dur = durateLettura(i);
     righe.push([dataIt(d), oraIt(d), String(l.pressa), l.articolo || '', l.commessa || '', eSolo(l) ? '' : String(l.cicli), delta != null ? String(delta) : '',
       dur.ultima ? oreDecimali(dur.ultima.reale) : '', dur.ultima ? oreDecimali(dur.ultima.effettiva) : '',
-      eSolo(l) ? '' : oreDecimali(dur.commessa.reale), eSolo(l) ? '' : oreDecimali(dur.commessa.effettiva),
-      eSolo(l) ? '' : oreDecimali(oreDi(l)), l.ore_manuali ? 'sì' : '', l.ripartenza ? oraIt(new Date(l.ripartenza)) : '', testoEvento(l)]);
+      eSolo(l) ? '' : oreDecimali(dur.turno.lavorate), eSolo(l) ? '' : oreDecimali(dur.turno.ferme), l.ore_manuali ? 'sì' : '',
+      eSolo(l) ? '' : oreDecimali(dur.commessa.effettiva), eSolo(l) ? '' : oreDecimali(dur.commessa.ferme), l.ripartenza ? oraIt(new Date(l.ripartenza)) : '', testoEvento(l)]);
   });
   // punto e virgola e BOM: così Excel e Numbers in italiano aprono le colonne giuste e le lettere accentate
   const testo = '﻿' + righe.map(r => r.map(cella).join(';')).join('\r\n');
@@ -2039,7 +2249,7 @@ $('esporta').onclick = async () => {
 {
   const s = document.createElement('div');
   s.className = PROVA ? 'striscia-prova' : 'striscia-beta';
-  s.textContent = PROVA ? 'SVILUPPATORE · v' + document.querySelector('meta[name="versione"]').content.slice(8, 12) : 'BETA 2';   // ora e minuti della versione: si vede subito se il telefono è aggiornato
+  s.textContent = PROVA ? 'SVILUPPATORE · v' + document.querySelector('meta[name="versione"]').content.slice(8, 12) : 'BETA 3';   // ora e minuti della versione: si vede subito se il telefono è aggiornato
   document.querySelector('.pagina').prepend(s);
   if (PROVA) document.title = 'NIS Sviluppatore';
 }
@@ -2055,6 +2265,7 @@ function datiArrivati(nuove) {
   if (!$('vista-leggi').hidden && !trascinato) { disegnaElencoPresse(); disegnaRiepilogo(); }
   if (!$('vista-storico').hidden) disegnaStorico();
   if (!$('vista-home').hidden) disegnaHome();
+  if (!$('vista-produzione').hidden) disegnaProduzione();
 }
 async function preparaDb() {
   if (!db) db = CONFIG_PRONTA ? await dbFirebase(FIREBASE) : dbFinto();
@@ -2066,6 +2277,7 @@ async function avviaDati() {
   db.usa(repartoDi(accesso.codice));
   db.ascolta(datiArrivati, () => { $('msg').textContent = 'Il database non risponde: le letture si salvano sul telefono e partono appena torna la rete.'; });
   db.ascoltaGruppo(gruppoArrivato);
+  db.ascoltaPresse(presseArrivate);
   proponiImportazione();
 }
 // persone, richieste e ospiti dal database: si chiude l'attesa se un collega ha risposto, si ridisegna
@@ -2120,6 +2332,7 @@ function aggiornaVista() {
   if (!$('vista-leggi').hidden) { disegnaElencoPresse(); disegnaRiepilogo(); }
   if (!$('vista-storico').hidden) disegnaStorico();
   if (!$('vista-home').hidden) disegnaHome();
+  if (!$('vista-produzione').hidden) disegnaProduzione();
 }
 setInterval(aggiornaVista, 30000);                 // il turno finisce anche con l'app aperta
 // passo 1: il codice. Se esiste si passa alla scelta del nome (i nomi sono quelli della rotazione dei turni)
