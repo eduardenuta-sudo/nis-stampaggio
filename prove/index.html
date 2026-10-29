@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029202515">
-<meta name="aggiornamento" content="91">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029203719">
+<meta name="aggiornamento" content="92">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -2285,16 +2285,25 @@ function cicliOrari(p) {
   };
   return media(fine) || media(-1);
 }
-// più bassa dell'ultima lettura, oppure molti più cicli di quelli possibili nel tempo passato (media × 1,5, più mezz'ora di margine)
+const MAX_CICLI_TURNO = p => p === 74 ? 850 : 500;   // cicli al massimo in un turno di 8 ore: la 74 ha uno stampo che arriva a 800
+// più bassa dell'ultima lettura, oltre il tetto di cicli per turno, oppure molti più cicli di quelli possibili nel tempo passato (media × 1,5, più mezz'ora di margine)
 function controllaLettura(p, cicli, adesso, ripartenza) {
   const u = ultimaReale(p);
-  if (!u || eFine(u)) return null;                // dopo Fine commessa il contatore riparte da zero
+  if (!u) return null;
   const n = x => Math.round(x).toLocaleString('it-IT');
+  // tetto assoluto: al massimo MAX_CICLI_TURNO cicli ogni 8 ore di produzione (in proporzione alle ore, mai meno di un'ora)
+  const tetto = (fatti, dal) => {
+    const ore = Math.max(1, oreProduzione(dal, fineConto(adesso))), max = MAX_CICLI_TURNO(p) * ore / 8;
+    return fatti > max ? { testo: 'Troppi cicli: ' + n(fatti) + ' in ' + formatoOre(ore) + ' di produzione, al massimo ' + n(max) + ' (' + MAX_CICLI_TURNO(p) + ' ogni 8 ore). Correggi il numero, oppure tocca Confermo se è giusto.' } : null;
+  };
+  if (eFine(u)) return tetto(cicli, fineCambio(u, adesso));      // dopo Fine commessa il contatore riparte da zero: si conta dalla partenza della commessa nuova
   if (cicli < u.cicli) return { bassa: true, testo: 'Più bassa dell\'ultima lettura (' + n(u.cicli) + '). Correggi il numero, oppure tocca Confermo se è giusta (contatore ripartito).' };
-  const media = cicliOrari(p);
-  if (!media) return null;
   let da = ripartenza || (eFermo(u) ? turnoDi(adesso).inizio : new Date(u.ora));   // dopo un fermo si conta dalla ripartenza
   if (da < new Date(u.ora)) da = new Date(u.ora);
+  const troppi = tetto(cicli - u.cicli, da);
+  if (troppi) return troppi;
+  const media = cicliOrari(p);
+  if (!media) return null;
   const attesi = media * oreProduzione(da, adesso);
   if (cicli - u.cicli > attesi * 1.5 + media / 2)
     return { testo: 'Salto troppo grande: ' + n(cicli - u.cicli) + ' cicli dall\'ultima lettura, di solito circa ' + n(attesi) + ' in questo tempo. Correggi il numero, oppure tocca Confermo se è giusta.' };
