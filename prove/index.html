@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029193249">
-<meta name="aggiornamento" content="87">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261029195732">
+<meta name="aggiornamento" content="88">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1443,8 +1443,8 @@ function disegnaStrisce(c, p) {
   if (att) metti(com, '', 0, 'Attesa ok qualità: la commessa parte con l\'ok.', true);
   else if (!k.d) metti(com, '', 0, 'Tocca la pressa e scrivi i dati della commessa.', true);
   else {
-    const ol = k.oltranza, piena = k.pezzi >= k.d.quantita;
-    const pillola = ol ? '<span class="oltr' + (piena ? ' pieno' : '') + '" aria-hidden="true">✓</span><b>Stampa ad oltranza attivata</b><br>' : '';
+    const ol = k.inOltranza, piena = k.pezzi >= k.d.quantita;
+    const pillola = ol ? '<span class="oltr' + (piena ? ' pieno' : '') + '" aria-hidden="true">✓</span><b>Stampa ad oltranza attivata</b>' + (k.oltrAuto ? ' · fino a Fine commessa' : '') + '<br>' : '';
     metti(com, '<b>' + (k.stimati ? '~' : '') + nIt(k.pezzi) + '</b> / ' + nIt(k.d.quantita) + ' pezzi' + (ol ? ' · <b>' + nIt(Math.floor(k.pct)) + '%</b>' : ''), Math.min(100, k.pct),
       pillola + (k.cicliMancano ? 'Mancano <b>' + nIt(Math.max(0, k.d.quantita - k.pezzi)) + '</b> pezzi · ' + (ol ? 'poi si prosegue a oltranza' : 'fine stimata <b>' + testoFine(k.fine) + '</b>')
         : ol ? 'Oltre la quantità: <b>+' + nIt(k.pezzi - k.d.quantita) + '</b> pezzi' : '<b>Commessa finita</b>'));
@@ -1462,7 +1462,7 @@ function disegnaStrisce(c, p) {
     const adesso = new Date(), t = turnoDi(adesso), dopo = turnoDi(t.fine);
     const prima = !!(k.d && k.cicliMancano && k.fineMescola && k.fine && k.fineMescola < k.fine);   // finisce prima della commessa
     const nelTurno = k.fineMescola && k.fineMescola < t.fine, nelDopo = k.fineMescola && !nelTurno && k.fineMescola < dopo.fine;
-    const serve = k.oltranza || !k.cicliMancano || k.rim <= 0 || prima;   // ad oltranza, o raggiunta la quantità ma non ancora chiusa con Fine commessa: il cassone serve ancora   // se la commessa finisce prima della mescola, nessun allarme: resta verde anche se la mescola finisce nel turno
+    const serve = k.inOltranza || !k.cicliMancano || k.rim <= 0 || prima;   // ad oltranza, o raggiunta la quantità ma non ancora chiusa con Fine commessa: il cassone serve ancora   // se la commessa finisce prima della mescola, nessun allarme: resta verde anche se la mescola finisce nel turno
     mes.classList.toggle('rosso', serve && (k.rim <= 0 || !!nelTurno));
     mes.classList.toggle('arancio', serve && k.rim > 0 && !!nelDopo);
     metti(mes, '<b>' + (k.rim > 0 && k.rim < i.kg ? '~' : '') + nIt(k.rim, 1) + '</b> kg a bordo', i.kg > 0 ? (1 - k.rim / i.kg) * 100 : 100,   // la barra si riempie col consumo: piena = cassone vuoto
@@ -1471,7 +1471,7 @@ function disegnaStrisce(c, p) {
       : serve && nelTurno ? '<b>Finisce in questo turno</b>, ~' + oraIt(k.fineMescola) + '. Serve un cassone.'
       : serve && nelDopo ? '<b>Finisce nel turno dopo</b>, ' + testoFine(k.fineMescola) + '. Serve un cassone.'
       : prima ? '<b>Finisce prima della commessa:</b> ' + testoFine(k.fineMescola) + '. Serve un cassone.'
-      : k.oltranza ? 'Ad oltranza: la mescola finisce <b>' + testoFine(k.fineMescola) + '</b>'
+      : k.inOltranza ? 'Ad oltranza: la mescola finisce <b>' + testoFine(k.fineMescola) + '</b>'
       : k.cicliMancano ? 'Basta fino a fine commessa · finisce <b>' + testoFine(k.fineMescola) + '</b>' : 'Finisce <b>' + testoFine(k.fineMescola) + '</b>');
   }
 }
@@ -1579,7 +1579,10 @@ function contiPressa(p) {
     k.ritmo = ritmoCommessa(p, d.ciclo);
     est = avvioInAttesa(p) ? { cicli: 0, stimati: false } : cicliStimati(p, adesso, k.ritmo.cicliOra);
     k.cicli = Math.floor(est.cicli); k.stimati = est.stimati; k.pezzi = k.cicli * d.vani;
-    k.oltranza = !!d.oltranza; k.pct = k.pezzi / d.quantita * 100;
+    k.pct = k.pezzi / d.quantita * 100;
+    k.oltranza = !!d.oltranza;                                  // spuntata prima
+    k.oltrAuto = !k.oltranza && k.pezzi >= d.quantita;           // raggiunta la quantità: si prosegue ad oltranza da soli, finché non si fa Fine commessa
+    k.inOltranza = k.oltranza || k.oltrAuto;
     k.cicliMancano = Math.max(0, Math.ceil((d.quantita - k.pezzi) / d.vani));
     k.fine = k.cicliMancano ? fineStimata(k.cicliMancano, k.ritmo.cicliOra, adesso) : adesso;
     if (d.stampata) k.kgServono = k.cicliMancano * d.stampata / 1000;
@@ -1597,8 +1600,8 @@ function disegnaDatiRighe() {
   else {
     righe.push(['Cicli della commessa', (k.stimati ? '~' : '') + nIt(k.cicli)], ['Pezzi stampati', (k.stimati ? '~' : '') + nIt(k.pezzi) + ' su ' + nIt(d.quantita) + ' (' + nIt(Math.min(100, k.pezzi / d.quantita * 100)) + '%)'], ['Cicli che mancano', nIt(k.cicliMancano)]);
     righe.push(['Ritmo usato', k.ritmo.cicliOra ? nIt(k.ritmo.cicliOra, 1) + ' cicli/h · ' + (k.ritmo.veri ? "ultimo turno intero" : 'tempo ciclo ' + nIt(d.ciclo, 1) + ' s') : '—']);
-    righe.push(['Fine commessa', k.cicliMancano ? testoFine(k.fine) : k.oltranza ? 'raggiunta: si prosegue a oltranza' : 'finita']);
-    if (k.oltranza) righe.push(['Stampa ad oltranza', k.pezzi > d.quantita ? 'attiva · +' + nIt(k.pezzi - d.quantita) + ' pezzi (' + nIt(Math.floor(k.pct)) + '%)' : 'attivata (' + nIt(Math.floor(k.pct)) + '%)']);
+    righe.push(['Fine commessa', k.cicliMancano ? testoFine(k.fine) : 'quantità raggiunta: si prosegue ad oltranza']);
+    if (k.inOltranza) righe.push(['Stampa ad oltranza', (k.oltrAuto ? 'automatica, fino a Fine commessa · ' : '') + (k.pezzi > d.quantita ? 'attiva · +' + nIt(k.pezzi - d.quantita) + ' pezzi (' + nIt(Math.floor(k.pct)) + '%)' : 'attivata (' + nIt(Math.floor(k.pct)) + '%)')]);
     if (d.stampata) righe.push(['Mescola ancora necessaria', '~' + nIt(k.kgServono, 1) + ' kg']);
   }
   if (k.rim != null) {
