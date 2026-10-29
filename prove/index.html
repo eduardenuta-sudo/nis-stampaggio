@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029101058">
+<meta name="versione" content="20261029102524">
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -885,6 +885,12 @@ async function dbFirebase(cfg) {
     togliRichiesta(id) { return F.deleteDoc(F.doc(fs, 'reparti', rep, 'richieste', id)); },
     diventaOspite(nome, sostituisce, richiesta) { return F.setDoc(F.doc(fs, 'reparti', rep, 'ospiti', uid), { nome, sostituisce, richiesta }); },
     fineOspite(uidOspite) { return F.deleteDoc(F.doc(fs, 'reparti', rep, 'ospiti', uidOspite)); },
+    // elenco presse comune al reparto; il secondo valore dice se arriva dal server (non solo dalla copia sul telefono)
+    ascoltaPresse(cb) {
+      return F.onSnapshot(F.collection(fs, 'reparti', rep, 'presse'), { includeMetadataChanges: true }, s => cb(s.docs.map(d => d.data()), !s.metadata.fromCache), () => {});   // senza permesso resta l'elenco del telefono
+    },
+    aggiungiPressa(d) { return F.setDoc(F.doc(fs, 'reparti', rep, 'presse', String(d.pressa)), { ...d, uid }); },
+    togliPressa(p) { return F.deleteDoc(F.doc(fs, 'reparti', rep, 'presse', String(p))); },
     ascolta(cb, errore) {
       const da = new Date(Date.now() - GIORNI_LETTURE * 864e5).toISOString();
       return F.onSnapshot(F.query(coll(), F.where('ora', '>=', da), F.orderBy('ora')), s => cb(s.docs.map(d => ({ ...d.data(), id: d.id }))), errore);
@@ -925,7 +931,9 @@ function dbFinto() {
     setTimeout(() => gruppo({ persone: { ...(r.persone || {}) }, richieste: (r.richieste || []).map(x => ({ ...x })),
       ospiti: Object.entries(r.ospiti || {}).map(([u, o]) => ({ ...o, uid: u })) }), 0);
   };
-  const cambiaRep = f => { const tutti = reparti(); f(tutti[rep]); salva(K + 'reparti', tutti); avvisaGruppo(); };
+  const cambiaRep = f => { const tutti = reparti(); f(tutti[rep]); salva(K + 'reparti', tutti); avvisaGruppo(); avvisaPresse(); };
+  let presseCb = null;
+  const avvisaPresse = () => { if (presseCb) setTimeout(() => presseCb(Object.values((reparti()[rep] || {}).presse || {}).map(x => ({ ...x })), true), 0); };
   return {
     uid,
     async entra(codice) {
@@ -953,6 +961,12 @@ function dbFinto() {
     togliRichiesta(id) { cambiaRep(r => { r.richieste = (r.richieste || []).filter(x => x.id !== id); }); return Promise.resolve(); },
     diventaOspite(nome, sostituisce, richiesta) { cambiaRep(r => { r.ospiti = { ...(r.ospiti || {}), [uid]: { nome, sostituisce, richiesta } }; }); return Promise.resolve(); },
     fineOspite(u) { cambiaRep(r => { const o = { ...(r.ospiti || {}) }; delete o[u]; r.ospiti = o; }); return Promise.resolve(); },
+    ascoltaPresse(cb) { presseCb = cb; avvisaPresse(); },
+    aggiungiPressa(d) {
+      if (((reparti()[rep] || {}).presse || {})[d.pressa]) return vietato();   // come le regole: un numero si crea una volta sola
+      cambiaRep(r => { r.presse = { ...(r.presse || {}), [d.pressa]: { ...d, uid } }; }); return Promise.resolve();
+    },
+    togliPressa(p) { cambiaRep(r => { const x = { ...(r.presse || {}) }; delete x[p]; r.presse = x; }); return Promise.resolve(); },
     ascolta(cb) { ascoltatore = cb; avvisa(); },
     nuovoId() { return 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); },
     scrivi(l) {
@@ -1344,12 +1358,35 @@ function disegnaElencoPresse() {
   $('avanz-seg').innerHTML = inF.map(p => '<i' + (lette[p] ? ' class="letta"' : '') + '></i>').join('');
 }
 
-// aggiungi e togli presse: le letture restano sempre nello storico
+// aggiungi e togli presse: le letture restano sempre nello storico.
+// L'elenco è comune a tutto il reparto (database): chi aggiunge o toglie una pressa la cambia anche per i colleghi.
+// Sul telefono resta una copia, per partire subito anche senza rete.
 // articolo e commessa scritti aggiungendo la pressa: valgono fino alla prima lettura, che li salva con sé
-const CHIAVE_COMMESSE = PREF + 'commesse-nuove';
-let commesseNuove = {};
-try { commesseNuove = JSON.parse(localStorage.getItem(CHIAVE_COMMESSE) || '{}'); } catch (e) {}
+let infoPresse = leggiLocale(PREF + 'info-presse', {});   // numero → { articolo, commessa, ora }
+function commessaNuova(p) {
+  const n = infoPresse[p];
+  if (!n || !(n.articolo || n.commessa)) return null;
+  return letture.some(l => l.pressa === p && !eSolo(l) && l.ora >= n.ora) ? null : n;
+}
 function salvaPresse() { PRESSE.sort((a, b) => a - b); salva(CHIAVE_PRESSE, PRESSE); aggiornaFerme(); }
+// La prima volta che il reparto non ha ancora l'elenco comune, ogni telefono ci mette le sue presse (una volta sola)
+function presseArrivate(elenco, dalServer) {
+  const CHIAVE_FATTO = PREF + 'presse-condivise';
+  if (!elenco.length && !leggiLocale(CHIAVE_FATTO, false)) {
+    if (!dalServer) return;                        // copia sul telefono ancora vuota: si aspetta il server
+    salva(CHIAVE_FATTO, true);
+    const ora = new Date().toISOString();
+    PRESSE.forEach(p => db.aggiungiPressa({ pressa: p, ora, nome: accesso.nome }).catch(() => {}));   // se un collega l'ha già messa, va bene così
+    return;
+  }
+  if (dalServer) salva(CHIAVE_FATTO, true);
+  PRESSE = elenco.map(x => Number(x.pressa));
+  infoPresse = {};
+  elenco.forEach(x => { infoPresse[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '' }; });
+  salvaPresse(); salva(PREF + 'info-presse', infoPresse);
+  if (pressaAperta != null && !PRESSE.includes(pressaAperta)) chiudi();
+  if (!$('vista-leggi').hidden && !trascinato) { disegnaElencoPresse(); disegnaRiepilogo(); }
+}
 $('aggiungi-apri').onclick = () => {
   if (!inTurno()) return;
   const aprire = $('aggiungi-blocco').hidden;
@@ -1365,9 +1402,12 @@ $('aggiungi-ok').onclick = () => {
   const t = $('aggiungi-num').value.trim(), p = Number(t);
   if (!/^\d{1,4}$/.test(t) || !p) { $('avviso-aggiungi').textContent = 'Scrivi il numero della pressa.'; $('aggiungi-num').focus(); return; }
   if (PRESSE.includes(p)) { $('avviso-aggiungi').textContent = 'La pressa ' + p + ' è già nell\'elenco.'; return; }
-  PRESSE.push(p); salvaPresse();
   const articolo = $('aggiungi-articolo').value.trim(), cifre = $('aggiungi-commessa').value.trim().replace(/^P/i, '');
-  if (articolo || cifre) { commesseNuove[p] = { articolo, commessa: cifre ? 'P' + cifre : '' }; salva(CHIAVE_COMMESSE, commesseNuove); }
+  const nuova = { pressa: p, ora: new Date().toISOString(), nome: accesso.nome };
+  if (articolo) nuova.articolo = articolo;
+  if (cifre) nuova.commessa = 'P' + cifre;
+  PRESSE.push(p); infoPresse[p] = { articolo, commessa: nuova.commessa || '', ora: nuova.ora }; salvaPresse();   // si vede subito, il database la passa ai colleghi
+  db.aggiungiPressa(nuova).catch(erroreDati);
   $('aggiungi-blocco').hidden = true; $('aggiungi-apri').setAttribute('aria-expanded', 'false'); $('avviso-aggiungi').textContent = '';
   $('aggiungi-num').blur();
   disegnaElencoPresse();
@@ -1387,8 +1427,8 @@ function togliPressa(p) {
   togliDavvero(p);
 }
 function togliDavvero(p) {
-  if (commesseNuove[p]) { delete commesseNuove[p]; salva(CHIAVE_COMMESSE, commesseNuove); }
-  PRESSE = PRESSE.filter(x => x !== p); salvaPresse();
+  PRESSE = PRESSE.filter(x => x !== p); delete infoPresse[p]; salvaPresse();
+  db.togliPressa(p).catch(erroreDati);
   if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
   disegnaRiepilogo();
   $('msg').textContent = 'Pressa ' + p + ' tolta dall\'elenco. Le sue letture restano nello storico.';
@@ -1576,7 +1616,7 @@ const botRip = () => document.querySelectorAll('#ripartenza [data-rip]');
 function preparaCampi(p) {
   const u = ultimaReale(p), ult = ultimaLettura(p);
   const stessa = u && !eFine(u);                   // dopo "Fine commessa" articolo e commessa ripartono vuoti
-  const nuova = commesseNuove[p];                  // scritti con "Aggiungi pressa": hanno la precedenza
+  const nuova = commessaNuova(p);                  // scritti con "Aggiungi pressa": hanno la precedenza
   $('articolo').value = nuova ? nuova.articolo : stessa && u.articolo || '';
   $('commessa').value = ((nuova ? nuova.commessa : stessa && u.commessa) || '').replace(/^P/i, '');   // nella casella solo le cifre: la P è già stampata
   // già noti: le caselle spariscono per non affollare la tendina, ma i valori si salvano lo stesso con la lettura
@@ -1815,7 +1855,6 @@ function registra() {
     if (ult.nota) lettura.nota = ult.nota;
   }
   nuovaLettura(lettura);                     // con chi l'ha fatta (nome) e il suo codice
-  if (commesseNuove[p]) { delete commesseNuove[p]; salva(CHIAVE_COMMESSE, commesseNuove); }   // ora articolo e commessa stanno nella lettura
   aggiornaFerme();
   chiudi();                                  // la tendina si chiude e la pressa risulta letta
   disegnaRiepilogo();
@@ -2236,6 +2275,7 @@ async function avviaDati() {
   db.usa(repartoDi(accesso.codice));
   db.ascolta(datiArrivati, () => { $('msg').textContent = 'Il database non risponde: le letture si salvano sul telefono e partono appena torna la rete.'; });
   db.ascoltaGruppo(gruppoArrivato);
+  db.ascoltaPresse(presseArrivate);
   proponiImportazione();
 }
 // persone, richieste e ospiti dal database: si chiude l'attesa se un collega ha risposto, si ridisegna
