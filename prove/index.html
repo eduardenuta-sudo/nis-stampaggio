@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261029213431">
-<meta name="aggiornamento" content="95">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030093302">
+<meta name="aggiornamento" content="96">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1460,7 +1460,8 @@ function disegnaStrisce(c, p) {
   mes.classList.remove('rosso', 'arancio');
   c.querySelector('.str-mes-et').textContent = 'Mescola' + (codice ? ' ' + codice : '');
   if (i.kg == null) metti(mes, '', 0, 'Tocca la pressa e scrivi i kg di mescola a bordo.', true);
-  else if (k.rim == null) metti(mes, '<b>' + nIt(i.kg, 1) + '</b> kg a bordo', 0, 'Scrivi anche il peso della stampata per contare quanta ne resta.');
+  else if (k.rim == null) metti(mes, '<b>' + nIt(i.kg, 1) + '</b> kg scritti' + (i.kgOra ? ' ' + quandoBreve(new Date(i.kgOra)) : ''), 0,   // senza i dati della commessa non si sa quanta ne è stata usata da allora
+    k.d ? 'Scrivi anche il peso della stampata per contare quanta ne resta.' : 'Scrivi i dati della commessa per contare quanta ne resta.');
   else {
     // quando finisce la mescola: nel turno in corso = rosso, nel turno dopo = arancione, più avanti = verde (se non basta fino a fine commessa lo dice la scritta)
     const adesso = new Date(), t = turnoDi(adesso), dopo = turnoDi(t.fine);
@@ -1556,19 +1557,23 @@ function datiPressa(p) {
 // - dopo l'ultima lettura: ultima lettura + ritmo × ore di produzione effettive (senza fermi né attese) da allora, cioè una stima in tempo reale
 // - tra due letture: in proporzione alle ore effettive
 // - prima della prima lettura: da zero, dalla partenza della commessa (solo se la pressa ha una lettura dopo, oppure un ok qualità)
+// cicli della commessa a ogni lettura: si sommano i salti, così un contatore ripartito da zero non fa tornare indietro la commessa
+function cicliCommessa(lc) {
+  let tot = 0;
+  return lc.map((l, k) => ({ l, cicli: tot += k && !l.contatore_ripartito ? l.cicli - lc[k - 1].cicli : l.cicli }));
+}
 function cicliStimati(p, quando, ritmo) {
   const inizio = inizioCommessa(p, letture.length, new Date());
   let prima = null, dopo = null;
-  letture.forEach(l => {
-    if (l.pressa !== p || eSolo(l) || eFine(l) || new Date(l.ora) < inizio) return;
-    if (new Date(l.ora) <= quando) prima = l; else if (!dopo) dopo = l;
+  cicliCommessa(letture.filter(l => l.pressa === p && !eSolo(l) && !eFine(l) && new Date(l.ora) >= inizio)).forEach(x => {
+    if (new Date(x.l.ora) <= quando) prima = x; else if (!dopo) dopo = x;
   });
   const conOk = letture.some(l => l.pressa === p && l.ok_qualita && new Date(l.ora).getTime() === inizio.getTime());
   if (!prima && !dopo && !conOk) return { cicli: 0, stimati: false };
-  const base = prima ? prima.cicli : 0, da = prima ? new Date(prima.ora) : inizio;
+  const base = prima ? prima.cicli : 0, da = prima ? new Date(prima.l.ora) : inizio;
   if (quando <= da) return { cicli: base, stimati: false };
   if (dopo) {
-    const tot = durate(p, da, new Date(dopo.ora)).effettiva, h = durate(p, da, quando).effettiva;
+    const tot = durate(p, da, new Date(dopo.l.ora)).effettiva, h = durate(p, da, quando).effettiva;
     return { cicli: base + (tot > 0 ? Math.max(0, dopo.cicli - base) * Math.min(1, h / tot) : 0), stimati: false };
   }
   const ore = ritmo > 0 ? durate(p, da, quando).effettiva : 0;
@@ -1591,6 +1596,21 @@ function ritmoCommessa(p, ciclo) {
   return { cicliOra: veri || teorico, veri: !!veri };
 }
 // quando finiscono `cicli` cicli al ritmo dato: si contano solo le ore di produzione (niente sabato e domenica)
+// cicli fatti dalla pressa da `a` fino all'inizio della commessa in corso (mescola caricata durante la commessa prima e rimasta a bordo):
+// il tratto della lettura a cavallo di `a` in proporzione alle ore effettive, poi i salti fino alla Fine commessa
+function cicliPrimaDellaCommessa(p, a) {
+  const inizio = inizioCommessa(p, letture.length, new Date()), lp = letture.filter(l => l.pressa === p && !eSolo(l));
+  let cicli = 0;
+  lp.forEach((l, k) => {
+    const prec = lp[k - 1], ora = new Date(l.ora);
+    if (!prec || ora <= a || ora > inizio) return;
+    const salto = Math.max(0, eFine(prec) || l.contatore_ripartito ? l.cicli : l.cicli - prec.cicli), da = new Date(prec.ora);
+    if (da >= a) { cicli += salto; return; }
+    const tot = durate(p, da, ora).effettiva;
+    cicli += tot > 0 ? salto * durate(p, a, ora).effettiva / tot : 0;
+  });
+  return cicli;
+}
 function fineStimata(cicli, cicliOra, da) {
   if (!(cicliOra > 0)) return null;
   let ore = cicli / cicliOra, t = new Date(da);
@@ -1625,7 +1645,9 @@ function contiPressa(p) {
     k.fine = k.cicliMancano ? fineStimata(k.cicliMancano, k.ritmo.cicliOra, adesso) : adesso;
     if (d.stampata) k.kgServono = k.cicliMancano * d.stampata / 1000;
     if (i.kg != null && i.kgOra && d.stampata) {
-      const usati = Math.max(0, est.cicli - cicliStimati(p, new Date(i.kgOra), k.ritmo.cicliOra).cicli) * d.stampata / 1000;
+      const caricata = new Date(i.kgOra), inizio = inizioCommessa(p, letture.length, adesso);
+      const cicliDalCarico = caricata < inizio ? cicliPrimaDellaCommessa(p, caricata) + est.cicli : est.cicli - cicliStimati(p, caricata, k.ritmo.cicliOra).cicli;
+      const usati = Math.max(0, cicliDalCarico) * d.stampata / 1000;   // la stampata della commessa vecchia non si sa più: si usa quella di adesso
       k.rim = Math.max(0, i.kg - usati);
       k.fineMescola = k.rim > 0 ? fineStimata(k.rim * 1000 / d.stampata, k.ritmo.cicliOra, adesso) : adesso;
       // "chiudo la commessa a fine mescola": la fine della commessa è la fine della mescola
@@ -1644,7 +1666,7 @@ function disegnaDatiRighe() {
     righe.push(['Fine commessa', (k.chiudiMescola ? 'a fine mescola · ' : '') + (k.cicliMancano || k.chiudiMescola ? testoFine(k.fine) : 'quantità raggiunta: si prosegue ad oltranza')]);
     if (k.chiudiMescola) righe.push(['Pezzi finali stimati', '~' + nIt(k.pezziFinali)]);
     if (k.inOltranza) righe.push(['Stampa ad oltranza', (k.oltrAuto ? 'automatica, fino a Fine commessa · ' : '') + (k.pezzi > d.quantita ? 'attiva · +' + nIt(k.pezzi - d.quantita) + ' pezzi (' + nIt(Math.floor(k.pct)) + '%)' : 'attivata (' + nIt(Math.floor(k.pct)) + '%)')]);
-    if (d.stampata) righe.push(['Mescola ancora necessaria', '~' + nIt(k.kgServono, 1) + ' kg']);
+    if (d.stampata && k.cicliMancano && !k.chiudiMescola) righe.push(['Mescola ancora necessaria', '~' + nIt(k.kgServono, 1) + ' kg']);   // a fine mescola o ad oltranza non c'è un totale da chiedere
   }
   if (k.rim != null) {
     righe.push(['Mescola a bordo adesso', '~' + nIt(k.rim, 1) + ' kg' + (i.mescola ? ' (' + esc(i.mescola) + ')' : '')]);
