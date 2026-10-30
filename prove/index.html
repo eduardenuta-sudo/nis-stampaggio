@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030172151">
-<meta name="aggiornamento" content="127">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030173839">
+<meta name="aggiornamento" content="128">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -347,6 +347,12 @@ if (/prove/.test(location.pathname)) {
   .pressa-prod .str-testa { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
   .pressa-prod .str-val { color: #fff; font-size: 1rem; letter-spacing: .02em; text-transform: none; text-align: right; }
   .pressa-prod .barra { height: 16px; margin-top: 5px; border-radius: 9px; background: rgba(255,255,255,.12); overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,.45); }
+  .pressa-prod .str-com .barra { position: relative; height: 24px; border-radius: 12px; }
+  .pressa-prod .str-com .barra i { border-radius: 12px; }
+  .pressa-prod .barra-pct { position: absolute; left: 12px; top: 0; bottom: 0; display: flex; align-items: center; font-size: .9rem; font-weight: 700; letter-spacing: .02em; color: #1a2200; }
+  .pressa-prod .barra-pct.fuori { color: #fff; }   /* poca barra riempita: la percentuale sta sul fondo scuro */
+  .pressa-prod .nota-riga { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .pressa-prod .nota-riga .mancano { text-align: right; }
   .pressa-prod .barra i { display: block; height: 100%; border-radius: 9px; background: linear-gradient(#e6ee5a, #b4c20a 55%, #8da006); transition: width .6s ease; }
   .pressa-prod .str-mes { display: flex; gap: 10px; align-items: center; }
   .pressa-prod .str-mes[hidden] { display: none; }
@@ -1563,7 +1569,7 @@ function classiPressa(p, ferma, motivo, att, risc) {
 }
 // le due strisce sotto la pressa: avanzamento della commessa e mescola a bordo (col cassone davanti)
 const striscePronte = () =>
-  '<div class="str str-com"><div class="str-testa"><span class="str-com-et">Commessa</span><span class="str-val"></span></div><div class="barra"><i style="width:0%"></i></div><div class="str-nota"></div></div>' +
+  '<div class="str str-com"><div class="str-testa"><span class="str-com-et">Commessa</span><span class="str-val"></span></div><div class="barra"><i style="width:0%"></i><span class="barra-pct"></span></div><div class="str-nota"></div></div>' +
   '<div class="str str-mes"><button type="button" class="apri-mescola" aria-label="Mescola a bordo pressa"><svg class="ico-cassone" viewBox="0 0 160 130" aria-hidden="true"><use href="#cassone"/><g transform="rotate(1.5 78 84)"><text class="cas-cod" x="79" y="104" text-anchor="middle" font-family="Barlow Condensed, Barlow, Arial Narrow, sans-serif" font-weight="700" font-size="13" letter-spacing=".6" fill="#10151f"></text></g></svg></button>' +
   '<div class="str-corpo"><div class="str-testa"><span class="str-mes-et">Mescola</span><span class="str-val"></span></div><div class="barra"><i style="width:0%"></i></div><div class="str-nota"></div></div></div>';
 function disegnaStrisce(c, p) {
@@ -1580,6 +1586,7 @@ function disegnaStrisce(c, p) {
   mes.hidden = !!risc;                                 // in riscaldamento la mescola non serve ancora
   com.classList.remove('str-risc', 'str-calda');
   c.querySelector('.str-com-et').textContent = risc ? 'Riscaldamento' : 'Commessa';
+  const bp = com.querySelector('.barra-pct'); bp.textContent = '';
   if (risc) {
     const ore = oreRisc(p), fatto = (new Date() - risc) / ORA, calda = fatto >= ore, pronta = new Date(risc.getTime() + ore * ORA), ok = infoPresse[p].riscOk;
     com.classList.add(calda ? 'str-calda' : 'str-risc');
@@ -1594,8 +1601,15 @@ function disegnaStrisce(c, p) {
     const ol = k.inOltranza, piena = k.pezzi >= k.d.quantita;
     const pillola = ol ? '<span class="oltr' + (piena ? ' pieno' : '') + '" aria-hidden="true">✓</span><b>Stampa ad oltranza attivata</b>' + (k.oltrAuto ? ' · fino a Fine commessa' : '') + '<br>' : '';
     const chiude = k.chiudiMescola ? 'chiude a fine mescola <b>' + testoFine(k.fine) + '</b> (~' + nIt(k.pezziFinali) + ' pezzi)' : '';
-    metti(com, '<b>' + (k.stimati ? '~' : '') + nIt(k.pezzi) + '</b> / ' + nIt(k.d.quantita) + ' pezzi' + (ol ? ' · <b>' + nIt(Math.floor(k.pct)) + '%</b>' : ''), Math.min(100, k.pct),
-      pillola + (k.cicliMancano ? 'Mancano <b>' + nIt(Math.max(0, k.d.quantita - k.pezzi)) + '</b> pezzi · ' + (ferma ? '<b>pressa ferma dalle ' + fermaDa + '</b>' : chiude || (ol ? 'poi si prosegue a oltranza' : 'fine stimata <b>' + testoFine(k.fine) + '</b>'))
+    // sopra la barra i pezzi fatti, dentro la barra la percentuale; sotto: chi è di turno alla fine, giorno e ora, e a destra quanti ne mancano
+    c.querySelector('.str-com-et').textContent = 'Pezzi fatti';
+    bp.textContent = Math.floor(k.pct) + '%'; bp.classList.toggle('fuori', k.pct < 12);
+    const mancano = Math.max(0, k.d.quantita - k.pezzi), chi = !ferma && !chiude && !ol && k.cicliMancano && k.fine ? diTurno(turnoDi(k.fine)) : null;
+    metti(com, '<b>' + (k.stimati ? '~' : '') + nIt(k.pezzi) + '</b> / ' + nIt(k.d.quantita), Math.min(100, k.pct),
+      pillola + (k.cicliMancano ? (ferma ? 'Mancano <b>' + nIt(mancano) + '</b> pezzi · <b>pressa ferma dalle ' + fermaDa + '</b>'
+          : chiude ? 'Mancano <b>' + nIt(mancano) + '</b> pezzi · ' + chiude
+          : ol ? 'Mancano <b>' + nIt(mancano) + '</b> pezzi · poi si prosegue a oltranza'
+          : '<div class="nota-riga"><span>Finisce' + (chi ? ': <b>' + esc(chi) + '</b>' : '') + '</span><span class="mancano">Mancano <b>' + nIt(mancano) + '</b> pezzi</span></div><div><b>' + testoFine(k.fine) + '</b></div>')
         : ol ? 'Oltre la quantità: <b>+' + nIt(k.pezzi - k.d.quantita) + '</b> pezzi' + (chiude ? ' · ' + chiude : '') : '<b>Commessa finita</b>'));
   }
   // mescola
