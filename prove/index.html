@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030122332">
-<meta name="aggiornamento" content="111">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030122819">
+<meta name="aggiornamento" content="112">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -320,7 +320,8 @@ if (/prove/.test(location.pathname)) {
   /* Produzione: una scheda per pressa, con il disegno della pressa (corpo giallo la 68 e la 69, blu le altre; torre di luci e stampo secondo lo stato) */
   .pressa-prod { position: relative; display: flex; flex-direction: column; gap: 4px; }
   .prod-voce { position: relative; margin-bottom: 14px; }
-  .prod-voce button.togli-sw { bottom: 0; }
+  .prod-voce button.togli-sw { bottom: 0; visibility: hidden; }   /* la scheda è semitrasparente: "Togli" solo quando la si scorre */
+  .prod-voce:has(> .scorre[style*="translateX"]) button.togli-sw { visibility: visible; }
   .sez-prod[hidden] { display: none; }
   .sez-prod > .sep { margin: 4px 2px 12px; }
   .pressa-prod .azioni-prod { display: flex; gap: 10px; position: relative; z-index: 3; }
@@ -2258,9 +2259,23 @@ $('aggiungi-apri').onclick = () => {
   $('aggiungi-campi').hidden = !$('vista-produzione').hidden;   // in Produzione articolo e commessa si scrivono con "Dati commessa" o nella pagina dati
   $('aggiungi-num').value = $('aggiungi-articolo').value = $('aggiungi-commessa').value = '';
   $('aggiungi-scorciatoie').innerHTML = PRESSE_REPARTO.filter(p => !PRESSE.includes(p)).map(p => '<button class="chip" data-scorc="' + p + '">' + p + '</button>').join('');
-  document.querySelectorAll('[data-scorc]').forEach(b => { b.onclick = () => { $('aggiungi-num').value = b.dataset.scorc; $('aggiungi-articolo').focus(); }; });
-  $('aggiungi-num').focus();
+  document.querySelectorAll('[data-scorc]').forEach(b => { b.onclick = () => { $('aggiungi-num').value = b.dataset.scorc; if (!$('aggiungi-campi').hidden) $('aggiungi-articolo').focus({ preventScroll: true }); else $('aggiungi-num').blur(); }; });
+  // il riquadro sale in cima allo schermo (sotto la striscia), così la tastiera non copre scorciatoie e pulsanti
+  const alto = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--alto-striscia')) || 0;
+  scorriA(Math.max(0, window.scrollY + $('aggiungi-apri').getBoundingClientRect().top - alto - 8));
+  $('aggiungi-num').focus({ preventScroll: true });
 };
+// tocco fuori dal riquadro di Aggiungi pressa (per esempio su uno spazio vuoto): si richiude
+function chiudiAggiungi() {
+  if ($('aggiungi-blocco').hidden) return;
+  $('aggiungi-blocco').hidden = true; $('aggiungi-apri').setAttribute('aria-expanded', 'false');
+  annullaConfermaCommessa();
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+}
+document.addEventListener('click', e => {
+  if ($('aggiungi-blocco').hidden || document.querySelector('dialog[open]') || e.target.closest('.aggiungi')) return;
+  chiudiAggiungi();
+});
 // modo: '' da Lettura cicli; 'risc' riscaldamento, 'avvio' avvio macchina (da Produzione)
 function aggiungi(modo, pulsante) {
   const t = $('aggiungi-num').value.trim(), p = Number(t);
