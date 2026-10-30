@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030121308">
-<meta name="aggiornamento" content="109">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030122037">
+<meta name="aggiornamento" content="110">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1369,7 +1369,7 @@ function testoEvento(l, opz) {
     return 'Fermo' + (l.motivo === 'altro' ? (l.nota ? ': ' + l.nota : ' per altro') : m ? ' per ' + m : '') + (opz.totale >= 1 ? ' · ' + testoDurata(opz.totale) : '');
   }
   const ok = l && !eSolo(l) ? letture.filter(x => x.ok_qualita && x.pressa === l.pressa && okAssorbente(x) === l).pop() : null;
-  if (ok) parti.push('Ok qualità alle ' + new Date(ok.ora).toTimeString().slice(0, 5));
+  if (ok) parti.push('Commessa iniziata alle ' + new Date(ok.ora).toTimeString().slice(0, 5) + ' (ok qualità)');   // con l'ok qualità la commessa parte
   if (l && l.ripartenza && !(eFine(l) && l.ripartenza === l.ora)) parti.push('Ripartita alle ' + new Date(l.ripartenza).toTimeString().slice(0, 5));   // chiusa da ferma: non è ripartita
   if (l && l.controllo) parti.push('Lettura di controllo');
   if (l && l.contatore_ripartito) parti.push('Contatore ripartito');
@@ -2859,7 +2859,10 @@ function controllaLettura(p, cicli, adesso, ripartenza) {
     const ore = Math.max(1, oreProduzione(dal, fineConto(adesso))), max = MAX_CICLI_TURNO(p) * ore / 8;
     return fatti > max ? { testo: 'Troppi cicli: ' + n(fatti) + ' in ' + formatoOre(ore) + ' di produzione, al massimo ' + n(max) + ' (' + MAX_CICLI_TURNO(p) + ' ogni 8 ore). Correggi il numero, oppure tocca Confermo se è giusto.' } : null;
   };
-  if (eFine(u)) return tetto(cicli, fineCambio(u, adesso));      // dopo Fine commessa il contatore riparte da zero: si conta dalla partenza della commessa nuova
+  if (eFine(u)) {                                                // dopo Fine commessa il contatore riparte da zero: si conta dall'ok qualità della commessa nuova (se c'è), altrimenti dalla partenza
+    const ok = letture.filter(x => x.pressa === p && x.ok_qualita && x.ora > u.ora).pop();
+    return tetto(cicli, ok ? new Date(ok.ora) : fineCambio(u, adesso));
+  }
   if (cicli < u.cicli) return { bassa: true, testo: 'Più bassa dell\'ultima lettura (' + n(u.cicli) + '). Correggi il numero, oppure tocca Confermo se è giusta (contatore ripartito).' };
   let da = ripartenza || (eFermo(u) ? turnoDi(adesso).inizio : new Date(u.ora));   // dopo un fermo si conta dalla ripartenza
   if (da < new Date(u.ora)) da = new Date(u.ora);
