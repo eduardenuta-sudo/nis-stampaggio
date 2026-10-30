@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030115112">
-<meta name="aggiornamento" content="106">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030115829">
+<meta name="aggiornamento" content="107">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -217,6 +217,11 @@ if (/prove/.test(location.pathname)) {
   dialog { width: min(92vw, 420px); padding: 24px; border: 1px solid var(--line); border-radius: 26px; background: #0a2457; color: var(--ink);
     box-shadow: 0 24px 60px rgba(0,0,0,.6); animation: sale-dialogo .3s cubic-bezier(.16,1,.3,1); }
   dialog::backdrop { background: rgba(3,10,26,.74); }
+  /* finestre con una casella: in alto, con il pulsante accanto alla casella, così la tastiera non lo copre */
+  #dialogo-chiudi, #dialogo-avvio { margin-top: max(14px, env(safe-area-inset-top)); margin-bottom: auto; }
+  .riga-conferma { display: flex; gap: 10px; align-items: stretch; margin-top: 6px; }
+  .riga-conferma > input, .riga-conferma > .prefisso { flex: 1; min-width: 0; }
+  .riga-conferma > .salva { flex: none; padding-left: 18px; padding-right: 18px; }
   @keyframes sale-dialogo { from { opacity: 0; transform: translateY(16px) scale(.97); } }
   .motivi-lista { display: flex; flex-direction: column; gap: 20px; margin: 4px 0 28px; }
   #fine-scelta[hidden], .motivi-lista .chip[hidden], #cor-fermo-blocco[hidden], #cor-fermo-blocco .campo[hidden] { display: none; }
@@ -927,21 +932,29 @@ if (/prove/.test(location.pathname)) {
     <button class="chip" id="avvio-nuova">Commessa nuova</button>
   </div>
   <div id="avvio-blocco-nuova" hidden style="margin-top:16px">
-    <div class="campo"><label for="avvio-commessa">Commessa nuova</label>
-      <div class="prefisso"><span aria-hidden="true">P</span><input class="testo" id="avvio-commessa" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div></div>
-    <button id="avvio-ok" class="salva" style="width:100%;margin-top:16px">Avvia</button>
+    <label for="avvio-commessa">Commessa nuova</label>
+    <div class="riga-conferma"><div class="prefisso"><span aria-hidden="true">P</span><input class="testo" id="avvio-commessa" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div><button id="avvio-ok" class="salva">Avanti</button></div>
   </div>
   <div class="avviso" id="avviso-avvio" role="alert"></div>
   <button id="annulla-avvio" class="annulla">Annulla</button>
+</dialog>
+<!-- tocco su una pressa in Produzione: dati della commessa o lettura dei cicli di quella pressa -->
+<dialog id="dialogo-pressa" aria-labelledby="titolo-menu">
+  <h2 class="titolo-sez" id="titolo-menu">Pressa <span id="menu-pressa"></span></h2>
+  <div class="motivi-lista">
+    <button class="chip" id="menu-dati">Dati commessa</button>
+    <button class="chip" id="menu-lettura">Lettura cicli</button>
+  </div>
+  <button id="annulla-menu" class="annulla">Annulla</button>
 </dialog>
 <!-- chiudi commessa di una pressa ferma: l'ultima lettura (cicli, chi, quando) e Conferma; i cicli si possono scrivere se il contatore segna altro -->
 <dialog id="dialogo-chiudi" aria-labelledby="titolo-chiudi">
   <h2 class="titolo-sez" id="titolo-chiudi">Chiudi commessa · pressa <span id="chiudi-pressa"></span></h2>
   <p style="margin:0 0 10px" id="chiudi-testo"></p>
   <p class="piccolo" style="margin:0 0 14px" id="chiudi-nota"></p>
-  <div class="campo"><label for="chiudi-cicli">Cicli totali di chiusura</label><input class="testo" id="chiudi-cicli" inputmode="numeric" pattern="[0-9]*" maxlength="9" autocomplete="off"></div>
-  <div class="avviso" id="avviso-chiudi" role="alert"></div>
-  <button id="chiudi-ok" class="salva" style="width:100%;margin:6px 0 20px">Conferma</button>
+  <label for="chiudi-cicli">Cicli totali di chiusura</label>
+  <div class="riga-conferma"><input class="testo" id="chiudi-cicli" inputmode="numeric" pattern="[0-9]*" maxlength="9" autocomplete="off"><button id="chiudi-ok" class="salva">Conferma</button></div>
+  <div class="avviso" id="avviso-chiudi" role="alert" style="margin:10px 0 14px"></div>
   <button id="annulla-chiudi" class="annulla">Annulla</button>
 </dialog>
 <!-- commessa già stampata su questa pressa: i pezzi continuano da dove era o ripartono da zero -->
@@ -1430,7 +1443,7 @@ const duePassi = (grande, piccolo) => '<span class="n-grande">' + grande + '</sp
 let ricordoProd = null;                               // la pressa di Produzione che si guardava prima della pagina dati, e a che altezza
 function vai(nome) {
   if (nome === 'riepilogo') nome = 'leggi';
-  if (!$('vista-produzione').hidden && nome === 'dati') {
+  if (!$('vista-produzione').hidden && nome !== 'produzione') {
     const v = document.querySelector('.prod-voce[data-p="' + pressaDati + '"]');
     ricordoProd = { p: pressaDati, y: window.scrollY, alto: v ? v.getBoundingClientRect().top : null };
   }
@@ -1463,7 +1476,7 @@ function vai(nome) {
     const r = ricordoProd, v = document.querySelector('.prod-voce[data-p="' + r.p + '"]');
     ricordoProd = null;
     window.scrollTo(0, v && r.alto != null ? Math.max(0, window.scrollY + v.getBoundingClientRect().top - r.alto) : r.y);
-  } else if (nome !== 'dati') ricordoProd = null;
+  }
 }
 $('vai-altra').onclick = () => vai($('vai-altra').dataset.vai);
 $('indietro').onclick = () => vai(location.hash === '#storico' ? 'leggi' : location.hash === '#dati' ? 'produzione' : 'home');
@@ -1638,7 +1651,7 @@ function disegnaProduzione() {
   // dopo uno scorrimento il tocco non apre niente; con "Togli" scoperto, il tocco lo richiude
   const dopoScorrimento = () => { if (trascinato) return true; if (scorsa) { scorsa.style.transform = ''; scorsa = null; return true; } return false; };
   const tocco = f => b => { b.onclick = e => { e.stopPropagation(); if (!dopoScorrimento()) f(Number(b.dataset.p || b.closest('.prod-voce').dataset.p)); }; };
-  box.querySelectorAll('.apri-dati').forEach(tocco(p => { pressaDati = p; vai('dati'); }));
+  box.querySelectorAll('.apri-dati').forEach(tocco(apriMenuPressa));
   // il cassone porta dritto alla mescola a bordo pressa
   box.querySelectorAll('.apri-mescola').forEach(tocco(p => { pressaDati = p; vai('dati'); $('dati-mescola').scrollIntoView({ block: 'start' }); }));
   box.querySelectorAll('[data-dati]').forEach(tocco(datiCommessa));
@@ -1831,10 +1844,21 @@ function apriDati() {
   if (vecchi) $('dati-nota').textContent = 'I dati di prima erano della commessa ' + i.datiPer + ': scrivi quelli della commessa nuova.';
   $('avviso-dati').textContent = '';
   cambioConfermato = null; $('dati-salva').textContent = 'Salva i dati';
+  datiAperti = statoDati(); uscitaAvvisata = false;
   const gia = ultimaDi(p, c.articolo, i.mescola || '');
   compilatoDa = gia && gia.mescola === (i.mescola || '') ? gia.id : null;   // aprendo la pagina non si ricopia niente sopra i dati che ci sono
   disegnaDatiRighe();
 }
+// pagina dati: un tocco su uno spazio vuoto torna alla Produzione; se ci sono modifiche non salvate, il primo tocco avvisa
+let datiAperti = '', uscitaAvvisata = false;
+const statoDati = () => JSON.stringify([...document.querySelectorAll('#vista-dati input')].map(x => x.type === 'checkbox' ? x.checked : x.value));
+document.addEventListener('click', e => {
+  if ($('vista-dati').hidden || document.querySelector('dialog[open]')) return;
+  const t = e.target;
+  if (!(t === document.body || t === document.documentElement || t === $('vista-dati'))) return;   // solo lo sfondo, non schede, caselle o pulsanti
+  if (statoDati() !== datiAperti && !uscitaAvvisata) { uscitaAvvisata = true; $('avviso-dati').textContent = 'Non hai salvato: tocca «Salva i dati», oppure tocca di nuovo fuori per uscire senza salvare.'; return; }
+  vai('produzione');
+});
 // numero scritto in una casella: vuoto = null; sbagliato = si ferma con un messaggio
 function numeroDa(id, nome, min, max, intero) {
   const t = $(id).value.trim().replace(',', '.');
@@ -2094,6 +2118,7 @@ function domandaRipresa(p, r, cb) {
 $('ripresa-continua').onclick = () => { dialogoRipresa.close(); if (ripresaCb) ripresaCb({ pezzi: ripresaPezzi }); ripresaCb = null; };
 $('ripresa-zero').onclick = () => { dialogoRipresa.close(); if (ripresaCb) ripresaCb({ pezzi: 0 }); ripresaCb = null; };
 $('annulla-ripresa').onclick = () => { dialogoRipresa.close(); ripresaCb = null; };
+dialogoRipresa.addEventListener('click', e => { if (e.target === dialogoRipresa) { dialogoRipresa.close(); ripresaCb = null; } });
 // Dati commessa: articolo, poi commessa vecchia (quella dell'archivio) o nuova; poi la pagina dati
 let avvioDi = null;                                   // { p, mescola }
 const dialogoAvvio = $('dialogo-avvio');
@@ -2140,6 +2165,8 @@ $('avvio-ok').onclick = () => {
 };
 $('avvio-commessa').addEventListener('input', () => { annullaConfermaCommessa(); $('avviso-avvio').textContent = ''; });
 $('annulla-avvio').onclick = () => dialogoAvvio.close();
+// tocco sullo sfondo scuro: le finestre si chiudono come con Annulla
+dialogoAvvio.addEventListener('click', e => { if (e.target === dialogoAvvio) dialogoAvvio.close(); });
 // articolo e commessa scelti: si scrivono nella pressa (con i dati dell'archivio, se c'è) e si apre la pagina dati; lo stato della pressa non cambia
 function avvia(r, commessa, ripresa) {
   const p = avvioDi.p;
@@ -2170,6 +2197,22 @@ function avviaMacchina(p) {
   if (!$('vista-produzione').hidden) { disegnaProduzione(); msgProd('Pressa ' + p + ': avvio macchina, attesa ok qualità.', true); }
   $('msg').textContent = 'Pressa ' + p + ': avvio macchina, attesa ok qualità.';
 }
+// tocco sulla pressa in Produzione: un menù con Dati commessa e Lettura cicli (la tendina di quella pressa)
+const dialogoPressa = $('dialogo-pressa');
+let menuPressa = null;
+function apriMenuPressa(p) {
+  menuPressa = p; $('menu-pressa').textContent = p;
+  if (typeof dialogoPressa.showModal === 'function') dialogoPressa.showModal(); else dialogoPressa.setAttribute('open', '');
+}
+$('menu-dati').onclick = () => { dialogoPressa.close(); pressaDati = menuPressa; vai('dati'); };
+$('menu-lettura').onclick = () => {
+  const p = menuPressa;
+  dialogoPressa.close(); pressaDati = p;
+  vai('leggi');
+  apri(p);                                             // la tendina di quella pressa (in attesa: l'ok qualità; in riscaldamento: lo dice)
+};
+$('annulla-menu').onclick = () => dialogoPressa.close();
+dialogoPressa.addEventListener('click', e => { if (e.target === dialogoPressa) dialogoPressa.close(); });
 // "Dati commessa" (riscaldamento e attesa): senza commessa si sceglie articolo e commessa nuova o vecchia, altrimenti la pagina dati
 function datiCommessa(p) {
   if (commessaCorrente(p).commessa) { pressaDati = p; vai('dati'); return; }
@@ -2505,6 +2548,7 @@ $('chiudi-ok').onclick = () => {
   chiudiConCicli(p, cicli);
 };
 $('annulla-chiudi').onclick = () => dialogoChiudi.close();
+dialogoChiudi.addEventListener('click', e => { if (e.target === dialogoChiudi) dialogoChiudi.close(); });
 $('chiudi-cicli').addEventListener('input', () => { $('avviso-chiudi').textContent = ''; });
 function chiudiConCicli(p, cicli) {
   if (!inTurno() || !ferme.includes(p)) return;
