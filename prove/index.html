@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030112959">
-<meta name="aggiornamento" content="103">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030113136">
+<meta name="aggiornamento" content="104">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -359,8 +359,8 @@ if (/prove/.test(location.pathname)) {
   .dis-pressa.pr-gialla { --corpo:#c8d92f; } .dis-pressa.pr-blu { --corpo:#2f8fe0; }
   .dis-pressa.pr-ferma { --p3-nome:none; --p3-nome-ram:none; }
   .dis-pressa.pr-man { --o-rosso:1; --o-verde:.18; }
-  .dis-pressa.pr-mat { --o-rosso:1; --o-verde:.18; }   /* ferma, per qualsiasi motivo: rosso acceso */
-  .dis-pressa.pr-alt { --o-rosso:1; --o-verde:.18; }
+  .dis-pressa.pr-mat { --o-rosso:.18; --o-verde:1; --p3-lamp: p3-pulsa 2.8s ease-in-out infinite; }   /* mancanza materiale: verde che pulsa piano */
+  .dis-pressa.pr-alt { --o-rosso:.18; --o-verde:1; --p3-lamp: p3-pulsa 2.8s ease-in-out infinite; }   /* mancanza operatore: verde che pulsa piano */
   .dis-pressa.pr-ferma { --p3-aperto: translateX(-18px); --p3-ram-aperto: scaleX(.38); }   /* ferma: stampo aperto (variabili: dentro il disegno i selettori non arrivano) */
   .dis-pressa.pr-att { --o-rosso:.18; --o-verde:1; --o-blu:.18; --p3-lamp: p3-lamp 1s linear infinite; }   /* attesa ok qualità: verde che lampeggia, stampo fermo */
   .dis-pressa.pr-risc { --o-rosso:.18; --o-verde:.18; --o-arancio:1; --p3-risc: p3-pulsa 2.8s ease-in-out infinite; }   /* riscaldamento: luce arancione che pulsa piano, stampo fermo */
