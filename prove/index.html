@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030173839">
-<meta name="aggiornamento" content="128">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030174715">
+<meta name="aggiornamento" content="129">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -351,8 +351,8 @@ if (/prove/.test(location.pathname)) {
   .pressa-prod .str-com .barra i { border-radius: 12px; }
   .pressa-prod .barra-pct { position: absolute; left: 12px; top: 0; bottom: 0; display: flex; align-items: center; font-size: .9rem; font-weight: 700; letter-spacing: .02em; color: #1a2200; }
   .pressa-prod .barra-pct.fuori { color: #fff; }   /* poca barra riempita: la percentuale sta sul fondo scuro */
-  .pressa-prod .nota-riga { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
-  .pressa-prod .nota-riga .mancano { text-align: right; }
+  .pressa-prod .str-com.str-pz .str-com-et { color: #fff; font-size: 1rem; letter-spacing: .02em; text-transform: none; white-space: nowrap; }   /* pezzi fatti: a sinistra sopra la barra */
+  .pressa-prod .nota-fine { text-align: center; white-space: nowrap; }   /* chi finisce, giorno e ora: una riga sola, centrata */
   .pressa-prod .barra i { display: block; height: 100%; border-radius: 9px; background: linear-gradient(#e6ee5a, #b4c20a 55%, #8da006); transition: width .6s ease; }
   .pressa-prod .str-mes { display: flex; gap: 10px; align-items: center; }
   .pressa-prod .str-mes[hidden] { display: none; }
@@ -1584,7 +1584,7 @@ function disegnaStrisce(c, p) {
   // commessa (in riscaldamento al suo posto il timer delle 3 ore)
   const risc = riscaldamentoDi(p);
   mes.hidden = !!risc;                                 // in riscaldamento la mescola non serve ancora
-  com.classList.remove('str-risc', 'str-calda');
+  com.classList.remove('str-risc', 'str-calda', 'str-pz');
   c.querySelector('.str-com-et').textContent = risc ? 'Riscaldamento' : 'Commessa';
   const bp = com.querySelector('.barra-pct'); bp.textContent = '';
   if (risc) {
@@ -1601,15 +1601,16 @@ function disegnaStrisce(c, p) {
     const ol = k.inOltranza, piena = k.pezzi >= k.d.quantita;
     const pillola = ol ? '<span class="oltr' + (piena ? ' pieno' : '') + '" aria-hidden="true">✓</span><b>Stampa ad oltranza attivata</b>' + (k.oltrAuto ? ' · fino a Fine commessa' : '') + '<br>' : '';
     const chiude = k.chiudiMescola ? 'chiude a fine mescola <b>' + testoFine(k.fine) + '</b> (~' + nIt(k.pezziFinali) + ' pezzi)' : '';
-    // sopra la barra i pezzi fatti, dentro la barra la percentuale; sotto: chi è di turno alla fine, giorno e ora, e a destra quanti ne mancano
-    c.querySelector('.str-com-et').textContent = 'Pezzi fatti';
-    bp.textContent = Math.floor(k.pct) + '%'; bp.classList.toggle('fuori', k.pct < 12);
+    // sopra la barra: a sinistra i pezzi fatti, a destra quanti ne mancano; dentro la barra la percentuale; sotto, centrato: chi è di turno alla fine, giorno e ora
     const mancano = Math.max(0, k.d.quantita - k.pezzi), chi = !ferma && !chiude && !ol && k.cicliMancano && k.fine ? diTurno(turnoDi(k.fine)) : null;
-    metti(com, '<b>' + (k.stimati ? '~' : '') + nIt(k.pezzi) + '</b> / ' + nIt(k.d.quantita), Math.min(100, k.pct),
-      pillola + (k.cicliMancano ? (ferma ? 'Mancano <b>' + nIt(mancano) + '</b> pezzi · <b>pressa ferma dalle ' + fermaDa + '</b>'
-          : chiude ? 'Mancano <b>' + nIt(mancano) + '</b> pezzi · ' + chiude
-          : ol ? 'Mancano <b>' + nIt(mancano) + '</b> pezzi · poi si prosegue a oltranza'
-          : '<div class="nota-riga"><span>Finisce' + (chi ? ': <b>' + esc(chi) + '</b>' : '') + '</span><span class="mancano">Mancano <b>' + nIt(mancano) + '</b> pezzi</span></div><div><b>' + testoFine(k.fine) + '</b></div>')
+    com.classList.add('str-pz');
+    c.querySelector('.str-com-et').innerHTML = '<b>' + (k.stimati ? '~' : '') + nIt(k.pezzi) + '</b> pz fatti';
+    bp.textContent = Math.floor(k.pct) + '%'; bp.classList.toggle('fuori', k.pct < 12);
+    metti(com, mancano > 0 ? 'Mancano <b>' + nIt(mancano) + '</b> / ' + nIt(k.d.quantita) + ' pz' : 'Quantità <b>' + nIt(k.d.quantita) + '</b> pz', Math.min(100, k.pct),
+      pillola + (k.cicliMancano ? (ferma ? '<b>Pressa ferma dalle ' + fermaDa + '</b>'
+          : chiude ? chiude.charAt(0).toUpperCase() + chiude.slice(1)
+          : ol ? 'Poi si prosegue a oltranza'
+          : '<div class="nota-fine">Finisce' + (chi ? ': <b>' + esc(chi) + '</b>' : '') + ' · <b>' + testoFine(k.fine) + '</b></div>')
         : ol ? 'Oltre la quantità: <b>+' + nIt(k.pezzi - k.d.quantita) + '</b> pezzi' + (chiude ? ' · ' + chiude : '') : '<b>Commessa finita</b>'));
   }
   // mescola
