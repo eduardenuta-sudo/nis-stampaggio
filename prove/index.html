@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030161843">
-<meta name="aggiornamento" content="119">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030161938">
+<meta name="aggiornamento" content="120">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -720,10 +720,8 @@ if (/prove/.test(location.pathname)) {
         <div class="campo"><label for="aggiungi-commessa">Commessa</label>
           <div class="prefisso"><span aria-hidden="true">P</span><input class="testo" id="aggiungi-commessa" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div></div>
       </div>
-      <p class="piccolo" id="aggiungi-nota" style="margin:14px 0 0" hidden>Riscaldamento: luce arancione e timer delle ore che scegli (1-12; poi continua a contare), intanto puoi scrivere i dati della commessa. Avvio macchina: la pressa resta in «attesa ok qualità» finché non segni l'ok. Articolo e commessa con «Dati commessa» sulla scheda.</p>
+      <p class="piccolo" id="aggiungi-nota" style="margin:14px 0 0" hidden>Riscaldamento: luce arancione e timer delle ore che scegli dopo il tocco (1-12; poi continua a contare), intanto puoi scrivere i dati della commessa. Avvio macchina: la pressa resta in «attesa ok qualità» finché non segni l'ok. Articolo e commessa con «Dati commessa» sulla scheda.</p>
       <button id="aggiungi-ok" class="salva" style="width:100%;margin-top:22px">Aggiungi</button>
-      <div class="blocco" id="aggiungi-ore-blocco" hidden><label for="aggiungi-ore">Ore di riscaldamento (per «Riscaldamento»)</label>
-        <select class="testo" id="aggiungi-ore"><option value="1">1 ora</option><option value="2">2 ore</option><option value="3" selected>3 ore</option><option value="4">4 ore</option><option value="5">5 ore</option><option value="6">6 ore</option><option value="7">7 ore</option><option value="8">8 ore</option><option value="9">9 ore</option><option value="10">10 ore</option><option value="11">11 ore</option><option value="12">12 ore</option></select></div>
       <div id="aggiungi-modi" hidden><button id="aggiungi-risc" class="salva">Riscaldamento</button><button id="aggiungi-avvio" class="salva">Avvio macchina</button></div>
     </div>
     <div class="avviso" id="avviso-aggiungi" role="alert"></div>
@@ -959,6 +957,12 @@ if (/prove/.test(location.pathname)) {
     <button class="chip" id="menu-togli" hidden>Togli pressa</button>
   </div>
   <button id="annulla-menu" class="annulla">Annulla</button>
+</dialog>
+<!-- Riscaldamento: per quanto tempo deve scaldare la pressa (1-12 ore) -->
+<dialog id="dialogo-ore" aria-labelledby="titolo-ore">
+  <h2 class="titolo-sez" id="titolo-ore">Pressa <span id="ore-pressa"></span>: per quanto tempo deve scaldare?</h2>
+  <div class="svuota-presse" id="ore-griglia"><button class="chip" data-ore="1">1 ora</button><button class="chip" data-ore="2">2 ore</button><button class="chip" data-ore="3">3 ore</button><button class="chip" data-ore="4">4 ore</button><button class="chip" data-ore="5">5 ore</button><button class="chip" data-ore="6">6 ore</button><button class="chip" data-ore="7">7 ore</button><button class="chip" data-ore="8">8 ore</button><button class="chip" data-ore="9">9 ore</button><button class="chip" data-ore="10">10 ore</button><button class="chip" data-ore="11">11 ore</button><button class="chip" data-ore="12">12 ore</button></div>
+  <button id="annulla-ore" class="annulla">Annulla</button>
 </dialog>
 <!-- chiudi commessa di una pressa ferma: l'ultima lettura (cicli, chi, quando) e Conferma; i cicli si possono scrivere se il contatore segna altro -->
 <dialog id="dialogo-chiudi" aria-labelledby="titolo-chiudi">
@@ -2277,7 +2281,7 @@ $('aggiungi-apri').onclick = () => {
   $('avviso-aggiungi').textContent = '';
   if (!aprire) return;
   $('aggiungi-nota').hidden = $('vista-produzione').hidden;
-  $('aggiungi-ok').hidden = !$('vista-produzione').hidden; $('aggiungi-modi').hidden = $('aggiungi-ore-blocco').hidden = $('vista-produzione').hidden;   // da Produzione: Riscaldamento o Avvio macchina
+  $('aggiungi-ok').hidden = !$('vista-produzione').hidden; $('aggiungi-modi').hidden = $('vista-produzione').hidden;   // da Produzione: Riscaldamento o Avvio macchina
   $('aggiungi-campi').hidden = !$('vista-produzione').hidden;   // in Produzione articolo e commessa si scrivono con "Dati commessa" o nella pagina dati
   $('aggiungi-num').value = $('aggiungi-articolo').value = $('aggiungi-commessa').value = '';
   $('aggiungi-scorciatoie').innerHTML = PRESSE_REPARTO.filter(p => !PRESSE.includes(p)).map(p => '<button class="chip" data-scorc="' + p + '">' + p + '</button>').join('');
@@ -2299,7 +2303,7 @@ document.addEventListener('click', e => {
   chiudiAggiungi();
 });
 // modo: '' da Lettura cicli; 'risc' riscaldamento, 'avvio' avvio macchina (da Produzione)
-function aggiungi(modo, pulsante) {
+function aggiungi(modo, pulsante, ore) {
   const t = $('aggiungi-num').value.trim(), p = Number(t);
   if (!/^\d{1,4}$/.test(t) || !p) { $('avviso-aggiungi').textContent = 'Scrivi il numero della pressa.'; $('aggiungi-num').focus(); return; }
   if (PRESSE.includes(p)) { $('avviso-aggiungi').textContent = 'La pressa ' + p + ' è già nell\'elenco.'; return; }
@@ -2319,7 +2323,7 @@ function aggiungi(modo, pulsante) {
   a.setSeconds(0, 0);
   const avvio = modo === 'avvio';                         // avvio macchina: la pressa aspetta l'ok della qualità
   if (avvio) { nuova.attesa_qualita = true; nuova.avvio = a.toISOString(); }
-  if (modo === 'risc') { nuova.riscaldamento = a.toISOString(); nuova.risc_ore = Number($('aggiungi-ore').value) || 3; }
+  if (modo === 'risc') { nuova.riscaldamento = a.toISOString(); nuova.risc_ore = ore || 3; }
   if (articolo) nuova.articolo = articolo;
   if (cifre) nuova.commessa = 'P' + cifre;
   PRESSE.push(p); infoPresse[p] = { articolo, commessa: nuova.commessa || '', ora: nuova.ora, attesa: avvio, avvio: nuova.avvio || '', risc: nuova.riscaldamento || '', riscOre: nuova.risc_ore || 0 }; salvaPresse();   // si vede subito, il database la passa ai colleghi
@@ -2333,7 +2337,17 @@ function aggiungi(modo, pulsante) {
 }
 const AVVISO_LETTURA = 'Ho inserito nella scheda di Produzione i dati dell\'ultima commessa stampata: controlla che siano giusti.';
 $('aggiungi-ok').onclick = () => aggiungi('', $('aggiungi-ok'));
-$('aggiungi-risc').onclick = () => aggiungi('risc', $('aggiungi-risc'));
+// Riscaldamento: prima si sceglie per quante ore deve scaldare (se il numero manca o c'è già, aggiungi() dice l'errore)
+const dialogoOre = $('dialogo-ore');
+$('aggiungi-risc').onclick = () => {
+  const t = $('aggiungi-num').value.trim(), p = Number(t);
+  if (!/^\d{1,4}$/.test(t) || !p || PRESSE.includes(p) || nascoste.includes(p)) { aggiungi('risc', $('aggiungi-risc')); return; }
+  $('ore-pressa').textContent = p;
+  if (typeof dialogoOre.showModal === 'function') dialogoOre.showModal(); else dialogoOre.setAttribute('open', '');
+};
+document.querySelectorAll('[data-ore]').forEach(b => { b.onclick = () => { dialogoOre.close(); aggiungi('risc', $('aggiungi-risc'), Number(b.dataset.ore)); }; });
+$('annulla-ore').onclick = () => dialogoOre.close();
+dialogoOre.addEventListener('click', e => { if (e.target === dialogoOre) dialogoOre.close(); });
 $('aggiungi-avvio').onclick = () => aggiungi('avvio', $('aggiungi-avvio'));
 // la pressa sfuma e l'elenco si richiude piano; poi esce davvero dall'elenco
 function togliPressa(p) {
