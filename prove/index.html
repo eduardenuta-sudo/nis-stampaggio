@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030122037">
-<meta name="aggiornamento" content="110">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030122332">
+<meta name="aggiornamento" content="111">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -2573,7 +2573,8 @@ function chiudiConCicli(p, cicli) {
   aggiornaFerme();
   if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
   disegnaRiepilogo();
-  const m = 'Pressa ' + p + ': commessa ' + (c.commessa || '') + ' chiusa con ' + nIt(cicli) + ' cicli. Ora la puoi togliere dall\'elenco.';
+  togliDavvero(p);                                     // commessa chiusa: la pressa esce dall'elenco da sola (dati e pezzi restano nell'archivio)
+  const m = 'Pressa ' + p + ': commessa ' + (c.commessa || '') + ' chiusa con ' + nIt(cicli) + ' cicli e pressa tolta dall\'elenco. Per rimetterla: Aggiungi pressa.';
   $('msg').textContent = m;
   if (!$('vista-produzione').hidden) { disegnaProduzione(); msgProd(m); }
 }
