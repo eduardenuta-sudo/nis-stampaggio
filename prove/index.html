@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030122819">
-<meta name="aggiornamento" content="112">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030123515">
+<meta name="aggiornamento" content="113">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1371,7 +1371,7 @@ function testoEvento(l, opz) {
   }
   const ok = l && !eSolo(l) ? letture.filter(x => x.ok_qualita && x.pressa === l.pressa && okAssorbente(x) === l).pop() : null;
   if (ok) parti.push('Commessa iniziata alle ' + new Date(ok.ora).toTimeString().slice(0, 5) + ' (ok qualità)');   // con l'ok qualità la commessa parte
-  if (l && l.ripartenza && !(eFine(l) && l.ripartenza === l.ora)) parti.push('Ripartita alle ' + new Date(l.ripartenza).toTimeString().slice(0, 5));   // chiusa da ferma: non è ripartita
+  if (l && l.ripartenza && l.ripartenza !== l.ora) parti.push('Ripartita alle ' + new Date(l.ripartenza).toTimeString().slice(0, 5));   // chiusa da ferma: non è ripartita
   if (l && l.controllo) parti.push('Lettura di controllo');
   if (l && l.contatore_ripartito) parti.push('Contatore ripartito');
   if (eFine(l)) parti.push('Fine commessa');
@@ -2054,7 +2054,9 @@ function ultimaDi(p, articolo, mescola) {
   return (mescola !== undefined && tutte.find(a => (a.mescola || '') === mescola)) || (mescola ? null : tutte[0]) || null;
 }
 function recordArchivio(p, extra) {
-  const i = infoPresse[p] || {}, c = commessaCorrente(p);
+  const i = infoPresse[p] || {}, c = { ...commessaCorrente(p) };
+  if (!c.commessa && i.datiPer) c.commessa = i.datiPer;   // anche se nelle letture la commessa non c'è
+  if (!c.articolo && i.articolo) c.articolo = i.articolo;
   if (!c.articolo || !c.commessa || i.datiPer !== c.commessa || !(i.quantita > 0) || !(i.vani > 0)) return null;
   const id = idArchivio(p, c.articolo, i.mescola), prima = archivio.find(a => a.id === id);
   const r = { id, pressa: p, articolo: c.articolo, mescola: i.mescola || '', commessa: c.commessa, quantita: i.quantita, vani: i.vani, ciclo_s: i.ciclo || null,
@@ -2579,7 +2581,9 @@ function chiudiConCicli(p, cicli) {
   if (!inTurno() || !ferme.includes(p)) return;
   const u = ultimaReale(p), adesso = oraDiScrittura(), t = oreTurno(p, adesso, u, null);   // il fermo arriva fino alla chiusura
   const lettura = { pressa: p, cicli, ora: adesso.toISOString(), ore: t.lavorate, ore_fermo: t.ferme, fine_commessa: true, ripartenza: adesso.toISOString() };
-  const c = commessaCorrente(p);
+  const c = commessaCorrente(p), i = infoPresse[p] || {};
+  if (!c.commessa && i.datiPer) c.commessa = i.datiPer;   // la commessa dei dati, se nelle letture non c'è
+  if (!c.articolo && i.articolo) c.articolo = i.articolo;
   if (c.articolo) lettura.articolo = c.articolo;
   if (c.commessa) lettura.commessa = c.commessa;
   const chiusa = chiusuraCommessa(p, lettura);
@@ -2636,8 +2640,33 @@ function chiediRipresa(p) {
   if (typeof dialogoRiprendi.showModal === 'function') dialogoRiprendi.showModal(); else dialogoRiprendi.setAttribute('open', '');
 }
 document.querySelectorAll('#dialogo-riprendi [data-riprendi]').forEach(b => {
-  b.onclick = () => { dialogoRiprendi.close(); riparte(riprendiPressa, b.dataset.riprendi); };   // poi l'orologio per l'ora
+  b.onclick = () => {
+    dialogoRiprendi.close();
+    if (b.dataset.riprendi === 'vecchia') riprendiVecchia(riprendiPressa);   // la vecchia: riparte subito, senza altre domande
+    else riparte(riprendiPressa, b.dataset.riprendi);                        // la nuova: l'orologio per l'ora di partenza
+  };
 });
+// Riprendi la vecchia commessa: la Fine commessa diventa un fermo (il contatore continua), la pressa riparte adesso con la commessa
+// e i dati di prima (dall'archivio: dati e kg di mescola della chiusura). Niente orologio né altre domande.
+function riprendiVecchia(p) {
+  if (!inTurno()) return;
+  const u = ultimaLettura(p);
+  if (!eFine(u)) return;
+  const adesso = alMinuto(oraDiScrittura());
+  const r = archivio.filter(a => a.pressa === p && (!u.articolo || a.articolo === u.articolo)).sort((a, b) => a.ora < b.ora ? 1 : -1)[0] || null;
+  const commessa = u.commessa || (r ? r.commessa : '') || (infoPresse[p] || {}).datiPer || '', articolo = u.articolo || (r ? r.articolo : '') || '';
+  aggiornaLettura(u.id, { fine_commessa: null, partenza_commessa: null, evento: u.evento === 'fine_commessa' ? null : u.evento,
+    fermo: true, ripresa_stessa: true, ripartita_alle: adesso.toISOString() });
+  const campi = { articolo: articolo || null, commessa: commessa || null, ora: new Date().toISOString(), nome: accesso.nome };
+  if (r && r.commessa === commessa) Object.assign(campi, campiDaArchivio(r, commessa, { pezzi: 0 }));   // i pezzi continuano col contatore
+  applicaCampi(p, campi); db.aggiornaPressa(p, campi).catch(erroreDati);
+  aggiornaFerme();
+  if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
+  disegnaRiepilogo();
+  const m = 'Pressa ' + p + ' ripartita con la commessa ' + (commessa || 'di prima') + '.';
+  $('msg').textContent = m;
+  if (!$('vista-produzione').hidden) { disegnaProduzione(); msgProd(m, true); }
+}
 $('annulla-riprendi').onclick = () => dialogoRiprendi.close();
 dialogoRiprendi.addEventListener('click', e => { if (e.target === dialogoRiprendi) dialogoRiprendi.close(); });
 function chiudi() {
