@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030164539">
-<meta name="aggiornamento" content="124">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030165457">
+<meta name="aggiornamento" content="125">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -295,7 +295,7 @@ if (/prove/.test(location.pathname)) {
 
   /* aggiungi pressa, sotto l'elenco */
   .aggiungi { margin: -14px 0 30px; }
-  button#aggiungi-apri { width: auto; padding: 9px 16px; border-radius: 18px; font-size: .9rem; }
+  button#aggiungi-apri { width: 100%; padding: 16px; border-radius: 22px; font-size: 1.05rem; }
   #aggiungi-blocco { margin-top: 14px; }
   #aggiungi-blocco[hidden], #cor-rip-blocco[hidden] { display: none; }
   #cor-rip-blocco { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-weight: 600; }
@@ -331,11 +331,11 @@ if (/prove/.test(location.pathname)) {
   .prod-voce:has(> .scorre[style*="translateX"]) button.togli-sw { visibility: visible; }
   .sez-prod[hidden] { display: none; }
   .sez-prod > .sep { margin: 4px 2px 12px; }
-  .pressa-prod .azioni-prod { display: flex; gap: 10px; position: relative; z-index: 3; }
+  .pressa-prod .azioni-prod { display: flex; flex-wrap: wrap; gap: 10px; position: relative; z-index: 3; }   /* due pulsanti per riga, tutti uguali */
   .pressa-prod .azioni-prod:empty { display: none; }
   .pressa-prod .stato-fermo { position: relative; top: -6px; font-weight: 600; color: #ffb3a6; }
   .pressa-prod .stato-fermo[hidden] { display: none; }
-  .pressa-prod .azioni-prod .chip { flex: 1; min-width: 0; padding: 12px 8px; margin-top: 8px; }
+  .pressa-prod .azioni-prod .chip { flex: 1 1 calc(50% - 5px); min-width: 0; padding: 14px 8px; margin-top: 8px; text-align: center; }
   .pressa-prod .testa-prod { display: flex; align-items: baseline; gap: 14px; position: relative; top: -8px; }   /* spostamenti solo visivi: il numero della pressa resta dov'è */
   .pressa-prod .art { font: 700 1.7rem/1 var(--font-titoli); letter-spacing: .06em; color: #fff; }
   .pressa-prod .comm { font-size: .85rem; color: var(--muted); letter-spacing: .04em; }
@@ -711,7 +711,7 @@ if (/prove/.test(location.pathname)) {
 
   <!-- aggiungi pressa: si scrive il numero e la pressa entra nell'elenco -->
   <div class="aggiungi">
-    <button id="aggiungi-apri" class="annulla" aria-expanded="false">+ Aggiungi pressa</button>
+    <button id="aggiungi-apri" class="chip" aria-expanded="false">+ Aggiungi pressa</button>
     <div id="aggiungi-blocco" hidden>
       <label for="aggiungi-num">Numero pressa</label>
       <input class="manuale" id="aggiungi-num" inputmode="numeric" pattern="[0-9]*" placeholder="es. 74">
