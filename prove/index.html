@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030163313">
-<meta name="aggiornamento" content="122">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030164128">
+<meta name="aggiornamento" content="123">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1579,10 +1579,12 @@ function disegnaStrisce(c, p) {
   com.classList.remove('str-risc', 'str-calda');
   c.querySelector('.str-com-et').textContent = risc ? 'Riscaldamento' : 'Commessa';
   if (risc) {
-    const ore = oreRisc(p), fatto = (new Date() - risc) / ORA, calda = fatto >= ore, pronta = new Date(risc.getTime() + ore * ORA);
+    const ore = oreRisc(p), fatto = (new Date() - risc) / ORA, calda = fatto >= ore, pronta = new Date(risc.getTime() + ore * ORA), ok = infoPresse[p].riscOk;
     com.classList.add(calda ? 'str-calda' : 'str-risc');
-    metti(com, calda ? '<b>Pressa in riscaldamento da ' + testoDurata(Math.floor(fatto * 60)) + '</b>' : '<b>' + (testoDurata(Math.floor(fatto * 60)) || '0min') + '</b> / ' + ore + 'h', Math.min(100, fatto / ore * 100),
-      calda ? 'Timer di ' + ore + 'h finito alle <b>' + oraIt(pronta) + '</b>. Tocca <b>Avvio macchina</b> quando parte.' : 'Pressa calda tra <b>' + testoDurata(Math.ceil((ore - fatto) * 60)) + '</b>, ~' + oraIt(pronta) + '.');
+    metti(com, ok ? '<b>Pressa in temperatura</b>' : calda ? '<b>Pressa in riscaldamento da ' + testoDurata(Math.floor(fatto * 60)) + '</b>' : '<b>' + (testoDurata(Math.floor(fatto * 60)) || '0min') + '</b> / ' + testoOre(ore), Math.min(100, fatto / ore * 100),
+      ok ? 'Confermata alle <b>' + oraIt(new Date(ok)) + '</b>. Tocca <b>Avvio macchina</b> quando parte.'
+      : calda ? 'Timer di ' + testoOre(ore) + ' finito alle <b>' + oraIt(pronta) + '</b>. <b>Controlla se la pressa è in temperatura.</b>'
+      : 'Pressa calda tra <b>' + testoDurata(Math.ceil((ore - fatto) * 60)) + '</b>, ~' + oraIt(pronta) + '.');
   }
   else if (att) metti(com, '', 0, 'Attesa ok qualità: la commessa parte con l\'ok.', true);
   else if (!k.d) metti(com, '', 0, 'Tocca la pressa e scrivi i dati della commessa.', true);
@@ -1657,7 +1659,8 @@ function disegnaProduzione() {
       (risc ? '<span class="risc">riscaldamento</span>' : '');
     // in riscaldamento: Dati commessa e Avvio macchina; in attesa: Dati commessa e Ok qualità
     c.querySelector('.azioni-prod').innerHTML = (risc || att) && scr ? '<button type="button" class="chip" data-dati="' + p + '">Dati commessa</button>' +
-      (risc ? '<button type="button" class="chip avvia" data-avvia="' + p + '">Avvio macchina</button>' : '<button type="button" class="chip avvia" data-okprod="' + p + '">Ok qualità</button>')
+      (risc ? (chiediTemperatura(p) ? '<button type="button" class="chip avvia" data-intemp="' + p + '">In temperatura</button><button type="button" class="chip" data-piu30="' + p + '">+30 min</button>' : '') +
+        '<button type="button" class="chip avvia" data-avvia="' + p + '">Avvio macchina</button>' : '<button type="button" class="chip avvia" data-okprod="' + p + '">Ok qualità</button>')
       : ferma && scr ? '<button type="button" class="chip avvia" data-riparteprod="' + p + '">Riparte ora</button><button type="button" class="chip" data-chiudiprod="' + p + '">Chiudi commessa</button>' : '';
     const stato = c.querySelector('.stato-fermo');   // ferma: "Fermo per manutenzione · 1h 20min" sotto la testa
     stato.textContent = ferma ? testoEvento(u, { totale: minutiFermoNelTurno(p) }) : ''; stato.hidden = !ferma;
@@ -1679,6 +1682,8 @@ function disegnaProduzione() {
   box.querySelectorAll('.apri-mescola').forEach(tocco(p => { pressaDati = p; vai('dati'); $('dati-mescola').scrollIntoView({ block: 'start' }); }));
   box.querySelectorAll('[data-dati]').forEach(tocco(datiCommessa));
   box.querySelectorAll('[data-avvia]').forEach(tocco(avviaMacchina));
+  box.querySelectorAll('[data-intemp]').forEach(tocco(inTemperatura));
+  box.querySelectorAll('[data-piu30]').forEach(tocco(piuMezzora));
   box.querySelectorAll('[data-okprod]').forEach(tocco(okQualita));
   box.querySelectorAll('[data-riparteprod]').forEach(tocco(p => riparte(p)));
   box.querySelectorAll('[data-chiudiprod]').forEach(tocco(chiudiDaFerma));
@@ -2003,7 +2008,7 @@ function disegnaElencoPresse() {
     let prec = ultimaReale(p);
     if (l) { prec = null; for (let i = letture.indexOf(l) - 1; i >= 0; i--) if (letture[i].pressa === p && !eSolo(letture[i])) { prec = letture[i]; break; } }
     const ultima = !f && prec ? '<span class="ultima"><b>' + prec.cicli + '</b><span>' + quandoBreve(new Date(prec.ora)) + '</span>' + (prec.nome ? '<span class="da">' + esc(prec.nome) + '</span>' : '') + '</span>' : '';
-    const ev = risc ? (new Date() - risc >= oreRisc(p) * ORA ? 'Pressa in riscaldamento da ' + testoDurata(Math.floor((new Date() - risc) / 60000)) + ' · dalle ' : 'Riscaldamento (' + oreRisc(p) + 'h) dalle ') + oraIt(risc) : att ? 'Attesa ok qualità · avvio alle ' + att.toTimeString().slice(0, 5) : testoEvento(f || (!l && (eFermo(u) || (u && u.ok_qualita))) ? u : l, { totale: minutiFermoNelTurno(p) });   // anche "Ripartita alle…" finché non si legge
+    const ev = risc ? (new Date() - risc >= oreRisc(p) * ORA ? 'Pressa in riscaldamento da ' + testoDurata(Math.floor((new Date() - risc) / 60000)) + ' · dalle ' : 'Riscaldamento (' + testoOre(oreRisc(p)) + ') dalle ') + oraIt(risc) : att ? 'Attesa ok qualità · avvio alle ' + att.toTimeString().slice(0, 5) : testoEvento(f || (!l && (eFermo(u) || (u && u.ok_qualita))) ? u : l, { totale: minutiFermoNelTurno(p) });   // anche "Ripartita alle…" finché non si legge
     return '<div class="voce' + (aperta ? ' aperta' : '') + (f ? ' ferma-p' : '') + '" data-p="' + p + '"><div class="testa-p">' +
       '<button class="togli-sw" data-togli="' + p + '" tabindex="-1">Togli</button><div class="scorre">' +
       '<button class="pressa-btn" data-p="' + p + '" aria-expanded="' + aperta + '"><span class="titolo-p"><span class="num">Pressa ' + p + '</span>' +
@@ -2112,7 +2117,7 @@ function campiDaArchivio(r, commessa, ripresa) {
   return c;
 }
 // i campi del database nella copia sul telefono
-const CAMPO_INFO = { articolo: ['articolo', ''], commessa: ['commessa', ''], ora: ['ora', ''], attesa_qualita: ['attesa', false], avvio: ['avvio', ''], riscaldamento: ['risc', ''], risc_ore: ['riscOre', 0],
+const CAMPO_INFO = { articolo: ['articolo', ''], commessa: ['commessa', ''], ora: ['ora', ''], attesa_qualita: ['attesa', false], avvio: ['avvio', ''], riscaldamento: ['risc', ''], risc_ore: ['riscOre', 0], risc_ok: ['riscOk', ''],
   dati_commessa: ['datiPer', ''], quantita: ['quantita', 0], vani: ['vani', 0], ciclo_s: ['ciclo', 0], stampata_g: ['stampata', 0], oltranza: ['oltranza', false],
   chiudi_mescola: ['chiudiMescola', false], mescola: ['mescola', ''], mescola_pieno: ['pieno', null], mescola_kg: ['kg', null], mescola_ora: ['kgOra', ''], pezzi_prima: ['pezziPrima', 0] };
 function applicaCampi(p, campi) {
@@ -2209,16 +2214,30 @@ function avvia(r, commessa, ripresa) {
 // Riscaldamento: la pressa aggiunta da Produzione scalda (luce arancione, timer di 3 ore); con "Avvio macchina" passa all'attesa ok qualità.
 // Restituisce l'ora d'inizio se scalda ancora, altrimenti null (finisce anche se nel frattempo la pressa viene letta).
 const ORE_RISCALDAMENTO = 3;                          // se la pressa non ha le sue ore (impostate da 1 a 12 quando si mette in riscaldamento)
-const oreRisc = p => { const n = Number(infoPresse[p] && infoPresse[p].riscOre); return n >= 1 && n <= 12 ? Math.floor(n) : ORE_RISCALDAMENTO; };
+const testoOre = o => (o % 1 ? String(o).replace('.', ',') : o) + 'h';
+const oreRisc = p => { const n = Number(infoPresse[p] && infoPresse[p].riscOre); return n >= 1 && n <= 24 ? Math.round(n * 2) / 2 : ORE_RISCALDAMENTO; };   // ore intere o con mezz'ora (+30 min)
 function riscaldamentoDi(p) {
   const n = infoPresse[p];
   if (!n || !n.risc) return null;
   return letture.some(l => l.pressa === p && l.ora >= n.risc) ? null : new Date(n.risc);
 }
+// finito il timer, la pressa va controllata: in temperatura (si conferma) oppure si aggiunge mezz'ora, anche più volte (il timer riparte da dov'era)
+const chiediTemperatura = p => { const r = riscaldamentoDi(p); return !!r && !infoPresse[p].riscOk && new Date() - r >= oreRisc(p) * ORA; };
+function cambiaRisc(p, campi, testo) {
+  if (!inTurno() || !riscaldamentoDi(p)) return;
+  ricordaAnnulla({ p, testo, presse: primaPressa(p, campi) });
+  applicaCampi(p, campi);
+  db.aggiornaPressa(p, campi).catch(erroreDati);
+  disegnaElencoPresse();
+  if (!$('vista-produzione').hidden) { disegnaProduzione(); msgProd('Pressa ' + p + ': ' + testo + '.', true); }
+  $('msg').textContent = 'Pressa ' + p + ': ' + testo + '.';
+}
+const inTemperatura = p => { const a = new Date(); a.setSeconds(0, 0); cambiaRisc(p, { risc_ok: a.toISOString() }, 'in temperatura'); };
+const piuMezzora = p => cambiaRisc(p, { risc_ore: Math.min(24, oreRisc(p) + 0.5) }, 'riscaldamento +30 min (' + testoOre(Math.min(24, oreRisc(p) + 0.5)) + ')');
 function avviaMacchina(p) {
   if (!inTurno() || !riscaldamentoDi(p)) return;
   const a = new Date(); a.setSeconds(0, 0);
-  const campi = { riscaldamento: null, attesa_qualita: true, avvio: a.toISOString() };
+  const campi = { riscaldamento: null, risc_ore: null, risc_ok: null, attesa_qualita: true, avvio: a.toISOString() };
   const annullo = { p, testo: 'avvio macchina', presse: primaPressa(p, campi) };
   applicaCampi(p, campi);
   ricordaAnnulla(annullo);
@@ -2265,7 +2284,7 @@ function presseArrivate(elenco, dalServer) {
   if (dalServer) salva(CHIAVE_FATTO, true);
   nascoste = elenco.filter(x => x.nascosta === true).map(x => Number(x.pressa));
   const nuove = elenco.filter(x => x.nascosta !== true).map(x => Number(x.pressa)).sort((a, b) => a - b), info = {};
-  elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '', attesa: x.attesa_qualita === true, avvio: x.avvio || '', risc: x.riscaldamento || '', riscOre: Math.min(12, Math.max(0, Math.floor(Number(x.risc_ore)) || 0)),
+  elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '', attesa: x.attesa_qualita === true, avvio: x.avvio || '', risc: x.riscaldamento || '', riscOre: Math.min(24, Math.max(0, Math.round(Number(x.risc_ore) * 2) / 2 || 0)), riscOk: typeof x.risc_ok === 'string' ? x.risc_ok : '',
     quantita: x.quantita || 0, vani: x.vani || 0, ciclo: x.ciclo_s || 0, stampata: x.stampata_g || 0, oltranza: x.oltranza === true, chiudiMescola: x.chiudi_mescola === true, mescola: x.mescola || '', pieno: x.mescola_pieno == null ? null : x.mescola_pieno, kg: x.mescola_kg == null ? null : x.mescola_kg, kgOra: x.mescola_ora || '', datiPer: x.dati_commessa || '', pezziPrima: x.pezzi_prima || 0 }; });
   if (JSON.stringify(nuove) === JSON.stringify([...PRESSE].sort((a, b) => a - b)) && JSON.stringify(info) === JSON.stringify(infoPresse)) return;   // niente di nuovo (es. solo la sincronizzazione)
   PRESSE = nuove; infoPresse = info;
@@ -2328,7 +2347,7 @@ function aggiungi(modo, pulsante, ore) {
   if (modo === 'risc') { nuova.riscaldamento = a.toISOString(); nuova.risc_ore = ore || 3; }
   if (articolo) nuova.articolo = articolo;
   if (cifre) nuova.commessa = 'P' + cifre;
-  PRESSE.push(p); infoPresse[p] = { articolo, commessa: nuova.commessa || '', ora: nuova.ora, attesa: avvio, avvio: nuova.avvio || '', risc: nuova.riscaldamento || '', riscOre: nuova.risc_ore || 0 }; salvaPresse();   // si vede subito, il database la passa ai colleghi
+  PRESSE.push(p); infoPresse[p] = { articolo, commessa: nuova.commessa || '', ora: nuova.ora, attesa: avvio, avvio: nuova.avvio || '', risc: nuova.riscaldamento || '', riscOre: nuova.risc_ore || 0, riscOk: '' }; salvaPresse();   // si vede subito, il database la passa ai colleghi
   db.aggiungiPressa(nuova).catch(erroreDati);
   $('aggiungi-blocco').hidden = true; $('aggiungi-apri').setAttribute('aria-expanded', 'false'); $('avviso-aggiungi').textContent = '';
   $('aggiungi-num').blur();
