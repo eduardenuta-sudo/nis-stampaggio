@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030123754">
-<meta name="aggiornamento" content="114">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030124212">
+<meta name="aggiornamento" content="115">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -217,6 +217,11 @@ if (/prove/.test(location.pathname)) {
   dialog { width: min(92vw, 420px); padding: 24px; border: 1px solid var(--line); border-radius: 26px; background: #0a2457; color: var(--ink);
     box-shadow: 0 24px 60px rgba(0,0,0,.6); animation: sale-dialogo .3s cubic-bezier(.16,1,.3,1); }
   dialog::backdrop { background: rgba(3,10,26,.74); }
+  #barra-annulla { position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 50; display: flex; align-items: center; gap: 12px;
+    padding: 12px 12px 12px 18px; border: 1px solid var(--line); border-radius: 22px; background: #0a2457; box-shadow: 0 14px 34px rgba(0,0,0,.55); }
+  #barra-annulla[hidden] { display: none; }
+  #barra-annulla span { flex: 1; min-width: 0; font-weight: 600; }
+  #barra-annulla .chip { flex: none; }
   /* finestre con una casella: in alto, con il pulsante accanto alla casella, così la tastiera non lo copre */
   #dialogo-chiudi, #dialogo-avvio { margin-top: max(14px, env(safe-area-inset-top)); margin-bottom: auto; }
   .riga-conferma { display: flex; gap: 10px; align-items: stretch; margin-top: 6px; }
@@ -730,6 +735,7 @@ if (/prove/.test(location.pathname)) {
       <button id="btn-riparte" class="salva" style="width:100%" hidden>La pressa riparte</button>
       <!-- ferma e già letta da ferma: la commessa si chiude con i cicli di quella lettura, senza leggerli di nuovo -->
       <button id="btn-fine-ferma" class="annulla" style="width:100%;margin-top:12px" hidden>Chiudi commessa</button>
+      <button id="btn-annulla-az" class="annulla" style="width:100%;margin-top:12px" hidden></button>
       <!-- "Ferma la pressa" con motivo Fine commessa: servono ancora i cicli finali -->
       <div id="fine-scelta" hidden>
         <span id="fine-testo"></span>
@@ -939,12 +945,15 @@ if (/prove/.test(location.pathname)) {
   <div class="avviso" id="avviso-avvio" role="alert"></div>
   <button id="annulla-avvio" class="annulla">Annulla</button>
 </dialog>
+<!-- azione fatta per sbaglio: per 60 secondi in fondo allo schermo, poi nella tendina e nel menù della pressa (fino a fine turno) -->
+<div id="barra-annulla" role="status" hidden><span id="annulla-testo"></span><button id="annulla-btn" class="chip">Annulla</button></div>
 <!-- tocco su una pressa in Produzione: dati della commessa o lettura dei cicli di quella pressa -->
 <dialog id="dialogo-pressa" aria-labelledby="titolo-menu">
   <h2 class="titolo-sez" id="titolo-menu">Pressa <span id="menu-pressa"></span></h2>
   <div class="motivi-lista">
     <button class="chip" id="menu-dati">Dati commessa</button>
     <button class="chip" id="menu-lettura">Lettura cicli</button>
+    <button class="chip" id="menu-annulla" hidden></button>
   </div>
   <button id="annulla-menu" class="annulla">Annulla</button>
 </dialog>
@@ -2180,7 +2189,9 @@ function avvia(r, commessa, ripresa) {
   const campi = { articolo: $('avvio-articolo').value.trim(), commessa, ora: new Date().toISOString(), nome: accesso.nome };
   if (r) Object.assign(campi, campiDaArchivio(r, commessa, ripresa));
   if (dialogoAvvio.open) dialogoAvvio.close();
+  const annullo = { p, testo: 'commessa ' + commessa + ' inserita', presse: primaPressa(p, campi) };
   applicaCampi(p, campi); db.aggiornaPressa(p, campi).catch(erroreDati);
+  ricordaAnnulla(annullo);
   if (r) salvaArchivio(recordArchivio(p));
   disegnaElencoPresse(); disegnaRiepilogo();
   pressaDati = p; vai('dati');
@@ -2198,7 +2209,9 @@ function avviaMacchina(p) {
   if (!inTurno() || !riscaldamentoDi(p)) return;
   const a = new Date(); a.setSeconds(0, 0);
   const campi = { riscaldamento: null, attesa_qualita: true, avvio: a.toISOString() };
+  const annullo = { p, testo: 'avvio macchina', presse: primaPressa(p, campi) };
   applicaCampi(p, campi);
+  ricordaAnnulla(annullo);
   db.aggiornaPressa(p, campi).catch(erroreDati);
   disegnaElencoPresse(); disegnaRiepilogo();
   if (!$('vista-produzione').hidden) { disegnaProduzione(); msgProd('Pressa ' + p + ': avvio macchina, attesa ok qualità.', true); }
@@ -2209,6 +2222,7 @@ const dialogoPressa = $('dialogo-pressa');
 let menuPressa = null;
 function apriMenuPressa(p) {
   menuPressa = p; $('menu-pressa').textContent = p;
+  $('menu-annulla').hidden = !annullaValido(p); if (annullaValido(p)) $('menu-annulla').textContent = 'Annulla: ' + annullaAz.testo;
   if (typeof dialogoPressa.showModal === 'function') dialogoPressa.showModal(); else dialogoPressa.setAttribute('open', '');
 }
 $('menu-dati').onclick = () => { dialogoPressa.close(); pressaDati = menuPressa; vai('dati'); };
@@ -2504,8 +2518,11 @@ $('conferma-riparte').onclick = () => {
     const av = avvioInAttesa(p);
     dialogoRiparte.close();
     if (!av) return;
+    const primaAvvio = primaPressa(p, { avvio: 1 });
     if (avvioData.getTime() !== av.getTime()) { const c = { avvio: avvioData.toISOString() }; applicaCampi(p, c); db.aggiornaPressa(p, c).catch(erroreDati); }   // avvio spostato
-    nuovaLettura({ pressa: p, cicli: 0, ora: ripData.toISOString(), ore: 0, solo_evento: true, ok_qualita: true, avvio_macchina: avvioData.toISOString() });
+    const lok = { pressa: p, cicli: 0, ora: ripData.toISOString(), ore: 0, solo_evento: true, ok_qualita: true, avvio_macchina: avvioData.toISOString() };
+    nuovaLettura(lok);
+    ricordaAnnulla({ p, testo: 'ok qualità alle ' + ripData.toTimeString().slice(0, 5), nuove: [lok.id], presse: avvioData.getTime() !== av.getTime() ? primaAvvio : null });
     aggiornaFerme(); disegnaElencoPresse(); disegnaRiepilogo(); disegnaHome();
     $('msg').textContent = 'Pressa ' + p + ': avvio macchina alle ' + avvioData.toTimeString().slice(0, 5) + ', ok qualità alle ' + ripData.toTimeString().slice(0, 5) + ', in produzione.';
     if (!$('vista-produzione').hidden) { disegnaProduzione(); msgProd($('msg').textContent, true); }
@@ -2531,7 +2548,9 @@ $('conferma-riparte').onclick = () => {
     return;
   }
   if (ripModo === 'nuova') {                            // commessa nuova: l'ora si salva sulla "Fine commessa" e le ore lavorate si ricalcolano da lì
-    aggiornaLettura(ultimaLettura(p).id, { partenza_commessa: ripData.toISOString() });
+    const uf = ultimaLettura(p);
+    ricordaAnnulla({ p, testo: 'commessa nuova partita alle ' + ripData.toTimeString().slice(0, 5), letture: [{ id: uf.id, prima: primaLettura(uf, { partenza_commessa: 1 }) }] });
+    aggiornaLettura(uf.id, { partenza_commessa: ripData.toISOString() });
     dialogoRiparte.close();
     oreManuali = false; aggiornaOre();
     $('msg').textContent = 'Pressa ' + p + ': commessa nuova partita alle ' + ripData.toTimeString().slice(0, 5) + '.';
@@ -2649,6 +2668,40 @@ document.querySelectorAll('#dialogo-riprendi [data-riprendi]').forEach(b => {
     else riparte(riprendiPressa, b.dataset.riprendi);                        // la nuova: l'orologio per l'ora di partenza
   };
 });
+// ---------------- Annulla ----------------
+// L'ultima azione fatta per sbaglio su una pressa (ripresa della commessa vecchia, commessa nuova, dati commessa, avvio macchina, ok qualità)
+// si può annullare fino a fine turno, solo da chi l'ha fatta: le letture nuove si tolgono, quelle cambiate e la pressa tornano com'erano.
+let annullaAz = leggiLocale(PREF + 'annulla', null), timerAnnulla = null;
+const primaLettura = (l, campi) => { const o = {}; for (const k in campi) o[k] = l[k] === undefined ? null : l[k]; return o; };
+function primaPressa(p, campi) {
+  const i = infoPresse[p] || {}, o = {};
+  for (const k in campi) { const m = CAMPO_INFO[k]; if (!m) continue; const v = i[m[0]]; o[k] = v === undefined || v === m[1] || v === '' ? null : v; }
+  return o;
+}
+const annullaValido = p => !!annullaAz && (p == null || annullaAz.p === p) && annullaAz.turno === chiaveTurno(turnoDi(oraDiScrittura())) && annullaAz.uid === (db && db.uid);
+function ricordaAnnulla(a) {
+  annullaAz = { ...a, turno: chiaveTurno(turnoDi(oraDiScrittura())), uid: db.uid }; salva(PREF + 'annulla', annullaAz);
+  $('annulla-testo').textContent = 'Pressa ' + a.p + ': ' + a.testo;
+  $('barra-annulla').hidden = false;
+  clearTimeout(timerAnnulla); timerAnnulla = setTimeout(() => { $('barra-annulla').hidden = true; }, 60000);
+}
+function eseguiAnnulla() {
+  if (!annullaValido() || !inTurno()) return;
+  const a = annullaAz; annullaAz = null; salva(PREF + 'annulla', null);
+  clearTimeout(timerAnnulla); $('barra-annulla').hidden = true;
+  if (a.nuove && a.nuove.length) eliminaLetture(a.nuove);
+  (a.letture || []).forEach(x => aggiornaLettura(x.id, x.prima));
+  if (a.presse && Object.keys(a.presse).length) { applicaCampi(a.p, a.presse); db.aggiornaPressa(a.p, a.presse).catch(erroreDati); }
+  aggiornaFerme();
+  if (pressaAperta === a.p) chiudi(); else disegnaElencoPresse();
+  disegnaRiepilogo(); disegnaHome();
+  const m = 'Pressa ' + a.p + ': annullato (' + a.testo + ').';
+  $('msg').textContent = m;
+  if (!$('vista-produzione').hidden) { disegnaProduzione(); msgProd(m, true); }
+}
+$('annulla-btn').onclick = eseguiAnnulla;
+$('btn-annulla-az').onclick = eseguiAnnulla;
+$('menu-annulla').onclick = () => { dialogoPressa.close(); eseguiAnnulla(); };
 // Riprendi la vecchia commessa: la Fine commessa diventa un fermo (il contatore continua), la pressa riparte adesso con la commessa
 // e i dati di prima (dall'archivio: dati e kg di mescola della chiusura). Niente orologio né altre domande.
 function riprendiVecchia(p) {
@@ -2658,11 +2711,13 @@ function riprendiVecchia(p) {
   const adesso = alMinuto(oraDiScrittura());
   const r = archivio.filter(a => a.pressa === p && (!u.articolo || a.articolo === u.articolo)).sort((a, b) => a.ora < b.ora ? 1 : -1)[0] || null;
   const commessa = u.commessa || (r ? r.commessa : '') || (infoPresse[p] || {}).datiPer || '', articolo = u.articolo || (r ? r.articolo : '') || '';
-  aggiornaLettura(u.id, { fine_commessa: null, partenza_commessa: null, evento: u.evento === 'fine_commessa' ? null : u.evento,
-    fermo: true, ripresa_stessa: true, ripartita_alle: adesso.toISOString() });
+  const cl = { fine_commessa: null, partenza_commessa: null, evento: u.evento === 'fine_commessa' ? null : u.evento, fermo: true, ripresa_stessa: true, ripartita_alle: adesso.toISOString() };
   const campi = { articolo: articolo || null, commessa: commessa || null, ora: new Date().toISOString(), nome: accesso.nome };
   if (r && r.commessa === commessa) Object.assign(campi, campiDaArchivio(r, commessa, { pezzi: 0 }));   // i pezzi continuano col contatore
+  const annullo = { p, testo: 'ripresa la commessa ' + (commessa || 'di prima'), letture: [{ id: u.id, prima: primaLettura(u, cl) }], presse: primaPressa(p, campi) };
+  aggiornaLettura(u.id, cl);
   applicaCampi(p, campi); db.aggiornaPressa(p, campi).catch(erroreDati);
+  ricordaAnnulla(annullo);
   aggiornaFerme();
   if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
   disegnaRiepilogo();
@@ -2698,6 +2753,7 @@ function preparaCampi(p) {
   $('ripartenza').hidden = !eFerma(u) || eSolo(ult);   // con "Riparte ora" l'ora è già segnata: niente domanda
   $('btn-ferma').hidden = eFerma(ult); $('btn-riparte').hidden = !eFerma(ult);
   $('btn-fine-ferma').hidden = !eFerma(ult);   // ferma: si può chiudere la commessa (la finestra con l'ultima lettura)
+  $('btn-annulla-az').hidden = !annullaValido(p); if (annullaValido(p)) $('btn-annulla-az').textContent = 'Annulla: ' + annullaAz.testo;
   oreManuali = false;
   aggiornaOre();
 }
