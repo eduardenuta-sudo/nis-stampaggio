@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030160148">
-<meta name="aggiornamento" content="116">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030160351">
+<meta name="aggiornamento" content="117">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -2223,7 +2223,7 @@ const dialogoPressa = $('dialogo-pressa');
 let menuPressa = null;
 function apriMenuPressa(p) {
   menuPressa = p; $('menu-pressa').textContent = p;
-  $('menu-togli').hidden = !(avvioInAttesa(p) && !commessaAperta(p) && inTurno());
+  $('menu-togli').hidden = !((avvioInAttesa(p) || riscaldamentoDi(p)) && !commessaAperta(p) && inTurno());
   $('menu-annulla').hidden = !annullaValido(p); if (annullaValido(p)) $('menu-annulla').textContent = 'Annulla: ' + annullaAz.testo;
   if (typeof dialogoPressa.showModal === 'function') dialogoPressa.showModal(); else dialogoPressa.setAttribute('open', '');
 }
@@ -2353,7 +2353,7 @@ const commessaAperta = p => { const u = ultimaReale(p); return !!u && !eFine(u);
 const inMemoria = p => commessaAperta(p) || !!commessaNuova(p) || !!avvioInAttesa(p) || !!riscaldamentoDi(p) || !!datiPressa(p);
 function togliDavvero(p) {
   const aperta = commessaAperta(p), com = commessaCorrente(p).commessa;
-  const tieni = inMemoria(p) && (aperta || !avvioInAttesa(p));   // in attesa ok qualità la commessa non è partita: si toglie del tutto, senza cicli
+  const tieni = inMemoria(p) && (aperta || !(avvioInAttesa(p) || riscaldamentoDi(p)));   // in riscaldamento o attesa ok qualità la commessa non è partita: si toglie del tutto, senza cicli
   PRESSE = PRESSE.filter(x => x !== p);
   if (tieni) { nascoste.push(p); db.aggiornaPressa(p, { nascosta: true }).catch(erroreDati); }   // solo dalla vista: i dati restano
   else { delete infoPresse[p]; db.togliPressa(p).catch(erroreDati); }
