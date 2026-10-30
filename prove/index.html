@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030123515">
-<meta name="aggiornamento" content="113">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030123754">
+<meta name="aggiornamento" content="114">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -2399,7 +2399,8 @@ function mostraRiparte(avviso) {
   $('rip-giorno').textContent = ripData.toDateString() === new Date().toDateString() ? 'Oggi' : 'Il ' + ripData.toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: '2-digit' });
   $('avviso-riparte').textContent = avviso || '';
 }
-const testoPrima = () => (ripModo === 'ferma' || ripModo === 'okq' ? "Prima dell'ultima lettura (" : 'Prima del fermo (') + ripMin.toTimeString().slice(0, 5) + ') non si può.';
+let ripDopoRipartenza = false;
+const testoPrima = () => (ripModo === 'ferma' && ripDopoRipartenza ? 'Prima della ripartenza (' : ripModo === 'ferma' || ripModo === 'okq' ? "Prima dell'ultima lettura (" : 'Prima del fermo (') + ripMin.toTimeString().slice(0, 5) + ') non si può.';
 // ok qualità spostato prima dell'avvio: l'avvio va indietro con lui
 const okPrimaDiAvvio = () => { if (ripModo === 'okq' && ripData < avvioData) avvioData = ripData; };
 // ok della qualità: si sceglie l'ora (adesso o indietro, mai prima dell'avvio macchina); da lì la pressa è in produzione
@@ -2426,6 +2427,8 @@ function ferma(p) {
   ripPressa = p; ripModo = 'ferma';
   const u = ultimaLettura(p);
   ripMin = u ? alMinuto(u.ora) : turnoDi(new Date(Date.now() - 8 * 3600e3)).inizio;
+  ripDopoRipartenza = !!(u && u.ripartita_alle && new Date(u.ripartita_alle) > ripMin);   // ripartita dopo l'ultima lettura: non si ferma prima di essere ripartita
+  if (ripDopoRipartenza) ripMin = alMinuto(u.ripartita_alle);
   ripData = alMinuto(oraDiScrittura());
   if (ripData < ripMin) ripData = ripMin;
   $('riparte-pressa').textContent = p;
