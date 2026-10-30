@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030111741">
-<meta name="aggiornamento" content="102">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030112959">
+<meta name="aggiornamento" content="103">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -726,6 +726,8 @@ if (/prove/.test(location.pathname)) {
     <div class="blocco" id="azioni-fermo">
       <button id="btn-ferma" class="salva" style="width:100%">Ferma la pressa</button>
       <button id="btn-riparte" class="salva" style="width:100%" hidden>La pressa riparte</button>
+      <!-- ferma e già letta da ferma: la commessa si chiude con i cicli di quella lettura, senza leggerli di nuovo -->
+      <button id="btn-fine-ferma" class="annulla" style="width:100%;margin-top:12px" hidden>Fine commessa</button>
       <!-- "Ferma la pressa" con motivo Fine commessa: servono ancora i cicli finali -->
       <div id="fine-scelta" hidden>
         <span id="fine-testo"></span>
@@ -1405,8 +1407,13 @@ const TITOLI = { produzione: 'Produzione', dati: 'Dati commessa', leggi: 'Lettur
 let pressaDati = null;                              // la pressa di cui si vedono i dati commessa
 // pulsante a due righe: sopra in grande Avanti/Indietro, sotto in piccolo dove porta
 const duePassi = (grande, piccolo) => '<span class="n-grande">' + grande + '</span><span class="n-piccolo">' + piccolo + '</span>';
+let ricordoProd = null;                               // la pressa di Produzione che si guardava prima della pagina dati, e a che altezza
 function vai(nome) {
   if (nome === 'riepilogo') nome = 'leggi';
+  if (!$('vista-produzione').hidden && nome === 'dati') {
+    const v = document.querySelector('.prod-voce[data-p="' + pressaDati + '"]');
+    ricordoProd = { p: pressaDati, y: window.scrollY, alto: v ? v.getBoundingClientRect().top : null };
+  }
   if (!VISTE.includes(nome) || ((nome === 'produzione' || nome === 'dati') && !PROVA)) nome = 'home';   // Produzione solo nella versione sviluppatore
   if (nome === 'dati' && (pressaDati == null || !PRESSE.includes(pressaDati))) nome = 'produzione';
   if (!accesso || accesso.attesa) nome = 'entra';  // senza codice reparto (o in attesa di conferma) si resta alla schermata di accesso
@@ -1432,6 +1439,11 @@ function vai(nome) {
   disegnaRichieste();
   if (location.hash !== '#' + nome) history.replaceState(null, '', '#' + nome);
   window.scrollTo(0, 0);
+  if (nome === 'produzione' && ricordoProd) {          // tornando dalla pagina dati: la stessa pressa alla stessa altezza (anche se è cambiato l'ordine)
+    const r = ricordoProd, v = document.querySelector('.prod-voce[data-p="' + r.p + '"]');
+    ricordoProd = null;
+    window.scrollTo(0, v && r.alto != null ? Math.max(0, window.scrollY + v.getBoundingClientRect().top - r.alto) : r.y);
+  } else if (nome !== 'dati') ricordoProd = null;
 }
 $('vai-altra').onclick = () => vai($('vai-altra').dataset.vai);
 $('indietro').onclick = () => vai(location.hash === '#storico' ? 'leggi' : location.hash === '#dati' ? 'produzione' : 'home');
@@ -1590,7 +1602,7 @@ function disegnaProduzione() {
     // in riscaldamento: Dati commessa e Avvio macchina; in attesa: Dati commessa e Ok qualità
     c.querySelector('.azioni-prod').innerHTML = (risc || att) && scr ? '<button type="button" class="chip" data-dati="' + p + '">Dati commessa</button>' +
       (risc ? '<button type="button" class="chip avvia" data-avvia="' + p + '">Avvio macchina</button>' : '<button type="button" class="chip avvia" data-okprod="' + p + '">Ok qualità</button>')
-      : ferma && scr ? '<button type="button" class="chip avvia" data-riparteprod="' + p + '">Riparte ora</button><button type="button" class="chip" data-chiudiprod="' + p + '">Chiudi commessa</button>' : '';
+      : ferma && scr ? '<button type="button" class="chip avvia" data-riparteprod="' + p + '">Riparte ora</button><button type="button" class="chip" data-chiudiprod="' + p + '">' + (chiusuraDa === p ? 'Confermo' : 'Chiudi commessa') + '</button>' : '';
     const stato = c.querySelector('.stato-fermo');   // ferma: "Fermo per manutenzione · 1h 20min" sotto la testa
     stato.textContent = ferma ? testoEvento(u, { totale: minutiFermoNelTurno(p) }) : ''; stato.hidden = !ferma;
     gruppi[ferma ? 'ferme' : att || risc ? 'attesa' : 'lavoro'].push(p);
@@ -2413,10 +2425,51 @@ $('conferma-riparte').onclick = () => {
   $('msg').textContent = 'Pressa ' + p + ' ripartita alle ' + ripData.toTimeString().slice(0, 5) + '.';
   if (!$('vista-produzione').hidden) { disegnaProduzione(); msgProd($('msg').textContent, true); }
 };
+// Ferma e già letta da ferma (l'ultima lettura ha i cicli e il fermo continua): il contatore non può essere cambiato,
+// quindi "Fine commessa" chiude con quei cicli senza chiederli di nuovo (anche nel turno dopo). Primo tocco: avviso; secondo: chiude.
+const cicliDaFerma = p => { const u = ultimaLettura(p); return ferme.includes(p) && u && !eSolo(u) && !eFine(u) ? u : null; };
+let chiusuraDa = null, timerChiusura = null;           // pressa con la chiusura senza cicli già avvisata
+function annullaChiusura() {
+  clearTimeout(timerChiusura); chiusuraDa = null;
+  $('btn-fine-ferma').textContent = 'Fine commessa';
+  document.querySelectorAll('[data-chiudiprod]').forEach(b => { b.textContent = 'Chiudi commessa'; });
+}
+function testoChiusura(p) {
+  const u = cicliDaFerma(p);
+  return 'Pressa ferma dalla lettura di ' + quandoBreve(new Date(u.ora)) + ': la commessa ' + (u.commessa || '') + ' si chiude con ' + nIt(u.cicli) + ' cicli, senza leggerli di nuovo. Tocca Confermo.';
+}
+// mostra(t): dove scrivere l'avviso; restituisce true se ha chiuso
+function chiudiSenzaCicli(p, mostra) {
+  const u = cicliDaFerma(p);
+  if (!inTurno() || !u) return false;
+  if (chiusuraDa !== p) {
+    annullaChiusura(); chiusuraDa = p; mostra(testoChiusura(p));
+    $('btn-fine-ferma').textContent = 'Confermo'; document.querySelectorAll('[data-chiudiprod="' + p + '"]').forEach(b => { b.textContent = 'Confermo'; });
+    timerChiusura = setTimeout(annullaChiusura, 15000);
+    return false;
+  }
+  annullaChiusura();
+  const adesso = oraDiScrittura(), t = oreTurno(p, adesso, u, null);   // il fermo arriva fino alla chiusura
+  const lettura = { pressa: p, cicli: u.cicli, ora: adesso.toISOString(), ore: t.lavorate, ore_fermo: t.ferme, fine_commessa: true, ripartenza: adesso.toISOString() };
+  if (u.articolo) lettura.articolo = u.articolo;
+  if (u.commessa) lettura.commessa = u.commessa;
+  const chiusa = chiusuraCommessa(p, lettura);
+  nuovaLettura(lettura);
+  if (chiusa) salvaArchivio(chiusa);
+  aggiornaFerme();
+  if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
+  disegnaRiepilogo();
+  const m = 'Pressa ' + p + ': commessa ' + (u.commessa || '') + ' chiusa con ' + nIt(u.cicli) + ' cicli. Ora la puoi togliere dall\'elenco.';
+  $('msg').textContent = m;
+  if (!$('vista-produzione').hidden) { disegnaProduzione(); msgProd(m); }
+  return true;
+}
+$('btn-fine-ferma').onclick = () => chiudiSenzaCicli(pressaAperta, t => { $('avviso-salva').textContent = t; });
 // Chiudi commessa da una pressa ferma (Produzione): si va alla Lettura cicli della pressa con "Fine commessa" adesso, mancano solo i cicli;
 // il fermo arriva fino alla chiusura
 function chiudiDaFerma(p) {
   if (!inTurno() || !ferme.includes(p)) return;
+  if (cicliDaFerma(p)) { chiudiSenzaCicli(p, t => msgProd(t)); return; }   // già letta da ferma: niente cicli da chiedere
   vai('leggi');
   apri(p);
   if (pressaAperta !== p) return;
@@ -2497,6 +2550,7 @@ function preparaCampi(p) {
   $('rip-ora-blocco').hidden = true;
   $('ripartenza').hidden = !eFerma(u) || eSolo(ult);   // con "Riparte ora" l'ora è già segnata: niente domanda
   $('btn-ferma').hidden = eFerma(ult); $('btn-riparte').hidden = !eFerma(ult);
+  $('btn-fine-ferma').hidden = !cicliDaFerma(p); annullaChiusura();
   oreManuali = false;
   aggiornaOre();
 }
