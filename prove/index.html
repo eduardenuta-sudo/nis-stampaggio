@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030161938">
-<meta name="aggiornamento" content="120">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030163232">
+<meta name="aggiornamento" content="121">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -290,6 +290,8 @@ if (/prove/.test(location.pathname)) {
   #ospite-chi { flex-wrap: wrap; }
   .svuota-presse { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
   .svuota-presse button.chip { padding: 10px 14px; }
+  #ore-griglia { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 18px 0 22px; }   /* Riscaldamento: 12 scelte in 4×3, tutte uguali */
+  #ore-griglia button.chip { padding: 12px 4px; text-align: center; white-space: nowrap; }
 
   /* aggiungi pressa, sotto l'elenco */
   .aggiungi { margin: -14px 0 30px; }
