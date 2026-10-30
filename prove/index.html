@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030171130">
-<meta name="aggiornamento" content="126">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030172151">
+<meta name="aggiornamento" content="127">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -214,6 +214,8 @@ if (/prove/.test(location.pathname)) {
   button.chip[aria-pressed="true"] { color: var(--su-giallo); border-color: transparent; background: linear-gradient(#dde333, var(--giallo) 55%, #b3b900);
     box-shadow: 0 5px 0 #7d8100, 0 10px 14px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.5); }
   button.chip:active { transform: translateY(4px); }
+  button.chip.verde { color: #04251a; border-color: #9af5d0; background: linear-gradient(#5fe3ae, #1fb581 55%, #128a60); box-shadow: 0 5px 0 #0b5c3f, 0 10px 14px rgba(0,0,0,.4), inset 0 2px 0 rgba(255,255,255,.5); }   /* In temperatura */
+  button.chip.arancio { color: #2a1500; border-color: #ffd9a0; background: linear-gradient(#ffc070, #ff7a00 55%, #c25500); box-shadow: 0 5px 0 #7a3300, 0 10px 14px rgba(0,0,0,.4), inset 0 2px 0 rgba(255,255,255,.5); }   /* +30 minuti */
   dialog { width: min(92vw, 420px); padding: 24px; border: 1px solid var(--line); border-radius: 26px; background: #0a2457; color: var(--ink);
     box-shadow: 0 24px 60px rgba(0,0,0,.6); animation: sale-dialogo .3s cubic-bezier(.16,1,.3,1); }
   dialog::backdrop { background: rgba(3,10,26,.74); }
@@ -1659,8 +1661,9 @@ function disegnaProduzione() {
       (risc ? '<span class="risc">riscaldamento</span>' : '');
     // in riscaldamento: Dati commessa e Avvio macchina; in attesa: Dati commessa e Ok qualità
     c.querySelector('.azioni-prod').innerHTML = (risc || att) && scr ? '<button type="button" class="chip" data-dati="' + p + '">Dati commessa</button>' +
-      (risc ? (chiediTemperatura(p) ? '<button type="button" class="chip avvia" data-intemp="' + p + '">In temperatura</button><button type="button" class="chip" data-piu30="' + p + '">+30 min</button>' : '') +
-        '<button type="button" class="chip avvia" data-avvia="' + p + '">Avvio macchina</button>' : '<button type="button" class="chip avvia" data-okprod="' + p + '">Ok qualità</button>')
+      (risc ? '<button type="button" class="chip avvia" data-avvia="' + p + '">Avvio macchina</button>' +
+        (chiediTemperatura(p) ? '<button type="button" class="chip verde" data-intemp="' + p + '">In temperatura</button><button type="button" class="chip arancio" data-piu30="' + p + '">+30 minuti</button>' : '')
+        : '<button type="button" class="chip avvia" data-okprod="' + p + '">Ok qualità</button>')
       : ferma && scr ? '<button type="button" class="chip avvia" data-riparteprod="' + p + '">Riparte ora</button><button type="button" class="chip" data-chiudiprod="' + p + '">Chiudi commessa</button>' : '';
     const stato = c.querySelector('.stato-fermo');   // ferma: "Fermo per manutenzione · 1h 20min" sotto la testa
     stato.textContent = ferma ? testoEvento(u, { totale: minutiFermoNelTurno(p) }) : ''; stato.hidden = !ferma;
