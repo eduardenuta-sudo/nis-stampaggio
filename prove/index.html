@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030174715">
-<meta name="aggiornamento" content="129">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030201813">
+<meta name="aggiornamento" content="130">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -390,7 +390,8 @@ if (/prove/.test(location.pathname)) {
   .pressa-prod .risc { margin-left: auto; font-size: .8rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #ffc27a; }
   .pressa-prod .str-com.str-risc .barra i { background: linear-gradient(#ffc070, #ff7a00 55%, #c25500); }
   .pressa-prod .str-com.str-calda .barra i { background: linear-gradient(#5fe3ae, #1fb581 55%, #128a60); }
-  .pressa-prod .apri-mescola { all: unset; position: relative; z-index: 3; flex: none; display: flex; cursor: pointer; -webkit-tap-highlight-color: transparent; border-radius: 10px; }
+  .pressa-prod .apri-mescola { all: unset; position: relative; z-index: 3; flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; -webkit-tap-highlight-color: transparent; border-radius: 10px; }
+  .pressa-prod .cas-et { font-family: 'Barlow Condensed', Barlow, Arial, sans-serif; font-weight: 700; font-size: 1rem; letter-spacing: .06em; color: #fff; white-space: nowrap; line-height: 1.1; }   /* codice mescola sotto il cassone */
   .pressa-prod .apri-mescola:focus-visible { outline: 3px solid var(--giallo); outline-offset: 2px; }
   body:has(#aggiungi-blocco:not([hidden])) { padding-bottom: 75vh; }   /* Aggiungi pressa aperto: la pagina può salire fino in cima e i pulsanti restano sopra la tastiera */
   #aggiungi-modi { display: flex; gap: 12px; margin-top: 22px; }
@@ -1570,7 +1571,7 @@ function classiPressa(p, ferma, motivo, att, risc) {
 // le due strisce sotto la pressa: avanzamento della commessa e mescola a bordo (col cassone davanti)
 const striscePronte = () =>
   '<div class="str str-com"><div class="str-testa"><span class="str-com-et">Commessa</span><span class="str-val"></span></div><div class="barra"><i style="width:0%"></i><span class="barra-pct"></span></div><div class="str-nota"></div></div>' +
-  '<div class="str str-mes"><button type="button" class="apri-mescola" aria-label="Mescola a bordo pressa"><svg class="ico-cassone" viewBox="0 0 160 130" aria-hidden="true"><use href="#cassone"/><g transform="rotate(1.5 78 84)"><text class="cas-cod" x="79" y="104" text-anchor="middle" font-family="Barlow Condensed, Barlow, Arial Narrow, sans-serif" font-weight="700" font-size="13" letter-spacing=".6" fill="#10151f"></text></g></svg></button>' +
+  '<div class="str str-mes"><button type="button" class="apri-mescola" aria-label="Mescola a bordo pressa"><svg class="ico-cassone" viewBox="0 0 160 130" aria-hidden="true"><use href="#cassone"/><g transform="rotate(1.5 78 84)"><text class="cas-cod" x="79" y="104" text-anchor="middle" font-family="Barlow Condensed, Barlow, Arial Narrow, sans-serif" font-weight="700" font-size="13" letter-spacing=".6" fill="#10151f"></text></g></svg><span class="cas-et"></span></button>' +
   '<div class="str-corpo"><div class="str-testa"><span class="str-mes-et">Mescola</span><span class="str-val"></span></div><div class="barra"><i style="width:0%"></i></div><div class="str-nota"></div></div></div>';
 function disegnaStrisce(c, p) {
   const k = contiPressa(p), att = avvioInAttesa(p), com = c.querySelector('.str-com'), mes = c.querySelector('.str-mes');
@@ -1618,7 +1619,8 @@ function disegnaStrisce(c, p) {
   c.querySelector('.cas-cod').textContent = codice;
   c.querySelector('.cas-cod').setAttribute('font-size', codice ? Math.min(13, 80 / codice.length).toFixed(1) : 13);
   mes.classList.remove('rosso', 'arancio');
-  c.querySelector('.str-mes-et').textContent = 'Mescola' + (codice ? ' ' + codice : '');
+  c.querySelector('.str-mes-et').textContent = '';
+  c.querySelector('.cas-et').textContent = codice;   // il codice sta sotto l'icona del cassone
   if (i.kg == null) metti(mes, '', 0, 'Tocca la pressa e scrivi i kg di mescola a bordo.', true);
   else if (k.rim == null) metti(mes, '<b>' + nIt(i.kg, 1) + '</b> kg scritti' + (i.kgOra ? ' ' + quandoBreve(new Date(i.kgOra)) : ''), 0,   // senza i dati della commessa non si sa quanta ne è stata usata da allora
     k.d ? 'Scrivi anche il peso della stampata per contare quanta ne resta.' : 'Scrivi i dati della commessa per contare quanta ne resta.');
