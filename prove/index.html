@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030105712">
-<meta name="aggiornamento" content="100">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030110411">
+<meta name="aggiornamento" content="101">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1788,6 +1788,7 @@ function apriDati() {
   $('dati-nota').hidden = !vecchi;
   if (vecchi) $('dati-nota').textContent = 'I dati di prima erano della commessa ' + i.datiPer + ': scrivi quelli della commessa nuova.';
   $('avviso-dati').textContent = '';
+  cambioConfermato = null; $('dati-salva').textContent = 'Salva i dati';
   const gia = ultimaDi(p, c.articolo, i.mescola || '');
   compilatoDa = gia && gia.mescola === (i.mescola || '') ? gia.id : null;   // aprendo la pagina non si ricopia niente sopra i dati che ci sono
   disegnaDatiRighe();
@@ -1807,6 +1808,8 @@ $('d-mescola').oninput = () => {                      // si scrivono solo numeri
   if (v !== $('d-mescola').value) $('d-mescola').value = v;
 };
 $('dati-salva').onclick = () => salvaDati();
+let cambioConfermato = null;                          // commessa nuova già avvisata ("Prendi i cicli…"): il secondo tocco la salva
+$('d-commessa').addEventListener('input', () => { if (cambioConfermato) { cambioConfermato = null; $('dati-salva').textContent = 'Salva i dati'; } });
 // ripresa: { pezzi } scelto nella domanda "Continua da dove era / Riparte da zero" (commessa già stampata su questa pressa)
 function salvaDati(ripresa) {
   const p = pressaDati;
@@ -1823,6 +1826,12 @@ function salvaDati(ripresa) {
   const codice = $('d-mescola').value.trim();
   if (codice && !CODICE_MESCOLA.test(codice)) { $('avviso-dati').textContent = 'Mescola: scrivi solo numeri e «/», e al massimo B dopo una «/» (es. 316/193 oppure 316/B).'; $('d-mescola').focus(); return; }
   const mescola = codice ? 'M-' + codice : '', i = infoPresse[p] || {}, corr = commessaCorrente(p), adesso = new Date().toISOString();
+  if (commessa !== corr.commessa && corr.commessa && commessaAperta(p) && cambioConfermato !== commessa) {   // la commessa in corso non è chiusa con i cicli
+    cambioConfermato = commessa; $('dati-salva').textContent = 'Confermo';
+    $('avviso-dati').textContent = 'La commessa ' + corr.commessa + ' non è chiusa: manca la lettura dei cicli di chiusura (Fermo macchina → Fine commessa in Lettura cicli). ' + PRENDI_CICLI + ' Tocca Confermo per cambiarla lo stesso.';
+    return;
+  }
+  if (cambioConfermato) { cambioConfermato = null; $('dati-salva').textContent = 'Salva i dati'; }
   const vecchia = commessa && commessa !== corr.commessa ? ultimaDi(p, articolo, mescola) : null;
   if (ripresa === undefined && vecchia && vecchia.commessa === commessa) { domandaRipresa(p, vecchia, r => salvaDati(r)); return; }
   const oltranza = $('d-oltranza').checked && !!(q || v || c || g);   // vale per la commessa dei dati
@@ -2167,7 +2176,7 @@ function aggiungi(modo, pulsante) {
     db.aggiornaPressa(p, { nascosta: null }).catch(erroreDati);
     $('aggiungi-blocco').hidden = true; $('aggiungi-apri').setAttribute('aria-expanded', 'false'); $('aggiungi-num').blur();
     disegnaElencoPresse(); disegnaRiepilogo();
-    const t = 'Pressa ' + p + ' rimessa: riprende la commessa ' + commessaCorrente(p).commessa + ' da dove era.';
+    const com = commessaCorrente(p).commessa, t = 'Pressa ' + p + ' rimessa: riprende ' + (com ? 'la commessa ' + com + ' ' : '') + 'da dove era.' + (commessaAperta(p) ? ' ' + PRENDI_CICLI : '');
     $('avviso-aggiungi').textContent = $('vista-produzione').hidden ? '' : t; $('msg').textContent = t;
     if (!$('vista-produzione').hidden) disegnaProduzione();
     return;
@@ -2207,16 +2216,23 @@ function togliPressa(p) {
   }
   togliDavvero(p);
 }
-let nascoste = [];                                    // presse tolte con la commessa ancora in corso: restano nel database, nascoste
+// Una pressa si toglie davvero solo dopo la lettura dei cicli di chiusura commessa (Fine commessa), o se non ha niente in memoria;
+// altrimenti resta nel database, nascosta, con i suoi dati: rimessa con Aggiungi pressa riprende da dove era.
+let nascoste = [];
+const PRENDI_CICLI = 'Prendi i cicli prima di avviare una nuova commessa.';
+const commessaAperta = p => { const u = ultimaReale(p); return !!u && !eFine(u); };   // ha prodotto e manca la lettura di chiusura
+const inMemoria = p => commessaAperta(p) || !!commessaNuova(p) || !!avvioInAttesa(p) || !!riscaldamentoDi(p) || !!datiPressa(p);
 function togliDavvero(p) {
-  const inCorso = commessaCorrente(p).commessa;
+  const tieni = inMemoria(p), aperta = commessaAperta(p), com = commessaCorrente(p).commessa;
   PRESSE = PRESSE.filter(x => x !== p);
-  if (inCorso) { nascoste.push(p); db.aggiornaPressa(p, { nascosta: true }).catch(erroreDati); }   // solo dalla vista: i dati restano
+  if (tieni) { nascoste.push(p); db.aggiornaPressa(p, { nascosta: true }).catch(erroreDati); }   // solo dalla vista: i dati restano
   else { delete infoPresse[p]; db.togliPressa(p).catch(erroreDati); }
   salvaPresse();
   if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
   disegnaRiepilogo();
-  const t = inCorso ? 'Pressa ' + p + ' tolta dall\'elenco. La commessa ' + inCorso + ' non è finita: se la rimetti, riprende da dove era.' : 'Pressa ' + p + ' tolta dall\'elenco. Le sue letture restano nello storico.';
+  const t = !tieni ? 'Pressa ' + p + ' tolta dall\'elenco. Le sue letture restano nello storico.'
+    : 'Pressa ' + p + ' tolta solo dalla vista: i dati' + (com ? ' della commessa ' + com : '') + ' restano in memoria e, se la rimetti, riprende da dove era.' +
+      (aperta ? ' Manca la lettura dei cicli di chiusura commessa (Fermo macchina → Fine commessa): ' + PRENDI_CICLI : '');
   if (!$('vista-produzione').hidden) { disegnaProduzione(); msgProd(t, true); }
   $('msg').textContent = t;
 }
