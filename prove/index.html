@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030124212">
-<meta name="aggiornamento" content="115">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030160148">
+<meta name="aggiornamento" content="116">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -954,6 +954,7 @@ if (/prove/.test(location.pathname)) {
     <button class="chip" id="menu-dati">Dati commessa</button>
     <button class="chip" id="menu-lettura">Lettura cicli</button>
     <button class="chip" id="menu-annulla" hidden></button>
+    <button class="chip" id="menu-togli" hidden>Togli pressa</button>
   </div>
   <button id="annulla-menu" class="annulla">Annulla</button>
 </dialog>
@@ -2222,6 +2223,7 @@ const dialogoPressa = $('dialogo-pressa');
 let menuPressa = null;
 function apriMenuPressa(p) {
   menuPressa = p; $('menu-pressa').textContent = p;
+  $('menu-togli').hidden = !(avvioInAttesa(p) && !commessaAperta(p) && inTurno());
   $('menu-annulla').hidden = !annullaValido(p); if (annullaValido(p)) $('menu-annulla').textContent = 'Annulla: ' + annullaAz.testo;
   if (typeof dialogoPressa.showModal === 'function') dialogoPressa.showModal(); else dialogoPressa.setAttribute('open', '');
 }
@@ -2232,6 +2234,7 @@ $('menu-lettura').onclick = () => {
   vai('leggi');
   apri(p);                                             // la tendina di quella pressa (in attesa: l'ok qualità; in riscaldamento: lo dice)
 };
+$('menu-togli').onclick = () => { const p = menuPressa; dialogoPressa.close(); togliPressa(p); };
 $('annulla-menu').onclick = () => dialogoPressa.close();
 dialogoPressa.addEventListener('click', e => { if (e.target === dialogoPressa) dialogoPressa.close(); });
 // "Dati commessa" (riscaldamento e attesa): senza commessa si sceglie articolo e commessa nuova o vecchia, altrimenti la pagina dati
@@ -2349,7 +2352,8 @@ const PRENDI_CICLI = 'Prendi i cicli prima di avviare una nuova commessa.';
 const commessaAperta = p => { const u = ultimaReale(p); return !!u && !eFine(u); };   // ha prodotto e manca la lettura di chiusura
 const inMemoria = p => commessaAperta(p) || !!commessaNuova(p) || !!avvioInAttesa(p) || !!riscaldamentoDi(p) || !!datiPressa(p);
 function togliDavvero(p) {
-  const tieni = inMemoria(p), aperta = commessaAperta(p), com = commessaCorrente(p).commessa;
+  const aperta = commessaAperta(p), com = commessaCorrente(p).commessa;
+  const tieni = inMemoria(p) && (aperta || !avvioInAttesa(p));   // in attesa ok qualità la commessa non è partita: si toglie del tutto, senza cicli
   PRESSE = PRESSE.filter(x => x !== p);
   if (tieni) { nascoste.push(p); db.aggiornaPressa(p, { nascosta: true }).catch(erroreDati); }   // solo dalla vista: i dati restano
   else { delete infoPresse[p]; db.togliPressa(p).catch(erroreDati); }
