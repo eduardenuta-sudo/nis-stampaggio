@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030094433">
-<meta name="aggiornamento" content="97">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030102127">
+<meta name="aggiornamento" content="98">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -697,12 +697,12 @@ if (/prove/.test(location.pathname)) {
       <!-- presse del reparto non ancora in elenco: un tocco scrive il numero -->
       <div class="svuota-presse" id="aggiungi-scorciatoie"></div>
       <!-- facoltativi: si ripropongono alla prima lettura della pressa -->
-      <div class="blocco riga">
+      <div class="blocco riga" id="aggiungi-campi">
         <div class="campo"><label for="aggiungi-articolo">Articolo</label><input class="testo" id="aggiungi-articolo" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div>
         <div class="campo"><label for="aggiungi-commessa">Commessa</label>
           <div class="prefisso"><span aria-hidden="true">P</span><input class="testo" id="aggiungi-commessa" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div></div>
       </div>
-      <p class="piccolo" id="aggiungi-nota" style="margin:14px 0 0" hidden>Riscaldamento: luce arancione e 3 ore di timer, intanto puoi scrivere i dati della commessa. Avvio macchina: la pressa resta in «attesa ok qualità» finché non segni l'ok in Lettura cicli.</p>
+      <p class="piccolo" id="aggiungi-nota" style="margin:14px 0 0" hidden>Riscaldamento: luce arancione e 3 ore di timer, intanto puoi scrivere i dati della commessa. Avvio macchina: chiede articolo e commessa, poi la pressa resta in «attesa ok qualità» finché non segni l'ok in Lettura cicli.</p>
       <button id="aggiungi-ok" class="salva" style="width:100%;margin-top:22px">Aggiungi</button>
       <div id="aggiungi-modi" hidden><button id="aggiungi-risc" class="salva">Riscaldamento</button><button id="aggiungi-avvio" class="salva">Avvio macchina</button></div>
     </div>
@@ -893,6 +893,35 @@ if (/prove/.test(location.pathname)) {
   <button id="annulla-riprendi" class="annulla">Annulla</button>
 </dialog>
 
+<!-- avvio macchina: articolo, poi commessa nuova o vecchia (con i dati dell'ultima commessa stampata di quell'articolo sulla pressa) -->
+<dialog id="dialogo-avvio" aria-labelledby="titolo-avvio">
+  <h2 class="titolo-sez" id="titolo-avvio">Avvio macchina · pressa <span id="avvio-pressa"></span></h2>
+  <div class="campo"><label for="avvio-articolo">Articolo</label><input class="testo" id="avvio-articolo" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div>
+  <div class="svuota-presse" id="avvio-mescole"></div>
+  <p class="piccolo" id="avvio-ultima" style="margin:12px 0 0"></p>
+  <div class="motivi-lista" id="avvio-scelta" style="margin-top:16px">
+    <button class="chip" id="avvio-vecchia">Riprendi commessa vecchia</button>
+    <button class="chip" id="avvio-nuova">Commessa nuova</button>
+  </div>
+  <div id="avvio-blocco-nuova" hidden style="margin-top:16px">
+    <div class="campo"><label for="avvio-commessa">Commessa nuova</label>
+      <div class="prefisso"><span aria-hidden="true">P</span><input class="testo" id="avvio-commessa" inputmode="numeric" pattern="[0-9]*" maxlength="40" autocomplete="off"></div></div>
+    <button id="avvio-ok" class="salva" style="width:100%;margin-top:16px">Avvia</button>
+  </div>
+  <div class="avviso" id="avviso-avvio" role="alert"></div>
+  <button id="annulla-avvio" class="annulla">Annulla</button>
+</dialog>
+<!-- commessa già stampata su questa pressa: i pezzi continuano da dove era o ripartono da zero -->
+<dialog id="dialogo-ripresa" aria-labelledby="titolo-ripresa">
+  <h2 class="titolo-sez" id="titolo-ripresa">Commessa già stampata</h2>
+  <p class="piccolo" style="margin:0 0 18px" id="testo-ripresa"></p>
+  <div class="motivi-lista">
+    <button class="chip" id="ripresa-continua">Continua da dove era</button>
+    <button class="chip" id="ripresa-zero">Riparte da zero</button>
+  </div>
+  <button id="annulla-ripresa" class="annulla">Annulla</button>
+</dialog>
+
 <!-- lettura a metà turno: si chiede il perché prima di salvare -->
 <dialog id="dialogo-perche" aria-labelledby="titolo-perche">
   <h2 class="titolo-sez" id="titolo-perche">Perché leggi adesso?</h2>
@@ -1006,6 +1035,9 @@ async function dbFirebase(cfg) {
       for (const k in campi) c[k] = campi[k] == null ? F.deleteField() : campi[k];
       return F.updateDoc(F.doc(fs, 'reparti', rep, 'presse', String(p)), c);
     },
+    // archivio: l'ultima commessa di ogni pressa + articolo + mescola
+    ascoltaArchivio(cb) { return F.onSnapshot(F.collection(fs, 'reparti', rep, 'archivio'), s => cb(s.docs.map(d => d.data())), () => {}); },
+    salvaArchivio(id, d) { return F.setDoc(F.doc(fs, 'reparti', rep, 'archivio', id), { ...d, uid }); },
     ascolta(cb, errore) {
       const da = new Date(Date.now() - GIORNI_LETTURE * 864e5).toISOString();
       return F.onSnapshot(F.query(coll(), F.where('ora', '>=', da), F.orderBy('ora')), s => cb(s.docs.map(d => ({ ...d.data(), id: d.id }))), errore);
@@ -1047,7 +1079,8 @@ function dbFinto() {
       ospiti: Object.entries(r.ospiti || {}).map(([u, o]) => ({ ...o, uid: u })) }), 0);
   };
   const cambiaRep = f => { const tutti = reparti(); f(tutti[rep]); salva(K + 'reparti', tutti); avvisaGruppo(); avvisaPresse(); };
-  let presseCb = null;
+  let presseCb = null, archivioCb = null;
+  const avvisaArchivio = () => { if (archivioCb) setTimeout(() => archivioCb(Object.values((reparti()[rep] || {}).archivio || {}).map(x => ({ ...x }))), 0); };
   const avvisaPresse = () => { if (presseCb) setTimeout(() => presseCb(Object.values((reparti()[rep] || {}).presse || {}).map(x => ({ ...x })), true), 0); };
   return {
     uid,
@@ -1077,6 +1110,8 @@ function dbFinto() {
     diventaOspite(nome, sostituisce, richiesta) { cambiaRep(r => { r.ospiti = { ...(r.ospiti || {}), [uid]: { nome, sostituisce, richiesta } }; }); return Promise.resolve(); },
     fineOspite(u) { cambiaRep(r => { const o = { ...(r.ospiti || {}) }; delete o[u]; r.ospiti = o; }); return Promise.resolve(); },
     ascoltaPresse(cb) { presseCb = cb; avvisaPresse(); },
+    ascoltaArchivio(cb) { archivioCb = cb; avvisaArchivio(); },
+    salvaArchivio(id, d) { cambiaRep(r => { r.archivio = { ...(r.archivio || {}), [id]: { ...d, uid } }; }); avvisaArchivio(); return Promise.resolve(); },
     aggiungiPressa(d) {
       if (((reparti()[rep] || {}).presse || {})[d.pressa]) return vietato();   // come le regole: un numero si crea una volta sola
       cambiaRep(r => { r.presse = { ...(r.presse || {}), [d.pressa]: { ...d, uid } }; }); return Promise.resolve();
@@ -1665,7 +1700,7 @@ function contiPressa(p) {
   if (d) {
     k.ritmo = ritmoCommessa(p, d.ciclo);
     est = avvioInAttesa(p) || riscaldamentoDi(p) ? { cicli: 0, stimati: false } : cicliStimati(p, adesso, k.ritmo.cicliOra);
-    k.cicli = Math.floor(est.cicli); k.stimati = est.stimati; k.pezzi = k.cicli * d.vani;
+    k.cicli = Math.floor(est.cicli); k.stimati = est.stimati; k.prima = d.pezziPrima || 0; k.pezzi = k.cicli * d.vani + k.prima;   // commessa ripresa "da dove era": i pezzi di prima contano
     k.pct = k.pezzi / d.quantita * 100;
     k.oltranza = !!d.oltranza;                                  // spuntata prima
     k.oltrAuto = !k.oltranza && k.pezzi >= d.quantita;           // raggiunta la quantità: si prosegue ad oltranza da soli, finché non si fa Fine commessa
@@ -1681,7 +1716,7 @@ function contiPressa(p) {
       k.fineMescola = k.rim > 0 ? fineStimata(k.rim * 1000 / d.stampata, k.ritmo.cicliOra, adesso) : adesso;
       // "chiudo la commessa a fine mescola": la fine della commessa è la fine della mescola
       k.chiudiMescola = !!d.chiudiMescola;
-      if (k.chiudiMescola) { k.fine = k.fineMescola; k.pezziFinali = Math.floor(est.cicli + k.rim * 1000 / d.stampata) * d.vani; }
+      if (k.chiudiMescola) { k.fine = k.fineMescola; k.pezziFinali = Math.floor(est.cicli + k.rim * 1000 / d.stampata) * d.vani + k.prima; }
     }
   }
   return k;
@@ -1690,6 +1725,7 @@ function disegnaDatiRighe() {
   const p = pressaDati, k = contiPressa(p), d = k.d, i = k.i, righe = [];
   if (!d) righe.push(['', 'Scrivi pezzi da produrre e vani (con articolo e commessa) per vedere i conti.']);
   else {
+    if (k.prima) righe.push(['Pezzi fatti prima della ripresa', nIt(k.prima)]);
     righe.push(['Cicli della commessa', (k.stimati ? '~' : '') + nIt(k.cicli)], ['Pezzi stampati', (k.stimati ? '~' : '') + nIt(k.pezzi) + ' su ' + nIt(d.quantita) + ' (' + nIt(Math.min(100, k.pezzi / d.quantita * 100)) + '%)'], ['Cicli che mancano', nIt(k.cicliMancano)]);
     righe.push(['Ritmo usato', k.ritmo.cicliOra ? nIt(k.ritmo.cicliOra, 1) + ' cicli/h · ' + (k.ritmo.veri ? "ultimo turno intero" : 'tempo ciclo ' + nIt(d.ciclo, 1) + ' s') : '—']);
     righe.push(['Fine commessa', (k.chiudiMescola ? 'a fine mescola · ' : '') + (k.cicliMancano || k.chiudiMescola ? testoFine(k.fine) : 'quantità raggiunta: si prosegue ad oltranza')]);
@@ -1714,6 +1750,8 @@ function apriDati() {
   $('dati-nota').hidden = !vecchi;
   if (vecchi) $('dati-nota').textContent = 'I dati di prima erano della commessa ' + i.datiPer + ': scrivi quelli della commessa nuova.';
   $('avviso-dati').textContent = '';
+  const gia = ultimaDi(p, c.articolo, i.mescola || '');
+  compilatoDa = gia && gia.mescola === (i.mescola || '') ? gia.id : null;   // aprendo la pagina non si ricopia niente sopra i dati che ci sono
   disegnaDatiRighe();
 }
 // numero scritto in una casella: vuoto = null; sbagliato = si ferma con un messaggio
@@ -1730,7 +1768,9 @@ $('d-mescola').oninput = () => {                      // si scrivono solo numeri
   const v = $('d-mescola').value.toUpperCase().replace(/[^0-9\/B]/g, '');
   if (v !== $('d-mescola').value) $('d-mescola').value = v;
 };
-$('dati-salva').onclick = () => {
+$('dati-salva').onclick = () => salvaDati();
+// ripresa: { pezzi } scelto nella domanda "Continua da dove era / Riparte da zero" (commessa già stampata su questa pressa)
+function salvaDati(ripresa) {
   const p = pressaDati;
   if (p == null || !inTurno()) return;
   let q, v, c, g, kg, pieno;
@@ -1745,22 +1785,50 @@ $('dati-salva').onclick = () => {
   const codice = $('d-mescola').value.trim();
   if (codice && !CODICE_MESCOLA.test(codice)) { $('avviso-dati').textContent = 'Mescola: scrivi solo numeri e «/», e al massimo B dopo una «/» (es. 316/193 oppure 316/B).'; $('d-mescola').focus(); return; }
   const mescola = codice ? 'M-' + codice : '', i = infoPresse[p] || {}, corr = commessaCorrente(p), adesso = new Date().toISOString();
+  const vecchia = commessa && commessa !== corr.commessa ? ultimaDi(p, articolo, mescola) : null;
+  if (ripresa === undefined && vecchia && vecchia.commessa === commessa) { domandaRipresa(p, vecchia, r => salvaDati(r)); return; }
   const oltranza = $('d-oltranza').checked && !!(q || v || c || g);   // vale per la commessa dei dati
   const chiudiMescola = $('d-chiudi-mescola').checked && !!(q || v || c || g);
   const campi = { nome: accesso.nome, dati_commessa: (q || v || c || g) ? commessa : null, quantita: q, vani: v, ciclo_s: c, stampata_g: g, oltranza: oltranza ? true : null, chiudi_mescola: chiudiMescola ? true : null, mescola: mescola || null, mescola_pieno: pieno };
   if (articolo !== corr.articolo || commessa !== corr.commessa) { campi.articolo = articolo || null; campi.commessa = commessa || null; campi.ora = adesso; }   // come "Salva articolo e commessa" nella lettura
+  if (commessa !== corr.commessa) campi.pezzi_prima = ripresa && ripresa.pezzi ? ripresa.pezzi : null;   // commessa cambiata: i pezzi di prima solo se si continua da dove era
   let kgOra = i.kgOra || '';
   if (kg !== null && kg !== i.kg) { campi.mescola_kg = kg; campi.mescola_ora = kgOra = adesso; }          // cassone nuovo o kg corretti: da qui si riparte a contare
   else if (kg === null && i.kg != null) { campi.mescola_kg = null; campi.mescola_ora = null; kgOra = ''; }
   infoPresse[p] = { ...i, articolo: campi.articolo === undefined ? i.articolo : articolo, commessa: campi.commessa === undefined ? i.commessa : commessa, ora: campi.ora || i.ora,
-    quantita: q || 0, vani: v || 0, ciclo: c || 0, stampata: g || 0, oltranza, chiudiMescola, mescola, pieno, kg, kgOra, datiPer: campi.dati_commessa || '' };
+    quantita: q || 0, vani: v || 0, ciclo: c || 0, stampata: g || 0, oltranza, chiudiMescola, mescola, pieno, kg, kgOra, datiPer: campi.dati_commessa || '',
+    pezziPrima: campi.pezzi_prima === undefined ? i.pezziPrima || 0 : campi.pezzi_prima || 0 };
   salva(PREF + 'info-presse', infoPresse);
+  salvaArchivio(recordArchivio(p));
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   // si torna a Produzione; "salvati" solo quando il database risponde di sì, e se rifiuta lo si dice in cima a Produzione
   vai('produzione');
   db.aggiornaPressa(p, campi).then(() => { msgProd('Dati della pressa ' + p + ' salvati.', true); })
     .catch(e => { msgProd('Pressa ' + p + ': ' + (e && e.code === 'permission-denied' ? 'il database non ha accettato i dati, non ha il permesso (le regole nuove sono state incollate in Console?).' : 'il database non ha accettato i dati. Riapri la pressa e riprova.')); });
-};
+}
+// pagina dati: scritto un articolo (o una mescola) già stampato su questa pressa, i dati dell'ultima commessa si ricopiano (da controllare);
+// scritta di nuovo la sua commessa, anche i kg di mescola rimasti alla chiusura
+let compilatoDa = null;                               // l'archivio già ricopiato in questa pagina
+function compilaPaginaDati(perMescola) {
+  const p = pressaDati, art = $('d-articolo').value.trim(), codice = $('d-mescola').value.trim();
+  const r = ultimaDi(p, art, perMescola ? (codice ? 'M-' + codice : '') : undefined);
+  if (!r || r.id === compilatoDa) return;
+  compilatoDa = r.id;
+  $('d-quantita').value = r.quantita || ''; $('d-vani').value = r.vani || ''; $('d-ciclo').value = r.ciclo_s || ''; $('d-stampata').value = r.stampata_g || '';
+  $('d-mescola').value = (r.mescola || '').replace(/^M-?/i, ''); $('d-pieno').value = r.mescola_pieno == null ? '' : r.mescola_pieno;
+  $('d-oltranza').checked = false; $('d-chiudi-mescola').checked = false;
+  $('avviso-dati').textContent = AVVISO_ARCHIVIO;
+  compilaKgVecchia();
+}
+function compilaKgVecchia() {
+  const p = pressaDati, cifre = $('d-commessa').value.trim().replace(/^P/i, ''), r = archivio.find(a => a.id === compilatoDa) || ultimaDi(p, $('d-articolo').value.trim());
+  if (!r || !cifre || 'P' + cifre !== r.commessa || 'P' + cifre === commessaCorrente(p).commessa || r.mescola_kg == null) return;
+  $('d-kg').value = r.mescola_kg;
+  $('avviso-dati').textContent = 'È la commessa ' + r.commessa + ', già stampata: ho inserito i suoi dati e i kg di mescola rimasti alla chiusura. Controlla che siano giusti.';
+}
+$('d-articolo').addEventListener('change', () => compilaPaginaDati(false));
+$('d-mescola').addEventListener('change', () => compilaPaginaDati(true));
+$('d-commessa').addEventListener('change', compilaKgVecchia);
 // messaggio in cima a Produzione (breve: sparisce da solo dopo qualche secondo)
 let timerProd = null;
 function msgProd(t, breve) {
@@ -1769,7 +1837,7 @@ function msgProd(t, breve) {
   if (t && breve) timerProd = setTimeout(() => msgProd(''), 5000);
 }
 // toccando una casella già scritta si seleziona tutto il testo: quello che si scrive prende il posto di quello di prima
-document.querySelectorAll('#vista-dati input.testo, #aggiungi-blocco input').forEach(el => {
+document.querySelectorAll('#vista-dati input.testo, #aggiungi-blocco input, #dialogo-avvio input').forEach(el => {
   const tutto = () => setTimeout(() => { if (document.activeElement === el) try { el.setSelectionRange(0, el.value.length); } catch (e) { el.select(); } }, 0);
   let appena = false;
   el.addEventListener('focus', () => { appena = true; tutto(); });
@@ -1848,6 +1916,145 @@ function avvioInAttesa(p) {
   if (!n || !n.attesa || !n.avvio) return null;
   return letture.some(l => l.pressa === p && l.ok_qualita && l.ora >= n.avvio) ? null : new Date(n.avvio);
 }
+// ---------------- Archivio delle commesse ----------------
+// Per ogni pressa + articolo + mescola l'ultima commessa stampata: i suoi dati (si salvano con "Salva i dati") e, alla Fine commessa,
+// i pezzi fatti e i kg di mescola rimasti. Scrivendo di nuovo quell'articolo su quella pressa i dati si ricopiano:
+// commessa nuova = tutto tranne commessa e kg a bordo; commessa vecchia = anche la commessa e i kg rimasti alla chiusura.
+let archivio = leggiLocale(PREF + 'archivio', []);
+const AVVISO_ARCHIVIO = 'Ho inserito i dati dell\'ultima commessa stampata. Controlla che siano giusti.';
+const idArchivio = (p, articolo, mescola) => [p, articolo, mescola || 'nessuna'].map(x => String(x).replace(/[^A-Za-z0-9]/g, '-')).join('_');
+// l'ultima commessa di quell'articolo su quella pressa (con la mescola data, se c'è)
+function ultimaDi(p, articolo, mescola) {
+  if (!articolo) return null;
+  const tutte = archivio.filter(a => a.pressa === p && a.articolo === articolo).sort((a, b) => a.ora < b.ora ? 1 : -1);
+  return (mescola !== undefined && tutte.find(a => (a.mescola || '') === mescola)) || (mescola ? null : tutte[0]) || null;
+}
+function recordArchivio(p, extra) {
+  const i = infoPresse[p] || {}, c = commessaCorrente(p);
+  if (!c.articolo || !c.commessa || i.datiPer !== c.commessa || !(i.quantita > 0) || !(i.vani > 0)) return null;
+  const id = idArchivio(p, c.articolo, i.mescola), prima = archivio.find(a => a.id === id);
+  const r = { id, pressa: p, articolo: c.articolo, mescola: i.mescola || '', commessa: c.commessa, quantita: i.quantita, vani: i.vani, ciclo_s: i.ciclo || null,
+    stampata_g: i.stampata || null, mescola_pieno: i.pieno == null ? null : i.pieno, ora: new Date().toISOString(), nome: accesso.nome };
+  if (prima && prima.commessa === c.commessa) { r.pezzi = prima.pezzi; r.mescola_kg = prima.mescola_kg; r.chiusa = prima.chiusa; }   // stessa commessa: resta quello della chiusura
+  return { ...r, ...extra };
+}
+function salvaArchivio(r) {
+  if (!r) return;
+  for (const k in r) if (r[k] == null) delete r[k];
+  archivio = [...archivio.filter(a => a.id !== r.id), r]; salva(PREF + 'archivio', archivio);
+  db.salvaArchivio(r.id, r).catch(() => {});
+}
+// alla Fine commessa (lettura l, non ancora salvata): pezzi fatti e kg di mescola rimasti
+function chiusuraCommessa(p, l) {
+  const k = contiPressa(p);
+  if (!k.d) return null;
+  const inizio = inizioCommessa(p, letture.length, new Date());
+  const lc = cicliCommessa([...letture.filter(x => x.pressa === p && !eSolo(x) && !eFine(x) && new Date(x.ora) >= inizio), l]), cicli = lc[lc.length - 1].cicli;
+  const kg = k.rim == null ? null : Math.round(Math.max(0, k.rim - Math.max(0, cicli - k.cicli) * k.d.stampata / 1000) * 10) / 10;
+  return recordArchivio(p, { pezzi: cicli * k.d.vani + k.prima, mescola_kg: kg, chiusa: l.ora });
+}
+// campi della pressa ricopiati dall'archivio; ripresa = { pezzi } se è la commessa vecchia
+function campiDaArchivio(r, commessa, ripresa) {
+  const c = { dati_commessa: commessa, quantita: r.quantita, vani: r.vani, ciclo_s: r.ciclo_s || null, stampata_g: r.stampata_g || null, oltranza: null, chiudi_mescola: null,
+    mescola: r.mescola || null, mescola_pieno: r.mescola_pieno == null ? null : r.mescola_pieno, pezzi_prima: ripresa && ripresa.pezzi ? ripresa.pezzi : null };
+  if (ripresa && r.mescola_kg != null) { c.mescola_kg = r.mescola_kg; c.mescola_ora = new Date().toISOString(); }   // commessa vecchia: anche i kg rimasti alla chiusura
+  return c;
+}
+// i campi del database nella copia sul telefono
+const CAMPO_INFO = { articolo: ['articolo', ''], commessa: ['commessa', ''], ora: ['ora', ''], attesa_qualita: ['attesa', false], avvio: ['avvio', ''], riscaldamento: ['risc', ''],
+  dati_commessa: ['datiPer', ''], quantita: ['quantita', 0], vani: ['vani', 0], ciclo_s: ['ciclo', 0], stampata_g: ['stampata', 0], oltranza: ['oltranza', false],
+  chiudi_mescola: ['chiudiMescola', false], mescola: ['mescola', ''], mescola_pieno: ['pieno', null], mescola_kg: ['kg', null], mescola_ora: ['kgOra', ''], pezzi_prima: ['pezziPrima', 0] };
+function applicaCampi(p, campi) {
+  const i = { ...(infoPresse[p] || {}) };
+  for (const k in campi) if (CAMPO_INFO[k]) i[CAMPO_INFO[k][0]] = campi[k] == null ? CAMPO_INFO[k][1] : campi[k];
+  infoPresse[p] = i; salva(PREF + 'info-presse', infoPresse);
+}
+// Lettura cicli: articolo e commessa di una pressa che ha già stampato quell'articolo → la scheda di Produzione si compila da sola
+function compilaDaArchivio(p, articolo, commessa, fatto) {
+  if (!PROVA || !articolo || !commessa) return;      // Produzione solo nella versione sviluppatore
+  const i = infoPresse[p];
+  if (i && i.datiPer === commessa && i.quantita > 0) return;   // già compilata
+  const r = ultimaDi(p, articolo);
+  if (!r) return;
+  const scrivi = ripresa => { const c = campiDaArchivio(r, commessa, ripresa); applicaCampi(p, c); db.aggiornaPressa(p, c).catch(erroreDati); if (fatto) fatto(); };
+  if (r.commessa === commessa) domandaRipresa(p, r, scrivi); else scrivi(null);
+}
+// "Continua da dove era" o "Riparte da zero" (se i pezzi della chiusura non ci sono, si riparte da zero senza chiedere)
+let ripresaCb = null, ripresaPezzi = 0;
+const dialogoRipresa = $('dialogo-ripresa');
+function domandaRipresa(p, r, cb) {
+  if (!(r.pezzi > 0)) { cb({ pezzi: 0 }); return; }
+  ripresaCb = cb; ripresaPezzi = r.pezzi;
+  $('testo-ripresa').textContent = 'La commessa ' + r.commessa + ' è già stata stampata sulla pressa ' + p + (r.chiusa ? ' (chiusa il ' + new Date(r.chiusa).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ')' : '') +
+    ': ' + nIt(r.pezzi) + ' pezzi su ' + nIt(r.quantita) + '. I pezzi continuano da lì o ripartono da zero?';
+  if (typeof dialogoRipresa.showModal === 'function') dialogoRipresa.showModal(); else dialogoRipresa.setAttribute('open', '');
+}
+$('ripresa-continua').onclick = () => { dialogoRipresa.close(); if (ripresaCb) ripresaCb({ pezzi: ripresaPezzi }); ripresaCb = null; };
+$('ripresa-zero').onclick = () => { dialogoRipresa.close(); if (ripresaCb) ripresaCb({ pezzi: 0 }); ripresaCb = null; };
+$('annulla-ripresa').onclick = () => { dialogoRipresa.close(); ripresaCb = null; };
+// Avvio macchina: articolo, poi commessa vecchia (quella dell'archivio) o nuova; la pressa passa all'attesa ok qualità e si apre la pagina dati
+let avvioDi = null;                                   // { p, daAggiungere, mescola }
+const dialogoAvvio = $('dialogo-avvio');
+function apriAvvio(p, daAggiungere) {
+  if (!inTurno()) return;
+  avvioDi = { p, daAggiungere, mescola: undefined };
+  $('avvio-pressa').textContent = p;
+  $('avvio-articolo').value = daAggiungere ? '' : commessaCorrente(p).articolo;
+  $('avvio-commessa').value = ''; $('avvio-blocco-nuova').hidden = true; $('avviso-avvio').textContent = '';
+  annullaConfermaCommessa();
+  mostraAvvio();
+  if (typeof dialogoAvvio.showModal === 'function') dialogoAvvio.showModal(); else dialogoAvvio.setAttribute('open', '');
+}
+const avvioScelto = () => { const art = $('avvio-articolo').value.trim(); return art ? archivio.find(a => a.pressa === avvioDi.p && a.articolo === art && (a.mescola || '') === avvioDi.mescola) || null : null; };
+function mostraAvvio() {
+  const art = $('avvio-articolo').value.trim(), tutte = art ? archivio.filter(a => a.pressa === avvioDi.p && a.articolo === art).sort((a, b) => a.ora < b.ora ? 1 : -1) : [];
+  if (!tutte.some(a => (a.mescola || '') === avvioDi.mescola)) avvioDi.mescola = tutte.length ? tutte[0].mescola || '' : undefined;
+  // stesso articolo con mescole diverse: si sceglie la mescola (la più recente è già scelta)
+  $('avvio-mescole').innerHTML = tutte.length > 1 ? tutte.map(a => '<button class="chip" data-mes="' + esc(a.mescola || '') + '" aria-pressed="' + ((a.mescola || '') === avvioDi.mescola) + '">' + esc(a.mescola || 'senza mescola') + '</button>').join('') : '';
+  document.querySelectorAll('#avvio-mescole [data-mes]').forEach(b => { b.onclick = () => { avvioDi.mescola = b.dataset.mes; mostraAvvio(); }; });
+  const r = avvioScelto();
+  $('avvio-ultima').textContent = !art ? 'Scrivi l\'articolo.' : r ? 'Ultima commessa: ' + r.commessa + (r.mescola ? ' · ' + r.mescola : '') + ' · ' + new Date(r.chiusa || r.ora).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) +
+    (r.pezzi != null ? ' · ' + nIt(r.pezzi) + ' pezzi su ' + nIt(r.quantita) : '') + '.' : 'Articolo mai stampato su questa pressa: i dati della commessa si scrivono nuovi.';
+  $('avvio-vecchia').hidden = !r;
+  if (r) $('avvio-vecchia').textContent = 'Riprendi commessa vecchia (' + r.commessa + ')';
+}
+$('avvio-articolo').oninput = () => { $('avvio-blocco-nuova').hidden = true; $('avviso-avvio').textContent = ''; mostraAvvio(); };
+$('avvio-nuova').onclick = () => {
+  if (!$('avvio-articolo').value.trim()) { $('avviso-avvio').textContent = 'Scrivi l\'articolo.'; $('avvio-articolo').focus(); return; }
+  $('avvio-blocco-nuova').hidden = false; $('avviso-avvio').textContent = ''; $('avvio-commessa').focus();
+};
+$('avvio-vecchia').onclick = () => {
+  const r = avvioScelto();
+  if (!r) return;
+  dialogoAvvio.close();
+  domandaRipresa(avvioDi.p, r, rip => avvia(r, r.commessa, rip));
+};
+$('avvio-ok').onclick = () => {
+  const cifre = $('avvio-commessa').value.trim().replace(/^P/i, ''), r = avvioScelto();
+  if (!cifre) { $('avviso-avvio').textContent = 'Scrivi la commessa.'; $('avvio-commessa').focus(); return; }
+  if (commessaSospetta(cifre, true, $('avvio-ok'), t => { $('avviso-avvio').textContent = t; })) return;
+  if (r && r.commessa === 'P' + cifre) { dialogoAvvio.close(); domandaRipresa(avvioDi.p, r, rip => avvia(r, r.commessa, rip)); return; }   // è proprio la commessa vecchia
+  avvia(r, 'P' + cifre, null);
+};
+$('avvio-commessa').addEventListener('input', () => { annullaConfermaCommessa(); $('avviso-avvio').textContent = ''; });
+$('annulla-avvio').onclick = () => dialogoAvvio.close();
+function avvia(r, commessa, ripresa) {
+  const { p, daAggiungere } = avvioDi, a = new Date(); a.setSeconds(0, 0);
+  const campi = { articolo: $('avvio-articolo').value.trim(), commessa, ora: new Date().toISOString(), nome: accesso.nome, attesa_qualita: true, avvio: a.toISOString(), riscaldamento: null };
+  const gia = !daAggiungere && !!datiPressa(p) && commessaCorrente(p).commessa === commessa;   // dati già scritti per questa commessa in corso (es. durante il riscaldamento): restano
+  if (r && !gia) Object.assign(campi, campiDaArchivio(r, commessa, ripresa));
+  if (dialogoAvvio.open) dialogoAvvio.close();
+  if (daAggiungere) {
+    const nuova = { pressa: p, ...campi };
+    for (const k in nuova) if (nuova[k] == null) delete nuova[k];
+    PRESSE.push(p); infoPresse[p] = {}; applicaCampi(p, campi); salvaPresse();
+    db.aggiungiPressa(nuova).catch(erroreDati);
+    $('aggiungi-blocco').hidden = true; $('aggiungi-apri').setAttribute('aria-expanded', 'false'); $('avviso-aggiungi').textContent = '';
+  } else { applicaCampi(p, campi); db.aggiornaPressa(p, campi).catch(erroreDati); }
+  disegnaElencoPresse(); disegnaRiepilogo();
+  pressaDati = p; vai('dati');
+  $('avviso-dati').textContent = r && !gia ? AVVISO_ARCHIVIO : 'Pressa ' + p + ' avviata: attesa ok qualità.' + (gia ? '' : ' Scrivi i dati della commessa.');
+}
 // Riscaldamento: la pressa aggiunta da Produzione scalda (luce arancione, timer di 3 ore); con "Avvio macchina" passa all'attesa ok qualità.
 // Restituisce l'ora d'inizio se scalda ancora, altrimenti null (finisce anche se nel frattempo la pressa viene letta).
 const ORE_RISCALDAMENTO = 3;
@@ -1858,12 +2065,7 @@ function riscaldamentoDi(p) {
 }
 function avviaMacchina(p) {
   if (!inTurno() || !riscaldamentoDi(p)) return;
-  const a = new Date(); a.setSeconds(0, 0);
-  infoPresse[p] = { ...infoPresse[p], risc: '', attesa: true, avvio: a.toISOString() }; salva(PREF + 'info-presse', infoPresse);
-  db.aggiornaPressa(p, { riscaldamento: null, attesa_qualita: true, avvio: a.toISOString() }).catch(erroreDati);
-  disegnaElencoPresse(); disegnaRiepilogo();
-  if (!$('vista-produzione').hidden) disegnaProduzione();
-  $('msg').textContent = 'Pressa ' + p + ': avvio macchina, attesa ok qualità.';
+  apriAvvio(p, false);
 }
 function salvaPresse() { PRESSE.sort((a, b) => a - b); salva(CHIAVE_PRESSE, PRESSE); aggiornaFerme(); }
 // La prima volta che il reparto non ha ancora l'elenco comune, ogni telefono ci mette le sue presse (una volta sola)
@@ -1879,7 +2081,7 @@ function presseArrivate(elenco, dalServer) {
   if (dalServer) salva(CHIAVE_FATTO, true);
   const nuove = elenco.map(x => Number(x.pressa)).sort((a, b) => a - b), info = {};
   elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '', attesa: x.attesa_qualita === true, avvio: x.avvio || '', risc: x.riscaldamento || '',
-    quantita: x.quantita || 0, vani: x.vani || 0, ciclo: x.ciclo_s || 0, stampata: x.stampata_g || 0, oltranza: x.oltranza === true, chiudiMescola: x.chiudi_mescola === true, mescola: x.mescola || '', pieno: x.mescola_pieno == null ? null : x.mescola_pieno, kg: x.mescola_kg == null ? null : x.mescola_kg, kgOra: x.mescola_ora || '', datiPer: x.dati_commessa || '' }; });
+    quantita: x.quantita || 0, vani: x.vani || 0, ciclo: x.ciclo_s || 0, stampata: x.stampata_g || 0, oltranza: x.oltranza === true, chiudiMescola: x.chiudi_mescola === true, mescola: x.mescola || '', pieno: x.mescola_pieno == null ? null : x.mescola_pieno, kg: x.mescola_kg == null ? null : x.mescola_kg, kgOra: x.mescola_ora || '', datiPer: x.dati_commessa || '', pezziPrima: x.pezzi_prima || 0 }; });
   if (JSON.stringify(nuove) === JSON.stringify([...PRESSE].sort((a, b) => a - b)) && JSON.stringify(info) === JSON.stringify(infoPresse)) return;   // niente di nuovo (es. solo la sincronizzazione)
   PRESSE = nuove; infoPresse = info;
   salvaPresse(); salva(PREF + 'info-presse', infoPresse);
@@ -1896,6 +2098,7 @@ $('aggiungi-apri').onclick = () => {
   if (!aprire) return;
   $('aggiungi-nota').hidden = $('vista-produzione').hidden;
   $('aggiungi-ok').hidden = !$('vista-produzione').hidden; $('aggiungi-modi').hidden = $('vista-produzione').hidden;   // da Produzione: Riscaldamento o Avvio macchina
+  $('aggiungi-campi').hidden = !$('vista-produzione').hidden;   // in Produzione articolo e commessa si scrivono con l'avvio o nella pagina dati
   $('aggiungi-num').value = $('aggiungi-articolo').value = $('aggiungi-commessa').value = '';
   $('aggiungi-scorciatoie').innerHTML = PRESSE_REPARTO.filter(p => !PRESSE.includes(p)).map(p => '<button class="chip" data-scorc="' + p + '">' + p + '</button>').join('');
   document.querySelectorAll('[data-scorc]').forEach(b => { b.onclick = () => { $('aggiungi-num').value = b.dataset.scorc; $('aggiungi-articolo').focus(); }; });
@@ -1906,6 +2109,7 @@ function aggiungi(modo, pulsante) {
   const t = $('aggiungi-num').value.trim(), p = Number(t);
   if (!/^\d{1,4}$/.test(t) || !p) { $('avviso-aggiungi').textContent = 'Scrivi il numero della pressa.'; $('aggiungi-num').focus(); return; }
   if (PRESSE.includes(p)) { $('avviso-aggiungi').textContent = 'La pressa ' + p + ' è già nell\'elenco.'; return; }
+  if (modo === 'avvio') { $('aggiungi-num').blur(); apriAvvio(p, true); return; }   // articolo e commessa li chiede l'avvio macchina
   const articolo = $('aggiungi-articolo').value.trim(), cifre = $('aggiungi-commessa').value.trim().replace(/^P/i, '');
   if (commessaSospetta(cifre, true, pulsante, t => { $('avviso-aggiungi').textContent = t; })) return;
   const nuova = { pressa: p, ora: new Date().toISOString(), nome: accesso.nome }, a = new Date();
@@ -1922,7 +2126,9 @@ function aggiungi(modo, pulsante) {
   disegnaElencoPresse();
   if (!$('vista-produzione').hidden) { disegnaProduzione(); $('avviso-aggiungi').textContent = 'Pressa ' + p + ' aggiunta: ' + (modo === 'risc' ? 'riscaldamento (' + ORE_RISCALDAMENTO + ' ore).' : 'attesa ok qualità.'); }
   $('msg').textContent = 'Pressa ' + p + ' aggiunta all\'elenco.';
+  compilaDaArchivio(p, articolo, nuova.commessa, () => { $('msg').textContent = 'Pressa ' + p + ' aggiunta all\'elenco. ' + AVVISO_LETTURA; });
 }
+const AVVISO_LETTURA = 'Ho inserito nella scheda di Produzione i dati dell\'ultima commessa stampata: controlla che siano giusti.';
 $('aggiungi-ok').onclick = () => aggiungi('', $('aggiungi-ok'));
 $('aggiungi-risc').onclick = () => aggiungi('risc', $('aggiungi-risc'));
 $('aggiungi-avvio').onclick = () => aggiungi('avvio', $('aggiungi-avvio'));
@@ -2244,6 +2450,7 @@ $('salva-campi').onclick = () => {
   mostraCampi(false);
   $('avviso-salva').textContent = '';
   $('msg').textContent = 'Pressa ' + p + ': ' + [articolo && 'articolo ' + articolo, campi.commessa && 'commessa ' + campi.commessa].filter(Boolean).join(', ') + ' salvati.';
+  compilaDaArchivio(p, articolo, campi.commessa, () => { $('msg').textContent += ' ' + AVVISO_LETTURA; });
 };
 $('cambia-campi').onclick = () => {
   const aprire = !$('tendina-campi').classList.contains('aperta');
@@ -2472,12 +2679,15 @@ function registra() {
     if (ult.motivo) lettura.motivo = ult.motivo;
     if (ult.nota) lettura.nota = ult.nota;
   }
+  const chiusa = lettura.fine_commessa ? chiusuraCommessa(p, lettura) : null, primaDi = commessaCorrente(p).commessa;   // alla Fine commessa: pezzi e mescola nell'archivio
   nuovaLettura(lettura);                     // con chi l'ha fatta (nome) e il suo codice
+  if (chiusa) salvaArchivio(chiusa);
   aggiornaFerme();
   chiudi();                                  // la tendina si chiude e la pressa risulta letta
   disegnaRiepilogo();
   const ev = testoEvento(lettura);
   $('msg').textContent = 'Salvato: pressa ' + p + ', ' + cicli + ' cicli' + (ev ? ' (' + ev.toLowerCase() + ')' : '') + '.';
+  if (!lettura.fine_commessa && commessa && commessa !== primaDi) compilaDaArchivio(p, articolo, commessa, () => { $('msg').textContent += ' ' + AVVISO_LETTURA; });
 }
 $('btn-ferma').onclick = () => ferma(pressaAperta);
 $('btn-riparte').onclick = () => riparte(pressaAperta);
@@ -2907,6 +3117,7 @@ async function avviaDati() {
   db.ascolta(datiArrivati, () => { $('msg').textContent = 'Il database non risponde: le letture si salvano sul telefono e partono appena torna la rete.'; });
   db.ascoltaGruppo(gruppoArrivato);
   db.ascoltaPresse(presseArrivate);
+  db.ascoltaArchivio(a => { archivio = a; salva(PREF + 'archivio', a); });
   proponiImportazione();
 }
 // persone, richieste e ospiti dal database: si chiude l'attesa se un collega ha risposto, si ridisegna
