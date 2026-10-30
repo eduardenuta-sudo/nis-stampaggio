@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030105253">
-<meta name="aggiornamento" content="99">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030105712">
+<meta name="aggiornamento" content="100">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1976,6 +1976,13 @@ function recordArchivio(p, extra) {
   if (prima && prima.commessa === c.commessa) { r.pezzi = prima.pezzi; r.mescola_kg = prima.mescola_kg; r.chiusa = prima.chiusa; }   // stessa commessa: resta quello della chiusura
   return { ...r, ...extra };
 }
+// le commesse in corso con i dati scritti entrano nell'archivio anche senza un nuovo "Salva i dati" (es. quelle di prima dell'archivio);
+// solo dopo che l'archivio è arrivato dal database, per non coprire i pezzi e i kg di una chiusura
+let archivioPronto = false;
+function archiviaInCorso() {
+  if (!archivioPronto || !accesso) return;
+  PRESSE.forEach(p => { const r = recordArchivio(p); if (r && !archivio.some(a => a.id === r.id && a.commessa === r.commessa)) salvaArchivio(r); });
+}
 function salvaArchivio(r) {
   if (!r) return;
   for (const k in r) if (r[k] == null) delete r[k];
@@ -2134,6 +2141,7 @@ function presseArrivate(elenco, dalServer) {
   if (!$('vista-leggi').hidden && !trascinato && pressaAperta == null) { disegnaElencoPresse(); disegnaRiepilogo(); }
   if (!$('vista-produzione').hidden) disegnaProduzione();
   if (!$('vista-dati').hidden) { if (PRESSE.includes(pressaDati)) disegnaDatiRighe(); else vai('produzione'); }
+  archiviaInCorso();
 }
 $('aggiungi-apri').onclick = () => {
   if (!inTurno()) { $('avviso-aggiungi').textContent = $('msg').textContent; return; }   // in Produzione il messaggio in alto non c'è
@@ -3165,6 +3173,7 @@ function datiArrivati(nuove) {
   if (!$('vista-home').hidden) disegnaHome();
   if (!$('vista-produzione').hidden) disegnaProduzione();
   if (!$('vista-dati').hidden) disegnaDatiRighe();
+  archiviaInCorso();
 }
 async function preparaDb() {
   if (!db) db = CONFIG_PRONTA ? await dbFirebase(FIREBASE) : dbFinto();
@@ -3177,7 +3186,7 @@ async function avviaDati() {
   db.ascolta(datiArrivati, () => { $('msg').textContent = 'Il database non risponde: le letture si salvano sul telefono e partono appena torna la rete.'; });
   db.ascoltaGruppo(gruppoArrivato);
   db.ascoltaPresse(presseArrivate);
-  db.ascoltaArchivio(a => { archivio = a; salva(PREF + 'archivio', a); });
+  db.ascoltaArchivio(a => { archivio = a; salva(PREF + 'archivio', a); archivioPronto = true; archiviaInCorso(); });
   proponiImportazione();
 }
 // persone, richieste e ospiti dal database: si chiude l'attesa se un collega ha risposto, si ridisegna
