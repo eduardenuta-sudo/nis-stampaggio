@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030201813">
-<meta name="aggiornamento" content="130">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030202301">
+<meta name="aggiornamento" content="131">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -1639,9 +1639,9 @@ function disegnaStrisce(c, p) {
       : k.chiudiMescola ? 'La commessa chiude con la mescola: <b>' + testoFine(k.fineMescola) + '</b>'
       : serve && nelTurno ? '<b>Finisce in questo turno</b>, ~' + oraIt(k.fineMescola) + '. Serve un cassone.'
       : serve && nelDopo ? '<b>Finisce nel turno dopo</b>, ' + testoFine(k.fineMescola) + '. Serve un cassone.'
-      : prima ? '<b>Finisce prima della commessa:</b> ' + testoFine(k.fineMescola) + '. Serve un cassone.'
+      : prima ? 'Finisce <b>' + testoFine(k.fineMescola) + '</b>'
       : k.inOltranza ? 'Ad oltranza: la mescola finisce <b>' + testoFine(k.fineMescola) + '</b>'
-      : k.cicliMancano ? 'Basta fino a fine commessa · finisce <b>' + testoFine(k.fineMescola) + '</b>' : 'Finisce <b>' + testoFine(k.fineMescola) + '</b>');
+      : 'Finisce <b>' + testoFine(k.fineMescola) + '</b>');   // solo la data; "turno dopo" e "questo turno" restano le uniche eccezioni
   }
 }
 // Produzione in tre parti: in produzione (in cima quella che finisce prima, commessa o mescola), in attesa di partenza (riscaldamento e
