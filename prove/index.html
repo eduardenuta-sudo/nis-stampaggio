@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030113136">
-<meta name="aggiornamento" content="104">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030114131">
+<meta name="aggiornamento" content="105">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -857,6 +857,20 @@ if (/prove/.test(location.pathname)) {
     </div>
   </div>
   <p class="piccolo" style="margin:0" id="rip-giorno"></p>
+  <!-- ok qualità: anche l'ora dell'avvio macchina si può sistemare (se l'avvio non era stato segnato subito) -->
+  <div id="rip-avvio-blocco" hidden style="margin-top:18px">
+    <h2 class="titolo-sez" style="font-size:1.1rem;margin-bottom:8px">Avvio macchina alle</h2>
+    <div class="orologio">
+      <input class="testo" type="time" id="avvio-orologio" aria-label="Ora dell'avvio macchina">
+      <div class="passi">
+        <button class="chip" data-passo-avvio="-60">&minus;1 h</button>
+        <button class="chip" data-passo-avvio="-10">&minus;10 min</button>
+        <button class="chip" data-passo-avvio="10">+10 min</button>
+        <button class="chip" data-passo-avvio="60">+1 h</button>
+      </div>
+    </div>
+    <p class="piccolo" style="margin:0" id="avvio-giorno"></p>
+  </div>
   <div class="avviso" id="avviso-riparte" role="alert"></div>
   <button id="conferma-riparte" class="salva" autofocus style="width:100%;margin:6px 0 20px">Confermo</button>   <!-- autofocus: senza, iPhone apre da solo il selettore dell'ora sul campo -->
   <button id="annulla-riparte" class="annulla">Annulla</button>
@@ -2300,19 +2314,28 @@ const dialogoRiparte = $('dialogo-riparte');
 // ripModo: 'nuova' = partenza di una commessa nuova; 'lettura' = "Nel mio turno" dentro la tendina; altrimenti "Riparte ora"
 let ripPressa = null, ripData = null, ripMin = null, ripModo = null;
 const alMinuto = d => { const x = new Date(d); x.setSeconds(0, 0); return x; };
+let avvioData = null;                                  // ok qualità: ora dell'avvio macchina (si può spostare, mai dopo l'ok)
+const giornoIt = d => d.toDateString() === new Date().toDateString() ? 'Oggi' : 'Il ' + d.toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: '2-digit' });
 function mostraRiparte(avviso) {
+  $('rip-avvio-blocco').hidden = ripModo !== 'okq';
+  if (ripModo === 'okq') { $('avvio-orologio').value = avvioData.toTimeString().slice(0, 5); $('avvio-giorno').textContent = giornoIt(avvioData); }
   $('rip-orologio').value = ripData.toTimeString().slice(0, 5);
   $('rip-giorno').textContent = ripData.toDateString() === new Date().toDateString() ? 'Oggi' : 'Il ' + ripData.toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: '2-digit' });
   $('avviso-riparte').textContent = avviso || '';
 }
-const testoPrima = () => (ripModo === 'ferma' ? "Prima dell'ultima lettura (" : ripModo === 'okq' ? "Prima dell'avvio macchina (" : 'Prima del fermo (') + ripMin.toTimeString().slice(0, 5) + ') non si può.';
+const testoPrima = () => (ripModo === 'ferma' || ripModo === 'okq' ? "Prima dell'ultima lettura (" : 'Prima del fermo (') + ripMin.toTimeString().slice(0, 5) + ') non si può.';
+// ok qualità spostato prima dell'avvio: l'avvio va indietro con lui
+const okPrimaDiAvvio = () => { if (ripModo === 'okq' && ripData < avvioData) avvioData = ripData; };
 // ok della qualità: si sceglie l'ora (adesso o indietro, mai prima dell'avvio macchina); da lì la pressa è in produzione
 function okQualita(p) {
   if (!inTurno()) return;
   const av = avvioInAttesa(p);
   if (!av) return;
   ripPressa = p; ripModo = 'okq';
-  ripMin = alMinuto(av);
+  const u = ultimaLettura(p);                          // l'avvio (e quindi l'ok) può andare indietro fino all'ultima lettura della pressa
+  ripMin = u && new Date(u.ora) < av ? alMinuto(u.ora) : turnoDi(new Date(Date.now() - 8 * 3600e3)).inizio;
+  if (ripMin > av) ripMin = alMinuto(av);
+  avvioData = alMinuto(av);
   ripData = alMinuto(oraDiScrittura());
   if (ripData < ripMin) ripData = ripMin;
   $('riparte-pressa').textContent = p;
@@ -2356,9 +2379,26 @@ document.querySelectorAll('#dialogo-riparte [data-passo]').forEach(b => {
     let n = new Date(ripData.getTime() + Number(b.dataset.passo) * 60000), avviso = '';
     if (n > max) { n = max; avviso = 'Più avanti di adesso non si può.'; }
     if (n < ripMin) { n = ripMin; avviso = testoPrima(); }
-    ripData = n; mostraRiparte(avviso);
+    ripData = n; okPrimaDiAvvio(); mostraRiparte(avviso);
   };
 });
+document.querySelectorAll('#dialogo-riparte [data-passo-avvio]').forEach(b => {
+  b.onclick = () => {
+    let n = new Date(avvioData.getTime() + Number(b.dataset.passoAvvio) * 60000), avviso = '';
+    if (n > ripData) { n = ripData; avviso = 'L\'avvio non può essere dopo l\'ok qualità.'; }
+    if (n < ripMin) { n = ripMin; avviso = testoPrima(); }
+    avvioData = n; mostraRiparte(avviso);
+  };
+});
+$('avvio-orologio').onchange = () => {
+  const v = $('avvio-orologio').value;
+  if (!v) { mostraRiparte(); return; }
+  const n = new Date(ripData);
+  n.setHours(Number(v.slice(0, 2)), Number(v.slice(3, 5)), 0, 0);
+  if (n > ripData) n.setDate(n.getDate() - 1);            // l'ultima volta che l'orologio ha segnato quell'ora prima dell'ok
+  if (n < ripMin) { mostraRiparte(testoPrima()); return; }
+  avvioData = n; mostraRiparte();
+};
 // ora scritta o scelta dall'orologio di iPhone: l'ultima volta che l'orologio ha segnato quell'ora
 $('rip-orologio').onchange = () => {
   const v = $('rip-orologio').value;
@@ -2370,7 +2410,7 @@ $('rip-orologio').onchange = () => {
     if (n < ripMin) { mostraRiparte('Più avanti di adesso non si può.'); return; }
   }
   if (n < ripMin) { mostraRiparte(testoPrima()); return; }
-  ripData = n; mostraRiparte();
+  ripData = n; okPrimaDiAvvio(); mostraRiparte();
 };
 $('annulla-riparte').onclick = () => dialogoRiparte.close();
 dialogoRiparte.addEventListener('click', e => { if (e.target === dialogoRiparte) dialogoRiparte.close(); });
@@ -2385,9 +2425,10 @@ $('conferma-riparte').onclick = () => {
     const av = avvioInAttesa(p);
     dialogoRiparte.close();
     if (!av) return;
-    nuovaLettura({ pressa: p, cicli: 0, ora: ripData.toISOString(), ore: 0, solo_evento: true, ok_qualita: true, avvio_macchina: av.toISOString() });
+    if (avvioData.getTime() !== av.getTime()) { const c = { avvio: avvioData.toISOString() }; applicaCampi(p, c); db.aggiornaPressa(p, c).catch(erroreDati); }   // avvio spostato
+    nuovaLettura({ pressa: p, cicli: 0, ora: ripData.toISOString(), ore: 0, solo_evento: true, ok_qualita: true, avvio_macchina: avvioData.toISOString() });
     aggiornaFerme(); disegnaElencoPresse(); disegnaRiepilogo(); disegnaHome();
-    $('msg').textContent = 'Pressa ' + p + ': ok qualità alle ' + ripData.toTimeString().slice(0, 5) + ', in produzione.';
+    $('msg').textContent = 'Pressa ' + p + ': avvio macchina alle ' + avvioData.toTimeString().slice(0, 5) + ', ok qualità alle ' + ripData.toTimeString().slice(0, 5) + ', in produzione.';
     if (!$('vista-produzione').hidden) { disegnaProduzione(); msgProd($('msg').textContent, true); }
     return;
   }
