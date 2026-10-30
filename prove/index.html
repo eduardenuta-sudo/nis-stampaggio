@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030114131">
-<meta name="aggiornamento" content="105">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030115112">
+<meta name="aggiornamento" content="106">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -628,10 +628,6 @@ if (/prove/.test(location.pathname)) {
 <main id="vista-produzione" hidden>
   <div class="avviso" id="avviso-prod" role="alert" style="margin:0 0 12px" hidden></div>
   <div id="presse-produzione"></div>
-  <div class="card">
-    <label>In arrivo</label>
-    <p style="margin:0">Qui metteremo le commesse: apertura e chiusura con ora e lettura del contatore, e la stima di quando finiscono.</p>
-  </div>
 </main>
 
 <!-- DATI COMMESSA: si apre toccando una pressa in Produzione -->
@@ -727,7 +723,7 @@ if (/prove/.test(location.pathname)) {
       <button id="btn-ferma" class="salva" style="width:100%">Ferma la pressa</button>
       <button id="btn-riparte" class="salva" style="width:100%" hidden>La pressa riparte</button>
       <!-- ferma e già letta da ferma: la commessa si chiude con i cicli di quella lettura, senza leggerli di nuovo -->
-      <button id="btn-fine-ferma" class="annulla" style="width:100%;margin-top:12px" hidden>Fine commessa</button>
+      <button id="btn-fine-ferma" class="annulla" style="width:100%;margin-top:12px" hidden>Chiudi commessa</button>
       <!-- "Ferma la pressa" con motivo Fine commessa: servono ancora i cicli finali -->
       <div id="fine-scelta" hidden>
         <span id="fine-testo"></span>
@@ -937,6 +933,16 @@ if (/prove/.test(location.pathname)) {
   </div>
   <div class="avviso" id="avviso-avvio" role="alert"></div>
   <button id="annulla-avvio" class="annulla">Annulla</button>
+</dialog>
+<!-- chiudi commessa di una pressa ferma: l'ultima lettura (cicli, chi, quando) e Conferma; i cicli si possono scrivere se il contatore segna altro -->
+<dialog id="dialogo-chiudi" aria-labelledby="titolo-chiudi">
+  <h2 class="titolo-sez" id="titolo-chiudi">Chiudi commessa · pressa <span id="chiudi-pressa"></span></h2>
+  <p style="margin:0 0 10px" id="chiudi-testo"></p>
+  <p class="piccolo" style="margin:0 0 14px" id="chiudi-nota"></p>
+  <div class="campo"><label for="chiudi-cicli">Cicli totali di chiusura</label><input class="testo" id="chiudi-cicli" inputmode="numeric" pattern="[0-9]*" maxlength="9" autocomplete="off"></div>
+  <div class="avviso" id="avviso-chiudi" role="alert"></div>
+  <button id="chiudi-ok" class="salva" style="width:100%;margin:6px 0 20px">Conferma</button>
+  <button id="annulla-chiudi" class="annulla">Annulla</button>
 </dialog>
 <!-- commessa già stampata su questa pressa: i pezzi continuano da dove era o ripartono da zero -->
 <dialog id="dialogo-ripresa" aria-labelledby="titolo-ripresa">
@@ -1616,7 +1622,7 @@ function disegnaProduzione() {
     // in riscaldamento: Dati commessa e Avvio macchina; in attesa: Dati commessa e Ok qualità
     c.querySelector('.azioni-prod').innerHTML = (risc || att) && scr ? '<button type="button" class="chip" data-dati="' + p + '">Dati commessa</button>' +
       (risc ? '<button type="button" class="chip avvia" data-avvia="' + p + '">Avvio macchina</button>' : '<button type="button" class="chip avvia" data-okprod="' + p + '">Ok qualità</button>')
-      : ferma && scr ? '<button type="button" class="chip avvia" data-riparteprod="' + p + '">Riparte ora</button><button type="button" class="chip" data-chiudiprod="' + p + '">' + (chiusuraDa === p ? 'Confermo' : 'Chiudi commessa') + '</button>' : '';
+      : ferma && scr ? '<button type="button" class="chip avvia" data-riparteprod="' + p + '">Riparte ora</button><button type="button" class="chip" data-chiudiprod="' + p + '">Chiudi commessa</button>' : '';
     const stato = c.querySelector('.stato-fermo');   // ferma: "Fermo per manutenzione · 1h 20min" sotto la testa
     stato.textContent = ferma ? testoEvento(u, { totale: minutiFermoNelTurno(p) }) : ''; stato.hidden = !ferma;
     gruppi[ferma ? 'ferme' : att || risc ? 'attesa' : 'lavoro'].push(p);
@@ -1917,10 +1923,16 @@ let timerProd = null;
 function msgProd(t, breve) {
   clearTimeout(timerProd);
   $('avviso-prod').textContent = t || ''; $('avviso-prod').hidden = !t;
-  if (t && breve) timerProd = setTimeout(() => msgProd(''), 5000);
+  if (t) timerProd = setTimeout(() => msgProd(''), breve ? 5000 : 45000);   // anche gli avvisi lunghi spariscono dopo 45 secondi
 }
+// la scritta sotto "Aggiungi pressa" resta 45 secondi, poi sparisce da sola
+let timerAggiungi = null;
+new MutationObserver(() => {
+  clearTimeout(timerAggiungi);
+  if ($('avviso-aggiungi').textContent) timerAggiungi = setTimeout(() => { $('avviso-aggiungi').textContent = ''; }, 45000);
+}).observe($('avviso-aggiungi'), { childList: true, characterData: true, subtree: true });
 // toccando una casella già scritta si seleziona tutto il testo: quello che si scrive prende il posto di quello di prima
-document.querySelectorAll('#vista-dati input.testo, #aggiungi-blocco input, #dialogo-avvio input').forEach(el => {
+document.querySelectorAll('#vista-dati input.testo, #aggiungi-blocco input, #dialogo-avvio input, #chiudi-cicli').forEach(el => {
   const tutto = () => setTimeout(() => { if (document.activeElement === el) try { el.setSelectionRange(0, el.value.length); } catch (e) { el.select(); } }, 0);
   let appena = false;
   el.addEventListener('focus', () => { appena = true; tutto(); });
@@ -2466,60 +2478,52 @@ $('conferma-riparte').onclick = () => {
   $('msg').textContent = 'Pressa ' + p + ' ripartita alle ' + ripData.toTimeString().slice(0, 5) + '.';
   if (!$('vista-produzione').hidden) { disegnaProduzione(); msgProd($('msg').textContent, true); }
 };
-// Ferma e già letta da ferma (l'ultima lettura ha i cicli e il fermo continua): il contatore non può essere cambiato,
-// quindi "Fine commessa" chiude con quei cicli senza chiederli di nuovo (anche nel turno dopo). Primo tocco: avviso; secondo: chiude.
+// Chiudi commessa di una pressa ferma (Produzione e tendina di Lettura cicli): una finestra con l'ultima lettura dei cicli (quanti, chi, quando)
+// e Conferma. Se la lettura è stata fatta con la pressa già ferma i cicli sono quelli; altrimenti si possono scrivere quelli del contatore.
+// La Fine commessa si salva adesso e il fermo arriva fino alla chiusura.
 const cicliDaFerma = p => { const u = ultimaLettura(p); return ferme.includes(p) && u && !eSolo(u) && !eFine(u) ? u : null; };
-let chiusuraDa = null, timerChiusura = null;           // pressa con la chiusura senza cicli già avvisata
-function annullaChiusura() {
-  clearTimeout(timerChiusura); chiusuraDa = null;
-  $('btn-fine-ferma').textContent = 'Fine commessa';
-  document.querySelectorAll('[data-chiudiprod]').forEach(b => { b.textContent = 'Chiudi commessa'; });
+const dialogoChiudi = $('dialogo-chiudi');
+let chiudiPressa = null;
+function chiudiDaFerma(p) {
+  if (!inTurno() || !ferme.includes(p)) return;
+  chiudiPressa = p;
+  const u = ultimaReale(p), da = cicliDaFerma(p), fermo = ultimaLettura(p);
+  $('chiudi-pressa').textContent = p;
+  $('chiudi-testo').innerHTML = u && !eFine(u) ? 'Ultima lettura: <b>' + nIt(u.cicli) + ' cicli</b>, fatta da <b>' + esc(u.nome || '—') + '</b> il ' + new Date(u.ora).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' alle ' + oraIt(new Date(u.ora)) + '.' : 'Nessuna lettura dei cicli per questa commessa.';
+  $('chiudi-nota').textContent = da ? 'La pressa era già ferma: la commessa ' + (u.commessa || '') + ' si chiude con questi cicli.'
+    : 'Dopo questa lettura la pressa ha lavorato fino al fermo delle ' + oraIt(new Date(fermo.ora)) + ': se puoi, scrivi i cicli del contatore; altrimenti si chiude con questi.';
+  $('chiudi-cicli').value = ''; $('chiudi-cicli').placeholder = u && !eFine(u) ? String(u.cicli) : 'cicli';
+  $('avviso-chiudi').textContent = '';
+  if (typeof dialogoChiudi.showModal === 'function') dialogoChiudi.showModal(); else dialogoChiudi.setAttribute('open', '');
 }
-function testoChiusura(p) {
-  const u = cicliDaFerma(p);
-  return 'Pressa ferma dalla lettura di ' + quandoBreve(new Date(u.ora)) + ': la commessa ' + (u.commessa || '') + ' si chiude con ' + nIt(u.cicli) + ' cicli, senza leggerli di nuovo. Tocca Confermo.';
-}
-// mostra(t): dove scrivere l'avviso; restituisce true se ha chiuso
-function chiudiSenzaCicli(p, mostra) {
-  const u = cicliDaFerma(p);
-  if (!inTurno() || !u) return false;
-  if (chiusuraDa !== p) {
-    annullaChiusura(); chiusuraDa = p; mostra(testoChiusura(p));
-    $('btn-fine-ferma').textContent = 'Confermo'; document.querySelectorAll('[data-chiudiprod="' + p + '"]').forEach(b => { b.textContent = 'Confermo'; });
-    timerChiusura = setTimeout(annullaChiusura, 15000);
-    return false;
-  }
-  annullaChiusura();
-  const adesso = oraDiScrittura(), t = oreTurno(p, adesso, u, null);   // il fermo arriva fino alla chiusura
-  const lettura = { pressa: p, cicli: u.cicli, ora: adesso.toISOString(), ore: t.lavorate, ore_fermo: t.ferme, fine_commessa: true, ripartenza: adesso.toISOString() };
-  if (u.articolo) lettura.articolo = u.articolo;
-  if (u.commessa) lettura.commessa = u.commessa;
+$('chiudi-ok').onclick = () => {
+  const p = chiudiPressa, u = ultimaReale(p), t = $('chiudi-cicli').value.trim(), base = u && !eFine(u) ? u.cicli : null;
+  const cicli = t ? Number(t) : base;
+  if (cicli == null || !Number.isInteger(cicli) || cicli < 0) { $('avviso-chiudi').textContent = 'Scrivi i cicli totali del contatore.'; $('chiudi-cicli').focus(); return; }
+  if (base != null && cicli < base) { $('avviso-chiudi').textContent = 'Meno dell\'ultima lettura (' + nIt(base) + '): controlla il numero.'; $('chiudi-cicli').focus(); return; }
+  dialogoChiudi.close();
+  chiudiConCicli(p, cicli);
+};
+$('annulla-chiudi').onclick = () => dialogoChiudi.close();
+$('chiudi-cicli').addEventListener('input', () => { $('avviso-chiudi').textContent = ''; });
+function chiudiConCicli(p, cicli) {
+  if (!inTurno() || !ferme.includes(p)) return;
+  const u = ultimaReale(p), adesso = oraDiScrittura(), t = oreTurno(p, adesso, u, null);   // il fermo arriva fino alla chiusura
+  const lettura = { pressa: p, cicli, ora: adesso.toISOString(), ore: t.lavorate, ore_fermo: t.ferme, fine_commessa: true, ripartenza: adesso.toISOString() };
+  const c = commessaCorrente(p);
+  if (c.articolo) lettura.articolo = c.articolo;
+  if (c.commessa) lettura.commessa = c.commessa;
   const chiusa = chiusuraCommessa(p, lettura);
   nuovaLettura(lettura);
   if (chiusa) salvaArchivio(chiusa);
   aggiornaFerme();
   if (pressaAperta === p) chiudi(); else disegnaElencoPresse();
   disegnaRiepilogo();
-  const m = 'Pressa ' + p + ': commessa ' + (u.commessa || '') + ' chiusa con ' + nIt(u.cicli) + ' cicli. Ora la puoi togliere dall\'elenco.';
+  const m = 'Pressa ' + p + ': commessa ' + (c.commessa || '') + ' chiusa con ' + nIt(cicli) + ' cicli. Ora la puoi togliere dall\'elenco.';
   $('msg').textContent = m;
   if (!$('vista-produzione').hidden) { disegnaProduzione(); msgProd(m); }
-  return true;
 }
-$('btn-fine-ferma').onclick = () => chiudiSenzaCicli(pressaAperta, t => { $('avviso-salva').textContent = t; });
-// Chiudi commessa da una pressa ferma (Produzione): si va alla Lettura cicli della pressa con "Fine commessa" adesso, mancano solo i cicli;
-// il fermo arriva fino alla chiusura
-function chiudiDaFerma(p) {
-  if (!inTurno() || !ferme.includes(p)) return;
-  if (cicliDaFerma(p)) { chiudiSenzaCicli(p, t => msgProd(t)); return; }   // già letta da ferma: niente cicli da chiedere
-  vai('leggi');
-  apri(p);
-  if (pressaAperta !== p) return;
-  ripData = alMinuto(oraDiScrittura());
-  $('ripartenza').hidden = true; ripScelta = null;
-  chiediCicliFine();
-  $('fine-testo').textContent = 'Chiudi commessa alle ' + oraFine.toTimeString().slice(0, 5) + ': scrivi i cicli totali di chiusura';
-  $('msg').textContent = 'Pressa ' + p + ': ' + PRENDI_CICLI;
-}
+$('btn-fine-ferma').onclick = () => chiudiDaFerma(pressaAperta);
 
 // la pressa scivola morbida da dov'era sullo schermo a dove arriva (aprendo: in cima; chiudendo: al suo posto nell'elenco)
 const topDi = p => { const v = document.querySelector('.voce[data-p="' + p + '"]'); return v ? v.getBoundingClientRect().top : null; };
@@ -2591,7 +2595,7 @@ function preparaCampi(p) {
   $('rip-ora-blocco').hidden = true;
   $('ripartenza').hidden = !eFerma(u) || eSolo(ult);   // con "Riparte ora" l'ora è già segnata: niente domanda
   $('btn-ferma').hidden = eFerma(ult); $('btn-riparte').hidden = !eFerma(ult);
-  $('btn-fine-ferma').hidden = !cicliDaFerma(p); annullaChiusura();
+  $('btn-fine-ferma').hidden = !eFerma(ult);   // ferma: si può chiudere la commessa (la finestra con l'ultima lettura)
   oreManuali = false;
   aggiornaOre();
 }
