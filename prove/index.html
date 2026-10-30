@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="versione" content="20261030161339">
-<meta name="aggiornamento" content="118">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
+<meta name="versione" content="20261030161843">
+<meta name="aggiornamento" content="119">   <!-- numero dell\'aggiornamento: lo scrive il pre-commit -->
 <meta name="theme-color" content="#0b2d6c">
 <!-- Android: con il manifest l'app si installa e si apre a schermo intero; iPhone usa l'icona da 180 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -2203,7 +2203,7 @@ function avvia(r, commessa, ripresa) {
 // Riscaldamento: la pressa aggiunta da Produzione scalda (luce arancione, timer di 3 ore); con "Avvio macchina" passa all'attesa ok qualità.
 // Restituisce l'ora d'inizio se scalda ancora, altrimenti null (finisce anche se nel frattempo la pressa viene letta).
 const ORE_RISCALDAMENTO = 3;                          // se la pressa non ha le sue ore (impostate da 1 a 12 quando si mette in riscaldamento)
-const oreRisc = p => (infoPresse[p] && infoPresse[p].riscOre) || ORE_RISCALDAMENTO;
+const oreRisc = p => { const n = Number(infoPresse[p] && infoPresse[p].riscOre); return n >= 1 && n <= 12 ? Math.floor(n) : ORE_RISCALDAMENTO; };
 function riscaldamentoDi(p) {
   const n = infoPresse[p];
   if (!n || !n.risc) return null;
@@ -2259,7 +2259,7 @@ function presseArrivate(elenco, dalServer) {
   if (dalServer) salva(CHIAVE_FATTO, true);
   nascoste = elenco.filter(x => x.nascosta === true).map(x => Number(x.pressa));
   const nuove = elenco.filter(x => x.nascosta !== true).map(x => Number(x.pressa)).sort((a, b) => a - b), info = {};
-  elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '', attesa: x.attesa_qualita === true, avvio: x.avvio || '', risc: x.riscaldamento || '', riscOre: x.risc_ore || 0,
+  elenco.forEach(x => { info[x.pressa] = { articolo: x.articolo || '', commessa: x.commessa || '', ora: x.ora || '', attesa: x.attesa_qualita === true, avvio: x.avvio || '', risc: x.riscaldamento || '', riscOre: Math.min(12, Math.max(0, Math.floor(Number(x.risc_ore)) || 0)),
     quantita: x.quantita || 0, vani: x.vani || 0, ciclo: x.ciclo_s || 0, stampata: x.stampata_g || 0, oltranza: x.oltranza === true, chiudiMescola: x.chiudi_mescola === true, mescola: x.mescola || '', pieno: x.mescola_pieno == null ? null : x.mescola_pieno, kg: x.mescola_kg == null ? null : x.mescola_kg, kgOra: x.mescola_ora || '', datiPer: x.dati_commessa || '', pezziPrima: x.pezzi_prima || 0 }; });
   if (JSON.stringify(nuove) === JSON.stringify([...PRESSE].sort((a, b) => a - b)) && JSON.stringify(info) === JSON.stringify(infoPresse)) return;   // niente di nuovo (es. solo la sincronizzazione)
   PRESSE = nuove; infoPresse = info;
